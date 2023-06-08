@@ -1316,7 +1316,6 @@ class ModuleScope(Scope):
         self.undeclared_cached_builtins = []
         self.namespace_cname = self.module_cname
         self._cached_tuple_types = {}
-        self.process_include(Code.IncludeCode("Python.h", initial=True))
 
     def qualifying_scope(self):
         return self.parent_module

@@ -123,8 +123,8 @@ optimize = _Optimization()
 embedsignature.format = overflowcheck.fold = optimize.use_switch = \
     optimize.unpack_method_calls = lambda arg: _EmptyDecoratorAndManager()
 
-final = internal = type_version_tag = no_gc_clear = no_gc = total_ordering = \
-    ufunc = _empty_decorator
+final = internal = type_version_tag = no_gc_clear = no_gc = \
+total_ordering = hpy = ufunc = _empty_decorator
 
 binding = lambda _: _empty_decorator
 

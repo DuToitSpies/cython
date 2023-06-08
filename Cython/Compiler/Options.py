@@ -350,6 +350,7 @@ directive_types = {
     'dataclasses.dataclass': DEFER_ANALYSIS_OF_ARGUMENTS,
     'dataclasses.field': DEFER_ANALYSIS_OF_ARGUMENTS,
     'embedsignature.format': one_of('c', 'clinic', 'python'),
+    'hpy': bool,
 }
 
 for key, val in _directive_defaults.items():
@@ -405,6 +406,7 @@ directive_scopes = {  # defaults to available everywhere
     'cpp_locals': ('module', 'function', 'cclass'),  # I don't think they make sense in a with_statement
     'ufunc': ('function',),
     'legacy_implicit_noexcept': ('module', ),
+    'hpy': ('module', 'function',),
     'control_flow.dot_output': ('module',),
     'control_flow.dot_annotate_defs': ('module',),
 }
@@ -800,4 +802,5 @@ default_options = dict(
     create_extension=None,
     np_pythran=False,
     legacy_implicit_noexcept=None,
+    hpy=False,
 )

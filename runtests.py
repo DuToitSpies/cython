@@ -135,6 +135,7 @@ EXT_DEP_MODULES = {
     'tag:ipython':  'IPython.testing.globalipapp',
     'tag:jedi':     'jedi_BROKEN_AND_DISABLED',
     'tag:test.support': 'test.support',  # support module for CPython unit tests
+    'tag:hpy':      'hpy.devel',
 }
 
 def patch_inspect_isfunction():
@@ -242,6 +243,24 @@ def update_linetrace_extension(ext):
     ext.define_macros.append(('CYTHON_TRACE', 1))
     return ext
 
+def update_hpy_extension(ext):
+    ext.define_macros.append(('HPY', 1))
+    import hpy.devel
+    # This should be set up by using the setuptools entrypoint
+    # hpy.devel.handle_hpy_ext_module via a
+    # setup(setup_requires=['hpy.devel'], ...)
+    # but this testrunner does not support that yet?
+    # so instead monkeypatch around to get hpy_ext._finalize_hpy_ext to work
+    hpy_ext = hpy.devel.build_hpy_ext_mixin()
+    hpy_ext.hpydevel = hpy.devel.HPyDevel()
+    dist = get_distutils_distro()
+    if not hasattr(dist, 'hpy_abi'):
+        # can be 'cpython' or 'universal'
+        # for now, always use 'cpython'
+        dist.hpy_abi = 'cpython'
+    hpy_ext.distribution = dist
+    hpy_ext._finalize_hpy_ext(ext)
+    return ext
 
 def update_numpy_extension(ext, set_api17_macro=True):
     import numpy as np
@@ -454,6 +473,7 @@ EXT_EXTRAS = {
     'tag:trace' : update_linetrace_extension,
     'tag:no-macos':  exclude_extension_on_platform('darwin'),
     'tag:cppexecpolicies': require_gcc("9.1"),
+    'tag:hpy': update_hpy_extension,
 }
 
 # TODO: use tags
@@ -854,13 +874,14 @@ class TestBuilder(object):
         add_cython_import = self.add_cython_import and module_path.endswith('.py')
 
         preparse_list = tags.get('preparse', ['id'])
+        hpy = 'hpy' in tags.get('tag', '')
         tests = [ self.build_test(test_class, path, workdir, module, module_path,
                                   tags, language, language_level,
                                   expect_log,
                                   warning_errors, preparse,
                                   pythran_dir if language == "cpp" else None,
                                   add_cython_import=add_cython_import,
-                                  extra_directives=extra_directives,
+                                  extra_directives=extra_directives, hpy=hpy,
                                   full_limited_api_mode=full_limited_api_mode)
                   for language in languages
                   for preparse in preparse_list
@@ -871,7 +892,7 @@ class TestBuilder(object):
 
     def build_test(self, test_class, path, workdir, module, module_path, tags, language, language_level,
                    expect_log, warning_errors, preparse, pythran_dir, add_cython_import,
-                   extra_directives, full_limited_api_mode):
+                   extra_directives, hpy, full_limited_api_mode):
         language_workdir = os.path.join(workdir, language)
         if not os.path.exists(language_workdir):
             os.makedirs(language_workdir)
@@ -901,6 +922,7 @@ class TestBuilder(object):
                           pythran_dir=pythran_dir,
                           stats=self.stats,
                           add_cython_import=add_cython_import,
+                          hpy=hpy,
                           full_limited_api_mode=full_limited_api_mode,
                           )
 
@@ -957,7 +979,7 @@ class CythonCompileTestCase(unittest.TestCase):
                  expect_log=(),
                  annotate=False, cleanup_workdir=True,
                  cleanup_sharedlibs=True, cleanup_failures=True, cython_only=False, test_selector=None,
-                 fork=True, language_level=2, warning_errors=False,
+                 fork=True, language_level=2, warning_errors=False, hpy=False,
                  test_determinism=False, shard_num=0,
                  common_utility_dir=None, pythran_dir=None, stats=None, add_cython_import=False,
                  extra_directives=None, full_limited_api_mode=False):
@@ -985,6 +1007,7 @@ class CythonCompileTestCase(unittest.TestCase):
         self.test_determinism = test_determinism
         self.common_utility_dir = common_utility_dir
         self.pythran_dir = pythran_dir
+        self.hpy = hpy
         self.stats = stats
         self.add_cython_import = add_cython_import
         self.extra_directives = extra_directives
@@ -1227,6 +1250,7 @@ class CythonCompileTestCase(unittest.TestCase):
             generate_pxi = False,
             evaluate_tree_assertions = True,
             common_utility_include_dir = common_utility_include_dir,
+            hpy = self.hpy,
             **extra_compile_options
             )
         cython_compile(module_path, options=options, full_module_name=module)
