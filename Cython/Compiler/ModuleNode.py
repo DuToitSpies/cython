@@ -6,13 +6,14 @@
 import cython
 cython.declare(Naming=object, Options=object, PyrexTypes=object, TypeSlots=object,
                error=object, warning=object, py_object_type=object, UtilityCode=object,
-               EncodedString=object, re=object)
+               EncodedString=object, re=object, textwrap=object)
 
 from collections import defaultdict
 import json
 import operator
 import os
 import re
+import textwrap
 import sys
 
 from .PyrexTypes import CPtrType
@@ -763,6 +764,15 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put(UtilityCode.load_as_string(name, "ModuleSetupCode.c")[1])
 
     def generate_module_preamble(self, env, options, cimported_modules, metadata, code):
+        inc = Code.IncludeCode(initial=True, verbatim=textwrap.dedent("""
+                #ifdef HPY
+                  #include "Python.h"
+                  #include "hpy.h"
+                #else
+                  #include "Python.h"
+                #endif
+                """))
+        env.process_include(inc)
         code.put_generated_by()
         if metadata:
             code.putln("/* BEGIN: Cython Metadata")
