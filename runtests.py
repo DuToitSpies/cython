@@ -253,13 +253,14 @@ def update_hpy_extension(ext):
     # setup(setup_requires=['hpy.devel'], ...)
     # but this testrunner does not support that yet?
     # so instead monkeypatch around to get hpy_ext._finalize_hpy_ext to work
-    hpy_ext = hpy.devel.build_hpy_ext_mixin()
+    hpy_ext = hpy.devel.build_ext_hpy_mixin()
     hpy_ext.hpydevel = hpy.devel.HPyDevel()
     dist = get_distutils_distro()
     if not hasattr(dist, 'hpy_abi'):
         # can be 'cpython' or 'universal'
         # for now, always use 'cpython'
         dist.hpy_abi = 'cpython'
+        dist.hpy_use_static_libs = False
     hpy_ext.distribution = dist
     hpy_ext._finalize_hpy_ext(ext)
     return ext
