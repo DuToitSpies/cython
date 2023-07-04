@@ -427,6 +427,33 @@
   #endif
 #endif
 
+#if defined(HPY)
+  #define CYTHON_USING_HPY 1
+  #if PY_MAJOR_VERSION < 3
+  #error "Cython/HPy requires Python 3 or newer"
+  #endif
+  #undef CYTHON_PEP489_MULTI_PHASE_INIT
+  #define CYTHON_PEP489_MULTI_PHASE_INIT 0
+  /* Module state is not yet supported in HPy */
+  #define CYTHON_USE_MODULE_STATE 0
+  /* Any Python objects are generally opaque in HPy */
+  #undef CYTHON_USE_PYLONG_INTERNALS
+  #define CYTHON_USE_PYLONG_INTERNALS 0
+  #undef CYTHON_USE_DICT_VERSIONS
+  #define CYTHON_USE_DICT_VERSIONS 0
+  #undef CYTHON_FAST_THREAD_STATE
+  #define CYTHON_FAST_THREAD_STATE 0
+  #undef CYTHON_USE_TYPE_SLOTS
+  #define CYTHON_USE_TYPE_SLOTS 0
+  /* We don't use refnanny in HPy since it has the debug mode */
+  #undef CYTHON_REFNANNY
+  #define CYTHON_REFNANNY 0
+  #undef CYTHON_METH_FASTCALL
+  #define CYTHON_METH_FASTCALL 1
+#else
+  #define CYTHON_USING_HPY 0
+#endif
+
 #ifndef CYTHON_FAST_PYCCALL
 #define CYTHON_FAST_PYCCALL  CYTHON_FAST_PYCALL
 #endif
@@ -683,6 +710,37 @@ class __Pyx_FakeReference {
     T *ptr;
 };
 
+
+/////////////// HPyInitCode ///////////////
+
+#if CYTHON_USING_HPY
+  #define PYOBJECT_TYPE HPy
+  #define CAPI_IS_POINTER
+  #define PYOBJECT_ALLOC(h) HPy_Dup(*$hpy_context_cname, h)
+  #define PYOBJECT_XALLOC(h) HPy_Dup(*$hpy_context_cname, h)
+  #define PYOBJECT_DEALLOC(h) HPy_Close(*$hpy_context_cname, h)
+  #define PYOBJECT_XDEALLOC(h) HPy_Close(*$hpy_context_cname, h)
+  #define HPY_CONTEXT_TYPE HPyContext *
+
+  #define API_NULL_VALUE HPy_NULL
+  
+  #define PYMODULEDEF_TYPE HPyModuleDef
+
+  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(*$hpy_context_name, o, attr_name) 
+#else
+  #define PYOBJECT_TYPE PyObject *
+  #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
+  #define PYOBJECT_ALLOC(h) Py_INCREF(h)
+  #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
+  #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
+  #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
+
+  #define API_NULL_VALUE NULL
+
+  #define PYMODULEDEF_TYPE struct PyModuleDef
+
+  #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
+#endif
 
 /////////////// PythonCompatibility ///////////////
 

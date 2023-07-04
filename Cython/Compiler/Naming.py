@@ -76,6 +76,7 @@ interned_prefixes = {
     'umethod': pyrex_prefix + "umethod_",
 }
 
+hpy_context_cname = pyrex_prefix + "hpy_ctx"
 ctuple_type_prefix = pyrex_prefix + "ctuple_"
 args_cname       = pyrex_prefix + "args"
 nargs_cname      = pyrex_prefix + "nargs"
@@ -102,6 +103,7 @@ modulestate_cname = pyrex_prefix + "mstate"
 modulestateglobal_cname = pyrex_prefix + "mstate_global"
 moddoc_cname     = pyrex_prefix + "mdoc"
 methtable_cname  = pyrex_prefix + "methods"
+hpy_defines_cname= pyrex_prefix + "hpy_defines"
 retval_cname     = pyrex_prefix + "r"
 reqd_kwds_cname  = pyrex_prefix + "reqd_kwds"
 self_cname       = pyrex_prefix + "self"
