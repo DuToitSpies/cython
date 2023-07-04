@@ -518,6 +518,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.mark_pos(None)
         self.generate_typeobj_definitions(env, code)
         self.generate_method_table(env, code)
+        self.generate_hpy_define_array(env, code)
         if env.has_import_star:
             self.generate_import_star(env, code)
 
@@ -818,6 +819,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             self._put_setup_code(code, "CppInitCode")
         else:
             self._put_setup_code(code, "CInitCode")
+        self._put_setup_code(code, "HPyInitCode")
         self._put_setup_code(code, "PythonCompatibility")
         self._put_setup_code(code, "MathInitCode")
 
@@ -888,7 +890,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln('static CYTHON_INLINE void __Pyx_pretend_to_initialize(void* ptr) { (void)ptr; }')
         code.putln('')
         code.putln('#if !CYTHON_USE_MODULE_STATE')
-        code.putln('static PyObject *%s = NULL;' % env.module_cname)
+        code.putln('static PYOBJECT_TYPE %s = API_NULL_VALUE;' % env.module_cname)
         if Options.pre_import is not None:
             code.putln('static PyObject *%s;' % Naming.preimport_cname)
         code.putln('#endif')
@@ -1491,6 +1493,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
                     self.generate_property_accessors(scope, code)
                     self.generate_method_table(scope, code)
+                    self.generate_hpy_define_array(scope, code)
                     self.generate_getset_table(scope, code)
                     code.putln("#if CYTHON_USE_TYPE_SPECS")
                     self.generate_typeobj_spec(entry, code)
@@ -2693,6 +2696,34 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if wrapper_code_writer.getvalue():
             wrapper_code_writer.putln("")
 
+    def generate_hpy_define_array(self, env, code):
+        if env.is_c_class_scope:
+            return
+
+        code.putln("")
+        code.putln("#if CYTHON_USING_HPY")
+        wrapper_code_writer = code.insertion_point()
+
+        code.putln(
+            "static HPyDef *%s[] = {" % (
+                env.hpy_defines_cname))
+        if env.hpyfunc_entries:
+            for entry in env.hpyfunc_entries:
+                code.put_hpydef(entry)
+                code.putln(",");
+        for entry in env.pyfunc_entries:
+            if not entry.fused_cfunction and not entry.is_overridable:
+                code.put_hpydef(entry)
+                code.putln(",")
+        code.putln("NULL")
+        code.putln(
+            "};")
+        code.putln("#endif")
+        code.putln("")
+
+        if wrapper_code_writer.getvalue():
+            wrapper_code_writer.putln("")
+
     def generate_dict_getter_function(self, scope, code):
         dict_attr = scope.lookup_here("__dict__")
         if not dict_attr or not dict_attr.is_variable:
@@ -3003,6 +3034,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("#endif")
         code.putln(header2)
         code.putln("#else")
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("%s CYTHON_SMALL_CODE; /*proto*/" % header3)
         if self.scope.is_package:
             code.putln("#if !defined(CYTHON_NO_PYINIT_EXPORT) && (defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS))")
@@ -3018,6 +3050,10 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("void %s(void) {} /* workaround for https://bugs.python.org/issue39432 */" % wrong_punycode_module_name)
             code.putln("#endif")
         code.putln(header3)
+        code.putln("#else")
+        code.putln("HPy_MODINIT(%s, %s)" % (env.module_name, Naming.pymoduledef_cname))
+        code.putln("static HPy init_%s_impl(HPY_CONTEXT_TYPE %s)" % (env.module_name, Naming.hpy_context_cname))
+        code.putln("#endif")
 
         # CPython 3.5+ supports multi-phase module initialisation (gives access to __spec__, __file__, etc.)
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
@@ -3030,7 +3066,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         code.putln("")
         # main module init code lives in Py_mod_exec function, not in PyInit function
-        code.putln("static CYTHON_SMALL_CODE int %s(PyObject *%s)" % (
+        code.putln("static CYTHON_SMALL_CODE int %s(PYOBJECT_TYPE %s)" % (
             self.module_init_func_cname(),
             Naming.pymodinit_module_arg))
         code.putln("#endif")  # PEP489
@@ -3070,10 +3106,17 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("}")
         code.putln("#elif PY_MAJOR_VERSION >= 3")
         # Hack: enforce single initialisation also on reimports under different names on Python 3 (with PEP 3121/489).
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("if (%s) return __Pyx_NewRef(%s);" % (
             Naming.module_cname,
             Naming.module_cname,
         ))
+        code.putln("#else")
+        code.putln("if (%s) return __Pyx_hNewRef(%s);" % (
+            Naming.module_cname,
+            Naming.module_cname,
+        ))
+        code.putln("#endif")
         code.putln("#endif")
 
         code.putln("/*--- Module creation code ---*/")
@@ -3506,7 +3549,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         exec_func_cname = self.module_init_func_cname()
         code.putln("static PyObject* %s(PyObject *spec, PyModuleDef *def); /*proto*/" %
                    Naming.pymodule_create_func_cname)
-        code.putln("static int %s(PyObject* module); /*proto*/" % exec_func_cname)
+        code.putln("static int %s(PYOBJECT_TYPE module); /*proto*/" % exec_func_cname)
 
         code.putln("static PyModuleDef_Slot %s[] = {" % Naming.pymoduledef_slots_cname)
         code.putln("{Py_mod_create, (void*)%s}," % Naming.pymodule_create_func_cname)
@@ -3522,11 +3565,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("")
         code.putln('#ifdef __cplusplus')
         code.putln('namespace {')
-        code.putln("struct PyModuleDef %s =" % Naming.pymoduledef_cname)
+        code.putln("PYMODULEDEF_TYPE %s =" % Naming.pymoduledef_cname)
         code.putln('#else')
-        code.putln("static struct PyModuleDef %s =" % Naming.pymoduledef_cname)
+        code.putln("static PYMODULEDEF_TYPE %s =" % Naming.pymoduledef_cname)
         code.putln('#endif')
         code.putln('{')
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("  PyModuleDef_HEAD_INIT,")
         code.putln('  %s,' % env.module_name.as_c_string_literal())
         code.putln("  %s, /* m_doc */" % doc)
@@ -3551,6 +3595,15 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("  NULL, /* m_traverse */")
         code.putln("  NULL, /* m_clear */")
         code.putln("  %s /* m_free */" % cleanup_func)
+        code.putln("#endif")
+        code.putln("#else")
+        code.putln("  .doc = %s," % doc)
+        code.putln("  .size = -1,")
+        code.putln("  .legacy_methods = 0,")
+        if env.is_c_class_scope and not env.hpyfunc_entries:
+            code.putln("  .defines = 0,")
+        else:
+            code.putln("  .defines = %s," % env.hpy_defines_cname)
         code.putln("#endif")
         code.putln("};")
         code.putln('#ifdef __cplusplus')
