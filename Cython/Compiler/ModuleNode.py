@@ -3048,15 +3048,13 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("void %s(void) {} /* workaround for https://bugs.python.org/issue39432 */" % wrong_punycode_module_name)
             code.putln("#endif")
         code.putln(header3)
-        code.putln("#else")
-        code.putln("HPy_MODINIT(%s, %s)" % (env.module_name, Naming.pymoduledef_cname))
-        code.putln("static HPy init_%s_impl(HPY_CONTEXT_TYPE %s)" % (env.module_name, Naming.hpy_context_cname))
-        code.putln("#endif")
 
         # CPython 3.5+ supports multi-phase module initialisation (gives access to __spec__, __file__, etc.)
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
         code.putln("{")
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("return PyModuleDef_Init(&%s);" % Naming.pymoduledef_cname)
+        code.putln("#endif")
         code.putln("}")
 
         mod_create_func = UtilityCode.load_as_string("ModuleCreationPEP489", "ModuleSetupCode.c")[1]
@@ -3089,7 +3087,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
         # Most extension modules simply can't deal with it, and Cython isn't ready either.
         # See issues listed here: https://docs.python.org/3/c-api/init.html#sub-interpreter-support
-        code.putln("if (%s) {" % Naming.module_cname)
+        code.putln("if (API_IS_NOT_NULL(%s)) {" % Naming.module_cname)
         # Hack: enforce single initialisation.
         code.putln("if (%s == %s) return 0;" % (
             Naming.module_cname,
@@ -3103,12 +3101,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#else")
         # Hack: enforce single initialisation also on reimports under different names (with PEP 3121/489).
         code.putln("#if !CYTHON_USING_HPY")
-        code.putln("if (%s) return __Pyx_NewRef(%s);" % (
+        code.putln("if (API_IS_NOT_NULL(%s)) return __Pyx_NewRef(%s);" % (
             Naming.module_cname,
             Naming.module_cname,
         ))
         code.putln("#else")
-        code.putln("if (%s) return __Pyx_hNewRef(%s);" % (
+        code.putln("if (API_IS_NOT_NULL(%s)) return __Pyx_hNewRef(%s);" % (
             Naming.module_cname,
             Naming.module_cname,
         ))

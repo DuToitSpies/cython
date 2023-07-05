@@ -433,7 +433,7 @@
   #error "Cython/HPy requires Python 3 or newer"
   #endif
   #undef CYTHON_PEP489_MULTI_PHASE_INIT
-  #define CYTHON_PEP489_MULTI_PHASE_INIT 0
+  #define CYTHON_PEP489_MULTI_PHASE_INIT 1
   /* Module state is not yet supported in HPy */
   #define CYTHON_USE_MODULE_STATE 0
   /* Any Python objects are generally opaque in HPy */
@@ -714,19 +714,22 @@ class __Pyx_FakeReference {
 /////////////// HPyInitCode ///////////////
 
 #if CYTHON_USING_HPY
+  #define HPY_CONTEXT_CNAME ${hpy_context_cname}
+
   #define PYOBJECT_TYPE HPy
   #define CAPI_IS_POINTER
-  #define PYOBJECT_ALLOC(h) HPy_Dup(*$hpy_context_cname, h)
-  #define PYOBJECT_XALLOC(h) HPy_Dup(*$hpy_context_cname, h)
-  #define PYOBJECT_DEALLOC(h) HPy_Close(*$hpy_context_cname, h)
-  #define PYOBJECT_XDEALLOC(h) HPy_Close(*$hpy_context_cname, h)
+  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define HPY_CONTEXT_TYPE HPyContext *
 
   #define API_NULL_VALUE HPy_NULL
+  #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
   
   #define PYMODULEDEF_TYPE HPyModuleDef
 
-  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(*$hpy_context_name, o, attr_name) 
+  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name) 
 #else
   #define PYOBJECT_TYPE PyObject *
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
@@ -736,6 +739,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
 
   #define API_NULL_VALUE NULL
+  #define API_IS_NOT_NULL(h) h
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
 
