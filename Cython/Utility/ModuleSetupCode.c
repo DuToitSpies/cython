@@ -714,11 +714,11 @@ class __Pyx_FakeReference {
 /////////////// HPyInitCode ///////////////
 
 #if CYTHON_USING_HPY
-  #define HPY_CONTEXT_CNAME ${hpy_context_cname}
+  #define HPY_CONTEXT_CNAME ${hpy_context_cname} //This gives an error, maybe ${} doesn't work in macros?
 
   #define PYOBJECT_TYPE HPy
   #define CAPI_IS_POINTER
-  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h) //Apparently there are too few args here, this might be related to the issue with HPyContext above
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
@@ -726,6 +726,7 @@ class __Pyx_FakeReference {
 
   #define API_NULL_VALUE HPy_NULL
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
+  #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b) //Also too few args issue
   
   #define PYMODULEDEF_TYPE HPyModuleDef
 
@@ -740,6 +741,7 @@ class __Pyx_FakeReference {
 
   #define API_NULL_VALUE NULL
   #define API_IS_NOT_NULL(h) h
+  #define API_IS_EQUAL(a, b) a==b
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
 
@@ -1594,6 +1596,7 @@ static CYTHON_SMALL_CODE int __Pyx_copy_spec_to_module(PyObject *spec, PyObject 
     return result;
 }
 
+#if !CYTHON_USING_HPY
 static CYTHON_SMALL_CODE PyObject* ${pymodule_create_func_cname}(PyObject *spec, PyModuleDef *def) {
     PyObject *module = NULL, *moddict, *modname;
     CYTHON_UNUSED_VAR(def);
@@ -1629,6 +1632,7 @@ bad:
     Py_XDECREF(module);
     return NULL;
 }
+#endif
 //#endif
 
 

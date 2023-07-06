@@ -3089,7 +3089,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         # See issues listed here: https://docs.python.org/3/c-api/init.html#sub-interpreter-support
         code.putln("if (API_IS_NOT_NULL(%s)) {" % Naming.module_cname)
         # Hack: enforce single initialisation.
-        code.putln("if (%s == %s) return 0;" % (
+        code.putln("if (API_IS_EQUAL(%s, %s)) return 0;" % (
             Naming.module_cname,
             Naming.pymodinit_module_arg,
         ))
@@ -3541,12 +3541,16 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#if PY_MAJOR_VERSION >= 3")
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
         exec_func_cname = self.module_init_func_cname()
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("static PyObject* %s(PyObject *spec, PyModuleDef *def); /*proto*/" %
                    Naming.pymodule_create_func_cname)
+        code.putln("#endif")
         code.putln("static int %s(PYOBJECT_TYPE module); /*proto*/" % exec_func_cname)
 
         code.putln("static PyModuleDef_Slot %s[] = {" % Naming.pymoduledef_slots_cname)
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("{Py_mod_create, (void*)%s}," % Naming.pymodule_create_func_cname)
+        code.putln("#endif")
         code.putln("{Py_mod_exec, (void*)%s}," % exec_func_cname)
         code.putln("{0, NULL}")
         code.putln("};")
