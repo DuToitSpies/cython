@@ -2860,7 +2860,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
     def generate_module_state_start(self, env, code):
         # TODO: Refactor to move module state struct decl closer to the static decl
         code.putln('typedef struct {')
-        code.putln('PyObject *%s;' % env.module_dict_cname)
+        code.putln('PYOBJECT_TYPE %s;' % env.module_dict_cname)
         code.putln('PyObject *%s;' % Naming.builtins_cname)
         code.putln('PyObject *%s;' % Naming.cython_runtime_cname)
         code.putln('PyObject *%s;' % Naming.empty_tuple)
@@ -3062,9 +3062,16 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         code.putln("")
         # main module init code lives in Py_mod_exec function, not in PyInit function
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("static CYTHON_SMALL_CODE int %s(PYOBJECT_TYPE %s)" % (
             self.module_init_func_cname(),
             Naming.pymodinit_module_arg))
+        code.putln("#else")
+        code.putln("int %s_impl(HPyContext *%s, HPy %s) {" % (
+            self.module_init_func_cname(),
+            Naming.hpy_context_cname,
+            Naming.pymodinit_module_arg))
+        code.putln("#endif")
         code.putln("#endif")  # PEP489
 
         # start of module init/exec function (pre/post PEP 489)
@@ -3544,16 +3551,23 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#if !CYTHON_USING_HPY")
         code.putln("static PyObject* %s(PyObject *spec, PyModuleDef *def); /*proto*/" %
                    Naming.pymodule_create_func_cname)
-        code.putln("#endif")
         code.putln("static int %s(PYOBJECT_TYPE module); /*proto*/" % exec_func_cname)
-
-        code.putln("static PyModuleDef_Slot %s[] = {" % Naming.pymoduledef_slots_cname)
-        code.putln("#if !CYTHON_USING_HPY")
-        code.putln("{Py_mod_create, (void*)%s}," % Naming.pymodule_create_func_cname)
+        code.putln("#else")
+        code.putln("HPyDef_SLOT(%s, HPy_mod_exec)" % self.module_init_func_cname())
         code.putln("#endif")
+
+        code.putln("#if !CYTHON_USING_HPY")
+        code.putln("static PyModuleDef_Slot %s[] = {" % Naming.pymoduledef_slots_cname)
+        code.putln("{Py_mod_create, (void*)%s}," % Naming.pymodule_create_func_cname)
         code.putln("{Py_mod_exec, (void*)%s}," % exec_func_cname)
         code.putln("{0, NULL}")
         code.putln("};")
+        code.putln("#else")
+        code.putln("static HPyDef *methods[] = {")
+        code.putln("&%s," % exec_func_cname)
+        code.putln("NULL,")
+        code.putln("};")
+        code.putln("#endif")
         if not env.module_name.isascii():
             code.putln("#else /* CYTHON_PEP489_MULTI_PHASE_INIT */")
             code.putln('#error "Unicode module names are only supported with multi-phase init'
@@ -3599,7 +3613,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("  .size = -1,")
         code.putln("  .legacy_methods = 0,")
         if env.is_c_class_scope and not env.hpyfunc_entries:
-            code.putln("  .defines = 0,")
+            code.putln("  .defines = methods,")
         else:
             code.putln("  .defines = %s," % env.hpy_defines_cname)
         code.putln("#endif")
@@ -3607,6 +3621,9 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln('#ifdef __cplusplus')
         code.putln('} /* anonymous namespace */')
         code.putln('#endif')
+        code.putln("#endif")
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("HPy_MODINIT(hpyinit, %s)" % Naming.pymoduledef_cname)
         code.putln("#endif")
 
     def generate_module_creation_code(self, env, code):
@@ -3665,7 +3682,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("CYTHON_UNUSED_VAR(%s);" % module_temp)  # only used in limited API
 
         code.putln(
-            "%s = PyModule_GetDict(%s); %s" % (
+            "%s = PYMODULE_GETDICT_ATTR(%s); %s" % (
                 env.module_dict_cname, env.module_cname,
                 code.error_goto_if_null(env.module_dict_cname, self.pos)))
         code.put_incref(env.module_dict_cname, py_object_type, nanny=False)
