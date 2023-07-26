@@ -656,9 +656,10 @@ class __Pyx_FakeReference {
 
 
 /////////////// HPyInitCode ///////////////
+//@substitute: naming
 
 #if CYTHON_USING_HPY
-  #define HPY_CONTEXT_CNAME ${hpy_context_cname} //This gives an error, maybe ${} doesn't work in macros?
+  #define HPY_CONTEXT_CNAME $hpy_context_cname
 
   #define PYOBJECT_TYPE HPy
   #define CAPI_IS_POINTER
@@ -674,7 +675,9 @@ class __Pyx_FakeReference {
   
   #define PYMODULEDEF_TYPE HPyModuleDef
 
-  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name) 
+  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
+
+  #define PYMODULE_GETDICT_ATTR(mod) HPy_GetAttr_s(HPY_CONTEXT_CNAME, mod, "__dict__") 
 #else
   #define PYOBJECT_TYPE PyObject *
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
@@ -690,6 +693,8 @@ class __Pyx_FakeReference {
   #define PYMODULEDEF_TYPE struct PyModuleDef
 
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
+
+  #define PYMODULE_GETDICT_ATTR(mod) PyModule_GetDict(mod) 
 #endif
 
 /////////////// PythonCompatibility ///////////////
