@@ -1204,7 +1204,7 @@ class GlobalState:
         w = self.parts['cached_constants']
         w.enter_cfunc_scope()
         w.putln("")
-        w.putln("static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {")
+        w.putln("static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(HPY_CONTEXT_ONLY_ARG_DEF) {")
         w.put_declare_refcount_context()
         w.put_setup_refcount_context(StringEncoding.EncodedString("__Pyx_InitCachedConstants"))
 
@@ -1602,7 +1602,7 @@ class GlobalState:
                 else:
                     encoding = '"%s"' % py_string.encoding.lower()
 
-                self.parts['module_state'].putln("PyObject *%s;" % py_string.cname)
+                self.parts['module_state'].putln("PYOBJECT_TYPE %s;" % py_string.cname)
                 self.parts['module_state_defines'].putln("#define %s %s->%s" % (
                     py_string.cname,
                     Naming.modulestateglobal_cname,
@@ -1648,7 +1648,7 @@ class GlobalState:
         init_constants = self.parts['init_constants']
         for py_type, _, _, value, value_code, c in consts:
             cname = c.cname
-            self.parts['module_state'].putln("PyObject *%s;" % cname)
+            self.parts['module_state'].putln("PYOBJECT_TYPE %s;" % cname)
             self.parts['module_state_defines'].putln("#define %s %s->%s" % (
                 cname, Naming.modulestateglobal_cname, cname))
             self.parts['module_state_clear'].putln(
@@ -2493,6 +2493,10 @@ class CCodeWriter:
 
     def error_goto_if_null(self, cname, pos):
         return self.error_goto_if("!%s" % cname, pos)
+    
+    def error_goto_if_null_object(self, cname, pos):
+        # In HPy, objects are check if null with HPy_IsNull, but other variables with !, hence the split is necessary
+        return self.error_goto_if("API_IS_NULL(%s)" % cname, pos)
 
     def error_goto_if_neg(self, cname, pos):
         # Add extra parentheses to silence clang warnings about constant conditions.

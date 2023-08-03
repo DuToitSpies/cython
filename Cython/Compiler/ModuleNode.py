@@ -2861,11 +2861,11 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         # TODO: Refactor to move module state struct decl closer to the static decl
         code.putln('typedef struct {')
         code.putln('PYOBJECT_TYPE %s;' % env.module_dict_cname)
-        code.putln('PyObject *%s;' % Naming.builtins_cname)
-        code.putln('PyObject *%s;' % Naming.cython_runtime_cname)
-        code.putln('PyObject *%s;' % Naming.empty_tuple)
-        code.putln('PyObject *%s;' % Naming.empty_bytes)
-        code.putln('PyObject *%s;' % Naming.empty_unicode)
+        code.putln('PYOBJECT_TYPE %s;' % Naming.builtins_cname)
+        code.putln('PYOBJECT_TYPE %s;' % Naming.cython_runtime_cname)
+        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_tuple)
+        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_bytes)
+        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_unicode)
         if Options.pre_import is not None:
             code.putln('PyObject *%s;' % Naming.preimport_cname)
         for type_cname, used_name in Naming.used_types_and_macros:
@@ -3141,12 +3141,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#ifdef __Pxy_PyFrame_Initialize_Offsets")
         code.putln("__Pxy_PyFrame_Initialize_Offsets();")
         code.putln("#endif")
-        code.putln("%s = PyTuple_New(0); %s" % (
-            Naming.empty_tuple, code.error_goto_if_null(Naming.empty_tuple, self.pos)))
-        code.putln("%s = PyBytes_FromStringAndSize(\"\", 0); %s" % (
-            Naming.empty_bytes, code.error_goto_if_null(Naming.empty_bytes, self.pos)))
-        code.putln("%s = PyUnicode_FromStringAndSize(\"\", 0); %s" % (
-            Naming.empty_unicode, code.error_goto_if_null(Naming.empty_unicode, self.pos)))
+        code.putln("%s = TUPLE_CREATE_EMPTY(); %s" % (
+            Naming.empty_tuple, code.error_goto_if_null_object(Naming.empty_tuple, self.pos)))
+        code.putln("%s = BYTES_FROM_STR_AND_SIZE(\"\", 0); %s" % (
+            Naming.empty_bytes, code.error_goto_if_null_object(Naming.empty_bytes, self.pos)))
+        code.putln("%s = HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0)); %s" % (
+            Naming.empty_unicode, code.error_goto_if_null_object(Naming.empty_unicode, self.pos)))
 
         for ext_type in ('CyFunction', 'FusedFunction', 'Coroutine', 'Generator', 'AsyncGen', 'StopAsyncIteration'):
             code.putln("#ifdef __Pyx_%s_USED" % ext_type)
@@ -3169,7 +3169,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
 
         code.putln("if (%s) {" % self.is_main_module_flag_cname())
-        code.put_error_if_neg(self.pos, 'PyObject_SetAttr(%s, %s, %s)' % (
+        code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, %s, %s)' % (
             env.module_cname,
             code.intern_identifier(EncodedString("__name__")),
             code.intern_identifier(EncodedString("__main__"))))
@@ -3183,7 +3183,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.put_error_if_neg(self.pos, "__Pyx_InitCachedBuiltins()")
 
         code.putln("/*--- Constants init code ---*/")
-        code.put_error_if_neg(self.pos, "__Pyx_InitCachedConstants()")
+        code.put_error_if_neg(self.pos, "__Pyx_InitCachedConstants(HPY_CONTEXT_ONLY_ARG_CALL)")
 
         code.putln("/*--- Global type/function init code ---*/")
 
@@ -3684,28 +3684,28 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln(
             "%s = PYMODULE_GETDICT_ATTR(%s); %s" % (
                 env.module_dict_cname, env.module_cname,
-                code.error_goto_if_null(env.module_dict_cname, self.pos)))
+                code.error_goto_if_null_object(env.module_dict_cname, self.pos)))
         code.put_incref(env.module_dict_cname, py_object_type, nanny=False)
 
         code.putln(
-            '%s = __Pyx_PyImport_AddModuleRef(__Pyx_BUILTIN_MODULE_NAME); %s' % (
+            '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef(__Pyx_BUILTIN_MODULE_NAME)); %s' % (
                 Naming.builtins_cname,
-                code.error_goto_if_null(Naming.builtins_cname, self.pos)))
+                code.error_goto_if_null_object(Naming.builtins_cname, self.pos)))
         code.putln(
-            '%s = __Pyx_PyImport_AddModuleRef("cython_runtime"); %s' % (
+            '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("cython_runtime")); %s' % (
                 Naming.cython_runtime_cname,
-                code.error_goto_if_null(Naming.cython_runtime_cname, self.pos)))
+                code.error_goto_if_null_object(Naming.cython_runtime_cname, self.pos)))
         code.putln(
-            'if (PyObject_SetAttrString(%s, "__builtins__", %s) < 0) %s' % (
+            'if (PYOBJECT_SET_ATTR_STR(%s, "__builtins__", %s) < 0) %s' % (
                 env.module_cname,
                 Naming.builtins_cname,
                 code.error_goto(self.pos)))
         if Options.pre_import is not None:
             code.putln(
-                '%s = __Pyx_PyImport_AddModuleRef("%s"); %s' % (
+                '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("%s")); %s' % (
                     Naming.preimport_cname,
                     Options.pre_import,
-                    code.error_goto_if_null(Naming.preimport_cname, self.pos)))
+                    code.error_goto_if_null_object(Naming.preimport_cname, self.pos)))
 
     def generate_global_init_code(self, env, code):
         # Generate code to initialise global PyObject *

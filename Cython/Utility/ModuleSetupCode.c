@@ -716,41 +716,67 @@ class __Pyx_FakeReference {
 
 #if CYTHON_USING_HPY
   #define HPY_CONTEXT_CNAME $hpy_context_cname
+  #define HPY_CONTEXT_TYPE HPyContext *
+  #define HPY_CONTEXT_ONLY_ARG_DEF HPY_CONTEXT_TYPE HPY_CONTEXT_CNAME
+  #define HPY_CONTEXT_ONLY_ARG_CALL HPY_CONTEXT_CNAME
 
   #define PYOBJECT_TYPE HPy
   #define CAPI_IS_POINTER
-  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h) //Apparently there are too few args here, this might be related to the issue with HPyContext above
+
+  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
-  #define HPY_CONTEXT_TYPE HPyContext *
+
+  #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
+  #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
 
   #define API_NULL_VALUE HPy_NULL
+  #define API_IS_NULL(h) HPy_IsNull(h)
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
-  #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b) //Also too few args issue
+  #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
   
   #define PYMODULEDEF_TYPE HPyModuleDef
 
+  #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
 
   #define PYMODULE_GETDICT_ATTR(mod) HPy_GetAttr_s(HPY_CONTEXT_CNAME, mod, "__dict__") 
+
+  #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
+
+  #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
 #else
+  #define HPY_CONTEXT_ONLY_ARG_DEF void
+  #define HPY_CONTEXT_ONLY_ARG_CALL 
+
   #define PYOBJECT_TYPE PyObject *
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
+
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
 
+  #define HPY_LEGACY_OBJECT_FROM(o) o
+  #define HPY_LEGACY_OBJECT_AS(o) o
+
   #define API_NULL_VALUE NULL
+  #define API_IS_NULL(h) !h //Both are here as otherwise we would get !!h for API_IS_NOT_NULL, which is hard to read - but it can be made so if necessary
   #define API_IS_NOT_NULL(h) h
   #define API_IS_EQUAL(a, b) a==b
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
 
+  #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
+  #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) PyObject_SetAttrString(o1, attr_name, o2)
 
   #define PYMODULE_GETDICT_ATTR(mod) PyModule_GetDict(mod) 
+
+  #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
+  #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
 #endif
 
 /////////////// PythonCompatibility ///////////////
