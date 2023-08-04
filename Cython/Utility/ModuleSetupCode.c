@@ -663,6 +663,8 @@ class __Pyx_FakeReference {
   #define HPY_CONTEXT_TYPE HPyContext *
   #define HPY_CONTEXT_ONLY_ARG_DEF HPY_CONTEXT_TYPE HPY_CONTEXT_CNAME
   #define HPY_CONTEXT_ONLY_ARG_CALL HPY_CONTEXT_CNAME
+  #define HPY_CONTEXT_FIRST_ARG_DEF HPY_CONTEXT_TYPE HPY_CONTEXT_CNAME,
+  #define HPY_CONTEXT_FIRST_ARG_CALL HPY_CONTEXT_CNAME,
 
   #define PYOBJECT_TYPE HPy
   #define CAPI_IS_POINTER
@@ -679,6 +681,8 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) HPy_IsNull(h)
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_TRUE HPY_CONTEXT_CNAME->h_True
+  #define API_FALSE HPY_CONTEXT_CNAME->h_False
   
   #define PYMODULEDEF_TYPE HPyModuleDef
 
@@ -693,7 +697,9 @@ class __Pyx_FakeReference {
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
 #else
   #define HPY_CONTEXT_ONLY_ARG_DEF void
-  #define HPY_CONTEXT_ONLY_ARG_CALL 
+  #define HPY_CONTEXT_ONLY_ARG_CALL
+  #define HPY_CONTEXT_FIRST_ARG_DEF
+  #define HPY_CONTEXT_FIRST_ARG_CALL
 
   #define PYOBJECT_TYPE PyObject *
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
@@ -710,6 +716,8 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) !h //Both are here as otherwise we would get !!h for API_IS_NOT_NULL, which is hard to read - but it can be made so if necessary
   #define API_IS_NOT_NULL(h) h
   #define API_IS_EQUAL(a, b) a==b
+  #define API_TRUE Py_True
+  #define API_FALSE Py_False
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
 

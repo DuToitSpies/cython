@@ -2536,7 +2536,7 @@ class CCodeWriter:
         )
 
         self.funcstate.uses_error_indicator = True
-        self.putln('__Pyx_AddTraceback(%s, %s, %s, %s);' % format_tuple)
+        self.putln('__Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s);' % format_tuple)
 
     def put_unraisable(self, qualified_name, nogil=False):
         """

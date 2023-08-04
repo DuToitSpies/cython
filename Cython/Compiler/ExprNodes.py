@@ -2506,7 +2506,8 @@ class NameNode(AtomicExprNode):
                 setter = '__Pyx_SetItemOnTypeDict'
             elif entry.scope.is_module_scope:
                 setter = 'PyDict_SetItem'
-                namespace = Naming.moddict_cname
+                namespace = "HPY_LEGACY_OBJECT_AS(" + Naming.moddict_cname + ")"
+                interned_cname = "HPY_LEGACY_OBJECT_AS(" + interned_cname + ")"
             elif entry.is_pyclass_attr:
                 # Special-case setting __new__
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
