@@ -723,6 +723,8 @@ class __Pyx_FakeReference {
   #define HPY_CONTEXT_FIRST_ARG_CALL HPY_CONTEXT_CNAME,
 
   #define PYOBJECT_TYPE HPy
+  #define PYOBJECT_FIELD_TYPE HPyField
+  #define PYOBJECT_GLOBAL_TYPE HPyGlobal
   #define CAPI_IS_POINTER
 
   #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -758,6 +760,8 @@ class __Pyx_FakeReference {
   #define HPY_CONTEXT_FIRST_ARG_CALL
 
   #define PYOBJECT_TYPE PyObject *
+  #define PYOBJECT_FIELD_TYPE PyObject *
+  #define PYOBJECT_GLOBAL_TYPE PyObject *
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
 
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
