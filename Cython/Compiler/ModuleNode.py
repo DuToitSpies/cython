@@ -2971,7 +2971,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             Naming.modulestate_cname,
             Naming.modulestate_cname))
         code.putln("if (!clear_module_state) return 0;")
-        code.putln('Py_CLEAR(clear_module_state->%s);' %
+        code.putln('Py_CLEAR(HPY_LEGACY_OBJECT_AS(clear_module_state->%s));' %
             env.module_dict_cname)
         code.putln('Py_CLEAR(clear_module_state->%s);' %
             Naming.builtins_cname)
@@ -3067,7 +3067,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             self.module_init_func_cname(),
             Naming.pymodinit_module_arg))
         code.putln("#else")
-        code.putln("int %s_impl(HPyContext *%s, HPy %s) {" % (
+        code.putln("int %s_impl(HPyContext *%s, HPy %s)" % (
             self.module_init_func_cname(),
             Naming.hpy_context_cname,
             Naming.pymodinit_module_arg))
@@ -3241,8 +3241,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put_label(code.error_label)
         for cname, type in code.funcstate.all_managed_temps():
             code.put_xdecref(cname, type)
-        code.putln('if (%s) {' % env.module_cname)
-        code.putln('if (%s && stringtab_initialized) {' % env.module_dict_cname)
+        code.putln('if (API_IS_NOT_NULL(%s)) {' % env.module_cname)
+        code.putln('if (API_IS_NOT_NULL(%s) && stringtab_initialized) {' % env.module_dict_cname)
         # We can run into errors before the module or stringtab are initialized.
         # In this case it is not safe to add a traceback (because it uses the stringtab)
         code.put_add_traceback(EncodedString("init %s" % env.qualified_name))
@@ -3277,7 +3277,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put_finish_refcount_context()
 
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
-        code.putln("return (%s != NULL) ? 0 : -1;" % env.module_cname)
+        code.putln("return (API_IS_NOT_NULL(%s)) ? 0 : -1;" % env.module_cname)
         code.putln("#elif PY_MAJOR_VERSION >= 3")
         code.putln("return %s;" % env.module_cname)
         code.putln("#else")
@@ -3408,7 +3408,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("PyObject *modules = PyImport_GetModuleDict(); %s" %
                    code.error_goto_if_null("modules", self.pos))
         code.putln('if (!PyDict_GetItemString(modules, %s)) {' % fq_module_name_cstring)
-        code.putln(code.error_goto_if_neg('PyDict_SetItemString(modules, %s, %s)' % (
+        code.putln(code.error_goto_if_neg('PyDict_SetItemString(modules, %s, HPY_LEGACY_OBJECT_AS(%s))' % (
             fq_module_name_cstring, env.module_cname), self.pos))
         code.putln("}")
         code.putln("}")

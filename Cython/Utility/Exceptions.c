@@ -762,9 +762,9 @@ static void __Pyx_WriteUnraisable(const char *name, int clineno,
 /////////////// CLineInTraceback.proto ///////////////
 
 #ifdef CYTHON_CLINE_IN_TRACEBACK  /* 0 or 1 to disable/enable C line display in tracebacks at C compile time */
-#define __Pyx_CLineForTraceback(tstate, c_line)  (((CYTHON_CLINE_IN_TRACEBACK)) ? c_line : 0)
+#define __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF tstate, c_line)  (((CYTHON_CLINE_IN_TRACEBACK)) ? c_line : 0)
 #else
-static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line);/*proto*/
+static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tstate, int c_line);/*proto*/
 #endif
 
 /////////////// CLineInTraceback ///////////////
@@ -774,7 +774,7 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line);/*proto*/
 //@substitute: naming
 
 #ifndef CYTHON_CLINE_IN_TRACEBACK
-static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
+static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tstate, int c_line) {
     PyObject *use_cline;
     PyObject *ptype, *pvalue, *ptraceback;
 #if CYTHON_COMPILING_IN_CPYTHON
@@ -783,7 +783,7 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
 
     CYTHON_MAYBE_UNUSED_VAR(tstate);
 
-    if (unlikely(!${cython_runtime_cname})) {
+    if (unlikely(API_IS_NULL(${cython_runtime_cname}))) {
         // Very early error where the runtime module is not set up yet.
         return c_line;
     }
@@ -791,15 +791,15 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
     __Pyx_ErrFetchInState(tstate, &ptype, &pvalue, &ptraceback);
 
 #if CYTHON_COMPILING_IN_CPYTHON
-    cython_runtime_dict = _PyObject_GetDictPtr(${cython_runtime_cname});
+    cython_runtime_dict = _PyObject_GetDictPtr(HPY_LEGACY_OBJECT_AS(${cython_runtime_cname}));
     if (likely(cython_runtime_dict)) {
         __PYX_PY_DICT_LOOKUP_IF_MODIFIED(
             use_cline, *cython_runtime_dict,
-            __Pyx_PyDict_GetItemStr(*cython_runtime_dict, PYIDENT("cline_in_traceback")))
+            __Pyx_PyDict_GetItemStr(*cython_runtime_dict, HPY_LEGACY_OBJECT_AS(PYIDENT("cline_in_traceback"))))
     } else
 #endif
     {
-      PyObject *use_cline_obj = __Pyx_PyObject_GetAttrStrNoError(${cython_runtime_cname}, PYIDENT("cline_in_traceback"));
+      PyObject *use_cline_obj = __Pyx_PyObject_GetAttrStrNoError(HPY_LEGACY_OBJECT_AS(${cython_runtime_cname}), HPY_LEGACY_OBJECT_AS(PYIDENT("cline_in_traceback")));
       if (use_cline_obj) {
         use_cline = PyObject_Not(use_cline_obj) ? Py_False : Py_True;
         Py_DECREF(use_cline_obj);
@@ -811,7 +811,7 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
     if (!use_cline) {
         c_line = 0;
         // No need to handle errors here when we reset the exception state just afterwards.
-        (void) PyObject_SetAttr(${cython_runtime_cname}, PYIDENT("cline_in_traceback"), Py_False);
+        (void) PYOBJECT_SET_ATTR(${cython_runtime_cname}, PYIDENT("cline_in_traceback"), API_FALSE);
     }
     else if (use_cline == Py_False || (use_cline != Py_True && PyObject_Not(use_cline) != 0)) {
         c_line = 0;
@@ -823,7 +823,7 @@ static int __Pyx_CLineForTraceback(PyThreadState *tstate, int c_line) {
 
 /////////////// AddTraceback.proto ///////////////
 
-static void __Pyx_AddTraceback(const char *funcname, int c_line,
+static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, int c_line,
                                int py_line, const char *filename); /*proto*/
 
 /////////////// AddTraceback ///////////////
@@ -885,7 +885,7 @@ static PyObject *__Pyx_PyCode_Replace_For_AddTraceback(PyObject *code, PyObject 
     #endif
 }
 
-static void __Pyx_AddTraceback(const char *funcname, int c_line,
+static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARGUMENT_CALL const char *funcname, int c_line,
                                int py_line, const char *filename) {
     PyObject *code_object = NULL, *py_py_line = NULL, *py_funcname = NULL, *dict = NULL;
     PyObject *replace = NULL, *getframe = NULL, *frame = NULL;
@@ -894,7 +894,7 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
     if (c_line) {
         // Avoid "unused" warning as long as we don't use this.
         (void) $cfilenm_cname;
-        (void) __Pyx_CLineForTraceback(__Pyx_PyThreadState_Current, c_line);
+        (void) __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARGUMENT_CALL __Pyx_PyThreadState_Current, c_line);
     }
 
     // DW - this is a horrendous hack, but I'm quite proud of it. Essentially
@@ -971,7 +971,7 @@ bad:
     return NULL;
 }
 
-static void __Pyx_AddTraceback(const char *funcname, int c_line,
+static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, int c_line,
                                int py_line, const char *filename) {
     PyCodeObject *py_code = 0;
     PyFrameObject *py_frame = 0;
@@ -979,7 +979,7 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
     PyObject *ptype, *pvalue, *ptraceback;
 
     if (c_line) {
-        c_line = __Pyx_CLineForTraceback(tstate, c_line);
+        c_line = __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_CALL tstate, c_line);
     }
 
     // Negate to avoid collisions between py and c lines.
@@ -1002,7 +1002,7 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
     py_frame = PyFrame_New(
         tstate,            /*PyThreadState *tstate,*/
         py_code,           /*PyCodeObject *code,*/
-        $moddict_cname,    /*PyObject *globals,*/
+        HPY_LEGACY_OBJECT_AS($moddict_cname),    /*PyObject *globals,*/
         0                  /*PyObject *locals*/
     );
     if (!py_frame) goto bad;
