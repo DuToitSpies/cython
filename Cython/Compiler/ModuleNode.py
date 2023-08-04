@@ -1336,6 +1336,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         module_state = globalstate['module_state']
         module_state_defines = globalstate['module_state_defines']
         module_state_clear = globalstate['module_state_clear']
+        module_state_clear.putln("#if CYTHON_USING_HPY")
         module_state_traverse = globalstate['module_state_traverse']
         module_state_typeobj = module_state.insertion_point()
         module_state_defines_typeobj = module_state_defines.insertion_point()
@@ -1366,6 +1367,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                     module_state_traverse.putln(
                         "Py_VISIT(traverse_module_state->%s);" % (
                         entry.type.typeobj_cname))
+        module_state_clear.putln("#endif")
         for writer in [module_state_typeobj, module_state_defines_typeobj]:
             writer.putln("#endif")
 
@@ -2955,7 +2957,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             Naming.modulestate_cname,
             Naming.modulestate_cname))
         code.putln("if (!clear_module_state) return 0;")
-        code.putln('Py_CLEAR(HPY_LEGACY_OBJECT_AS(clear_module_state->%s));' %
+        code.putln('Py_CLEAR(clear_module_state->%s);' %
             env.module_dict_cname)
         code.putln('Py_CLEAR(clear_module_state->%s);' %
             Naming.builtins_cname)
@@ -3034,6 +3036,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("#endif")
         code.putln(header2)
         code.putln("#else")
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("%s CYTHON_SMALL_CODE; /*proto*/" % header3)
         if self.scope.is_package:
             code.putln("#if !defined(CYTHON_NO_PYINIT_EXPORT) && (defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS))")
@@ -3049,14 +3052,15 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("void %s(void) {} /* workaround for https://bugs.python.org/issue39432 */" % wrong_punycode_module_name)
             code.putln("#endif")
         code.putln(header3)
+        code.putln("#endif")
 
         # CPython 3.5+ supports multi-phase module initialisation (gives access to __spec__, __file__, etc.)
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
-        code.putln("{")
         code.putln("#if !CYTHON_USING_HPY")
+        code.putln("{")
         code.putln("return PyModuleDef_Init(&%s);" % Naming.pymoduledef_cname)
-        code.putln("#endif")
         code.putln("}")
+        code.putln("#endif")
 
         mod_create_func = UtilityCode.load_as_string("ModuleCreationPEP489", "ModuleSetupCode.c")[1]
         code.put(mod_create_func)
@@ -3256,7 +3260,9 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         # user code in atexit or other global registries.
         ##code.put_decref_clear(env.module_dict_cname, py_object_type, nanny=False)
         code.putln('}')
-        code.putln("#if !CYTHON_USE_MODULE_STATE")
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("PYOBJECT_DEALLOC(%s);" % env.module_cname)
+        code.putln("#elif !CYTHON_USE_MODULE_STATE")
         code.put_decref_clear(env.module_cname, py_object_type, nanny=False, clear_before_decref=True)
         code.putln("#else")
         # This section is mainly for the limited API. env.module_cname still owns a reference so
