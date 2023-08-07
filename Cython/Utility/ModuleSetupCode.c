@@ -731,6 +731,9 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
+
+  #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
 
   #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
   #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
@@ -743,6 +746,11 @@ class __Pyx_FakeReference {
   #define API_FALSE HPY_CONTEXT_CNAME->h_False
   
   #define PYMODULEDEF_TYPE HPyModuleDef
+
+  #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
+  #define DICT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
 
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
@@ -768,6 +776,9 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
+  #define REFNANNY_DEALLOC(func, h) func(h)
+
+  #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
 
   #define HPY_LEGACY_OBJECT_FROM(o) o
   #define HPY_LEGACY_OBJECT_AS(o) o
@@ -780,6 +791,11 @@ class __Pyx_FakeReference {
   #define API_FALSE Py_False
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
+
+  #define DICT_NEW() 
+  #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
+  #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
+  #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
 
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
@@ -1124,7 +1140,9 @@ static CYTHON_INLINE void *__Pyx_PyModule_GetState(PyObject *op)
   #define __Pyx_PyType_GetSlot(type, name, func_ctype)  ((type)->name)
 #endif
 
-#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000 || defined(_PyDict_NewPresized)
+#if CYTHON_USING_HPY
+#define __Pyx_PyDict_NewPresized(n) DICT_NEW()
+#elif CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000 || defined(_PyDict_NewPresized)
 #define __Pyx_PyDict_NewPresized(n)  ((n <= 8) ? PyDict_New() : _PyDict_NewPresized(n))
 #else
 #define __Pyx_PyDict_NewPresized(n)  PyDict_New()

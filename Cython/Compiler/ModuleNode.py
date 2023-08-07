@@ -3161,7 +3161,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.put_error_if_neg(self.pos, "_import_array()")
 
         code.putln("/*--- Initialize various global constants etc. ---*/")
-        code.put_error_if_neg(self.pos, "__Pyx_InitConstants()")
+        code.put_error_if_neg(self.pos, "__Pyx_InitConstants(HPY_CONTEXT_ONLY_ARG_CALL)")
         code.putln("stringtab_initialized = 1;")
         code.put_error_if_neg(self.pos, "__Pyx_InitGlobals()")  # calls any utility code
 
@@ -3290,6 +3290,10 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
         code.putln('}')
 
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("HPy_MODINIT(%s, %s)" % (env.module_name, Naming.pymoduledef_cname))
+        code.putln("#endif")
+
         tempdecl_code.put_temp_declarations(code.funcstate)
 
         code.exit_cfunc_scope()
@@ -3410,7 +3414,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         fq_module_name_cstring = fq_module_name.as_c_string_literal()
         code.putln("#if PY_MAJOR_VERSION >= 3")
         code.putln("{")
-        code.putln("PyObject *modules = PyImport_GetModuleDict(); %s" %
+        code.putln("PyObject *modules = PyImport_GetModuleDict(); %s" % ##Figure out how to get module dict
                    code.error_goto_if_null("modules", self.pos))
         code.putln('if (!PyDict_GetItemString(modules, %s)) {' % fq_module_name_cstring)
         code.putln(code.error_goto_if_neg('PyDict_SetItemString(modules, %s, HPY_LEGACY_OBJECT_AS(%s))' % (
@@ -3615,7 +3619,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
         code.putln("#else")
         code.putln("  .doc = %s," % doc)
-        code.putln("  .size = -1,")
+        code.putln("  .size = 0,")
         code.putln("  .legacy_methods = 0,")
         if env.is_c_class_scope and not env.hpyfunc_entries:
             code.putln("  .defines = methods,")
@@ -3626,9 +3630,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln('#ifdef __cplusplus')
         code.putln('} /* anonymous namespace */')
         code.putln('#endif')
-        code.putln("#endif")
-        code.putln("#if CYTHON_USING_HPY")
-        code.putln("HPy_MODINIT(hpyinit, %s)" % Naming.pymoduledef_cname)
         code.putln("#endif")
 
     def generate_module_creation_code(self, env, code):
