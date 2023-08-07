@@ -1589,7 +1589,7 @@ class GlobalState:
             py_strings.sort()
             w = self.parts['pystring_table']
             w.putln("")
-            w.putln("static int __Pyx_CreateStringTabAndInitStrings(void) {")
+            w.putln("static int __Pyx_CreateStringTabAndInitStrings(HPY_CONTEXT_ONLY_ARG_DEF) {")
             # the stringtab is a function local rather than a global to
             # ensure that it doesn't conflict with module state
             w.putln("__Pyx_StringTabEntry %s[] = {" % Naming.stringtab_cname)
@@ -1634,11 +1634,11 @@ class GlobalState:
                     w.putln("#endif")
             w.putln("{0, 0, 0, 0, 0, 0, 0}")
             w.putln("};")
-            w.putln("return __Pyx_InitStrings(%s);" % Naming.stringtab_cname)
+            w.putln("return __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_CALL %s);" % Naming.stringtab_cname)
             w.putln("}")
 
             init_constants.putln(
-                "if (__Pyx_CreateStringTabAndInitStrings() < 0) %s;" %
+                "if (__Pyx_CreateStringTabAndInitStrings(HPY_CONTEXT_ONLY_ARG_CALL) < 0) %s;" %
                     init_constants.error_goto(self.module_pos))
 
     def generate_num_constants(self):
