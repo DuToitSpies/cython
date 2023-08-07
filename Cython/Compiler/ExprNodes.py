@@ -2505,9 +2505,9 @@ class NameNode(AtomicExprNode):
                 # on types, so we create a descriptor which is then added to tp_dict.
                 setter = '__Pyx_SetItemOnTypeDict'
             elif entry.scope.is_module_scope:
-                setter = 'PyDict_SetItem'
-                namespace = "HPY_LEGACY_OBJECT_AS(" + Naming.moddict_cname + ")"
-                interned_cname = "HPY_LEGACY_OBJECT_AS(" + interned_cname + ")"
+                setter = 'DICT_SET_ITEM'
+                namespace = Naming.moddict_cname
+                interned_cname = interned_cname
             elif entry.is_pyclass_attr:
                 # Special-case setting __new__
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
@@ -9245,7 +9245,7 @@ class DictNode(ExprNode):
                 "%s = __Pyx_PyDict_NewPresized(%d); %s" % (
                     self.result(),
                     len(self.key_value_pairs),
-                    code.error_goto_if_null(self.result(), self.pos)))
+                    code.error_goto_if_null_object(self.result(), self.pos)))
             self.generate_gotref(code)
 
         keys_seen = set()

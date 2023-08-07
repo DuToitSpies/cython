@@ -1731,7 +1731,7 @@ class CEnumDefNode(StatNode):
                     item.cname,
                     code.error_goto_if_null(temp, item.pos)))
                 code.put_gotref(temp, PyrexTypes.py_object_type)
-                code.putln('if (PyDict_SetItemString(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS("%s"), %s) < 0) %s' % (
+                code.putln('if (DICT_SET_ITEM_STR(%s, "%s", %s) < 0) %s' % (
                     Naming.moddict_cname,
                     item.name,
                     temp,

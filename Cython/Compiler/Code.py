@@ -1216,7 +1216,7 @@ class GlobalState:
         w = self.parts['init_constants']
         w.enter_cfunc_scope()
         w.putln("")
-        w.putln("static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {")
+        w.putln("static CYTHON_SMALL_CODE int __Pyx_InitConstants(HPY_CONTEXT_ONLY_ARG_DEF) {")
 
         if not Options.generate_cleanup_code:
             del self.parts['cleanup_globals']
@@ -1662,12 +1662,12 @@ class GlobalState:
             elif Utils.long_literal(value):
                 function = 'PyInt_FromString("%s", 0, 0)'
             elif len(value.lstrip('-')) > 4:
-                function = "PyInt_FromLong(%sL)"
+                function = "PYOBJECT_FROM_LONG(%sL)"
             else:
-                function = "PyInt_FromLong(%s)"
+                function = "PYOBJECT_FROM_LONG(%s)"
             init_constants.putln('%s = %s; %s' % (
                 cname, function % value_code,
-                init_constants.error_goto_if_null(cname, self.module_pos)))
+                init_constants.error_goto_if_null_object(cname, self.module_pos)))
 
     # The functions below are there in a transition phase only
     # and will be deprecated. They are called from Nodes.BlockNode.
@@ -2133,7 +2133,7 @@ class CCodeWriter:
             else:
                 decl = type.declaration_code(name)
             if type.is_pyobject:
-                self.putln("%s = NULL;" % decl)
+                self.putln("%s = API_NULL_VALUE;" % decl)
             elif type.is_memoryviewslice:
                 self.putln("%s = %s;" % (decl, type.literal_code(type.default_value)))
             else:

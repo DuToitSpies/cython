@@ -1281,13 +1281,13 @@ class PyObjectType(PyrexType):
         if pyrex or for_display:
             base_code = "object"
         else:
-            base_code = public_decl("PyObject", dll_linkage)
-            entity_code = "*%s" % entity_code
+            base_code = public_decl("PYOBJECT_TYPE", dll_linkage)
+            entity_code = "%s" % entity_code
         return self.base_declaration_code(base_code, entity_code)
 
     def as_pyobject(self, cname):
         if (not self.is_complete()) or self.is_extension_type:
-            return "(PyObject *)" + cname
+            return "(PYOBJECT_TYPE)" + cname
         else:
             return cname
 
@@ -1379,10 +1379,10 @@ class PyObjectType(PyrexType):
                     X = ''  # CPython doesn't have a Py_XCLEAR()
                 code.putln("%s_%sCLEAR(%s);" % (prefix, X, cname))
             else:
-                code.putln("%s_%sDECREF(%s); %s = 0;" % (
+                code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s); %s = API_NULL_VALUE;" % (
                     prefix, X, self.as_pyobject(cname), cname))
         else:
-            code.putln("%s_%sDECREF(%s);" % (
+            code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s);" % (
                 prefix, X, self.as_pyobject(cname)))
 
     def nullcheck_string(self, cname):
