@@ -26,11 +26,11 @@ static CYTHON_INLINE Py_ssize_t __Pyx_Py_UNICODE_ssize_strlen(const Py_UNICODE *
 
 //////////////////// InitStrings.proto ////////////////////
 
-static int __Pyx_InitStrings(__Pyx_StringTabEntry *t); /*proto*/
+static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t); /*proto*/
 
 //////////////////// InitStrings ////////////////////
 
-static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
+static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t) {
     while (t->p) {
         PyObject *str;
         if (t->is_unicode | t->is_str) {
