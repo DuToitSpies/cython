@@ -2245,11 +2245,11 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                     # Implement the and/or check with an if.
                     if comp_op == '&&':
                         code.putln("if (%s order_res) {" % ('!!' if invert_comp else '!'))
-                        code.putln("ret = __Pyx_NewRef(Py_False);")
+                        code.putln("ret = __Pyx_NewRef(API_FALSE);")
                         code.putln("} else {")
                     elif comp_op == '||':
                         code.putln("if (%s order_res) {" % ('!' if invert_comp else ''))
-                        code.putln("ret = __Pyx_NewRef(Py_True);")
+                        code.putln("ret = __Pyx_NewRef(API_TRUE);")
                         code.putln("} else {")
                     else:
                         raise AssertionError('Unknown op %s' % (comp_op, ))
@@ -2266,18 +2266,18 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                     code.putln("Py_DECREF(ret);")
                     code.putln("if (unlikely(eq_res < 0)) return NULL;")
                     if invert_equals:
-                        code.putln("ret = eq_res ? Py_False : Py_True;")
+                        code.putln("ret = eq_res ? API_FALSE : API_TRUE;")
                     else:
-                        code.putln("ret = eq_res ? Py_True : Py_False;")
+                        code.putln("ret = eq_res ? API_TRUE : API_FALSE;")
                     code.putln("Py_INCREF(ret);")
                     code.putln("}")  # equals success
                     code.putln("}")  # Needs to try equals
                 else:
                     # Convert direct to a boolean.
                     if invert_comp:
-                        code.putln("ret = order_res ? Py_False : Py_True;")
+                        code.putln("ret = order_res ? API_FALSE : API_TRUE;")
                     else:
-                        code.putln("ret = order_res ? Py_True : Py_False;")
+                        code.putln("ret = order_res ? API_TRUE : API_FALSE;")
                     code.putln("Py_INCREF(ret);")
                 code.putln("}")  # comp_op
                 code.putln("return ret;")
@@ -2295,7 +2295,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln("int b = __Pyx_PyObject_IsTrue(ret);")
             code.putln("Py_DECREF(ret);")
             code.putln("if (unlikely(b < 0)) return NULL;")
-            code.putln("ret = (b) ? Py_False : Py_True;")
+            code.putln("ret = (b) ? API_FALSE : API_TRUE;")
             code.putln("Py_INCREF(ret);")
             code.putln("}")
             code.putln("return ret;")
@@ -3418,10 +3418,10 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         fq_module_name_cstring = fq_module_name.as_c_string_literal()
         code.putln("#if PY_MAJOR_VERSION >= 3")
         code.putln("{")
-        code.putln("PyObject *modules = PyImport_GetModuleDict(); %s" % ##Figure out how to get module dict
-                   code.error_goto_if_null("modules", self.pos))
-        code.putln('if (!PyDict_GetItemString(modules, %s)) {' % fq_module_name_cstring)
-        code.putln(code.error_goto_if_neg('PyDict_SetItemString(modules, %s, HPY_LEGACY_OBJECT_AS(%s))' % (
+        code.putln("PYOBJECT_TYPE modules = HPY_LEGACY_OBJECT_FROM(PyImport_GetModuleDict()); %s" % ##TODO: Figure out how to get module dict
+                   code.error_goto_if_null_object("modules", self.pos))
+        code.putln('if (API_IS_NULL(DICT_GET_ITEM_STR(modules, %s))) {' % fq_module_name_cstring)
+        code.putln(code.error_goto_if_neg('DICT_SET_ITEM_STR(modules, %s, %s)' % (
             fq_module_name_cstring, env.module_cname), self.pos))
         code.putln("}")
         code.putln("}")
