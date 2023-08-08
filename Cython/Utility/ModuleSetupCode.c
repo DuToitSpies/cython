@@ -734,9 +734,12 @@ class __Pyx_FakeReference {
   #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
 
   #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
 
   #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
   #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
+
+  #define PYMODULEDEF_TYPE HPyModuleDef
 
   #define API_NULL_VALUE HPy_NULL
   #define API_IS_NULL(h) HPy_IsNull(h)
@@ -744,14 +747,15 @@ class __Pyx_FakeReference {
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
   #define API_TRUE HPY_CONTEXT_CNAME->h_True
   #define API_FALSE HPY_CONTEXT_CNAME->h_False
+  #define API_IS_TRUE(h) HPy_IsTrue(HPY_CONTEXT_CNAME, h)
+  #define API_IS_FALSE(h) !HPy_IsTrue(HPY_CONTEXT_CNAME, h)
   
-  #define PYMODULEDEF_TYPE HPyModuleDef
-
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
 
+  #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
@@ -779,6 +783,7 @@ class __Pyx_FakeReference {
   #define REFNANNY_DEALLOC(func, h) func(h)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
+  #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
 
   #define HPY_LEGACY_OBJECT_FROM(o) o
   #define HPY_LEGACY_OBJECT_AS(o) o
@@ -789,6 +794,8 @@ class __Pyx_FakeReference {
   #define API_IS_EQUAL(a, b) a==b
   #define API_TRUE Py_True
   #define API_FALSE Py_False
+  #define API_IS_TRUE(h) PyObject_IsTrue(h)
+  #define API_IS_FALSE(h) !PyObject_Not(h)
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
 
@@ -797,6 +804,7 @@ class __Pyx_FakeReference {
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
 
+  #define PYOBJECT_GET_ATTR(o, attr_name) PyObject_GetAttr(o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) PyObject_SetAttrString(o1, attr_name, o2)

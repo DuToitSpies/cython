@@ -1656,7 +1656,7 @@ class GlobalState:
             self.parts['module_state_traverse'].putln(
                 "Py_VISIT(traverse_module_state->%s);" % cname)
             if py_type == 'float':
-                function = 'PyFloat_FromDouble(%s)'
+                function = 'PYOBJECT_FROM_DOUBLE(%s)'
             elif py_type == 'long':
                 function = 'PyLong_FromString("%s", 0, 0)'
             elif Utils.long_literal(value):
