@@ -1474,7 +1474,7 @@ static CYTHON_INLINE PyObject* __Pyx__PyObject_LookupSpecial(PyObject* obj, PyOb
 
 /////////////// PyObjectGetAttrStrNoError.proto ///////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStrNoError(PyObject* obj, PyObject* attr_name);/*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name);/*proto*/
 
 /////////////// PyObjectGetAttrStrNoError ///////////////
 //@requires: PyObjectGetAttrStr
@@ -1491,13 +1491,13 @@ static void __Pyx_PyObject_GetAttrStr_ClearAttributeError(void) {
 }
 #endif
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStrNoError(PyObject* obj, PyObject* attr_name) {
-    PyObject *result;
-#if __PYX_LIMITED_VERSION_HEX >= 0x030d00A1
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name) {
+    PYOBJECT_TYPE result;
+#if __PYX_LIMITED_VERSION_HEX >= 0x030d00A1 && !CYTHON_USING_HPY
     (void) PyObject_GetOptionalAttr(obj, attr_name, &result);
     return result;
 #else
-#if CYTHON_COMPILING_IN_CPYTHON && CYTHON_USE_TYPE_SLOTS
+#if CYTHON_COMPILING_IN_CPYTHON && CYTHON_USE_TYPE_SLOTS && !CYTHON_USING_HPY
     // _PyObject_GenericGetAttrWithDict() in CPython 3.7+ can avoid raising the AttributeError.
     // See https://bugs.python.org/issue32544
     PyTypeObject* tp = Py_TYPE(obj);
@@ -1506,7 +1506,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStrNoError(PyObject* obj, P
     }
 #endif
     result = __Pyx_PyObject_GetAttrStr(obj, attr_name);
-    if (unlikely(!result)) {
+    if (unlikely(API_IS_NULL(result))) {
         __Pyx_PyObject_GetAttrStr_ClearAttributeError();
     }
     return result;
@@ -1519,7 +1519,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStrNoError(PyObject* obj, P
 #if CYTHON_USE_TYPE_SLOTS
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name);/*proto*/
 #else
-#define __Pyx_PyObject_GetAttrStr(o,n) PyObject_GetAttr(o,n)
+#define __Pyx_PyObject_GetAttrStr(o,n) PYOBJECT_GET_ATTR(o,n) //Needed to turn this into a function macro to be able to pass the context properly
 #endif
 
 /////////////// PyObjectGetAttrStr ///////////////
