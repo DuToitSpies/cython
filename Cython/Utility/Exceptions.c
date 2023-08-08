@@ -775,7 +775,7 @@ static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tsta
 
 #ifndef CYTHON_CLINE_IN_TRACEBACK
 static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tstate, int c_line) {
-    PyObject *use_cline;
+    PYOBJECT_TYPE use_cline;
     PyObject *ptype, *pvalue, *ptraceback;
 #if CYTHON_COMPILING_IN_CPYTHON
     PyObject **cython_runtime_dict;
@@ -795,25 +795,25 @@ static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tsta
     if (likely(cython_runtime_dict)) {
         __PYX_PY_DICT_LOOKUP_IF_MODIFIED(
             use_cline, *cython_runtime_dict,
-            __Pyx_PyDict_GetItemStr(*cython_runtime_dict, HPY_LEGACY_OBJECT_AS(PYIDENT("cline_in_traceback"))))
+            __Pyx_PyDict_GetItemStr(HPY_LEGACY_OBJECT_FROM(*cython_runtime_dict), PYIDENT("cline_in_traceback")))
     } else
 #endif
     {
-      PyObject *use_cline_obj = __Pyx_PyObject_GetAttrStrNoError(HPY_LEGACY_OBJECT_AS(${cython_runtime_cname}), HPY_LEGACY_OBJECT_AS(PYIDENT("cline_in_traceback")));
-      if (use_cline_obj) {
-        use_cline = PyObject_Not(use_cline_obj) ? Py_False : Py_True;
-        Py_DECREF(use_cline_obj);
+      PYOBJECT_TYPE use_cline_obj = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL ${cython_runtime_cname}, PYIDENT("cline_in_traceback"));
+      if (API_IS_NOT_NULL(use_cline_obj)) {
+        use_cline = API_IS_FALSE(use_cline_obj) ? API_FALSE : API_TRUE;
+        PYOBJECT_DEALLOC(use_cline_obj);
       } else {
         PyErr_Clear();
-        use_cline = NULL;
+        use_cline = API_NULL_VALUE;
       }
     }
-    if (!use_cline) {
+    if (API_IS_NULL(use_cline)) {
         c_line = 0;
         // No need to handle errors here when we reset the exception state just afterwards.
         (void) PYOBJECT_SET_ATTR(${cython_runtime_cname}, PYIDENT("cline_in_traceback"), API_FALSE);
     }
-    else if (use_cline == Py_False || (use_cline != Py_True && PyObject_Not(use_cline) != 0)) {
+    else if (API_IS_EQUAL(use_cline, API_FALSE) || ((!API_IS_EQUAL(use_cline, API_TRUE)) && API_IS_FALSE(use_cline) != 0)) {
         c_line = 0;
     }
     __Pyx_ErrRestoreInState(tstate, ptype, pvalue, ptraceback);

@@ -439,6 +439,8 @@
   /* Any Python objects are generally opaque in HPy */
   #undef CYTHON_USE_PYLONG_INTERNALS
   #define CYTHON_USE_PYLONG_INTERNALS 0
+  #undef CYTHON_USE_UNICODE_INTERNALS
+  #define CYTHON_USE_UNICODE_INTERNALS 0
   #undef CYTHON_USE_DICT_VERSIONS
   #define CYTHON_USE_DICT_VERSIONS 0
   #undef CYTHON_FAST_THREAD_STATE
@@ -1170,7 +1172,7 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStr(PyObject *dict, PyObject
 }
 #elif !CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07020000
 #define __Pyx_PyDict_GetItemStrWithError  PyDict_GetItemWithError
-#define __Pyx_PyDict_GetItemStr           PyDict_GetItem
+#define __Pyx_PyDict_GetItemStr(dict, name)           DICT_GET_ITEM(dict, name)
 #else
 static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict, PyObject *name) {
     // This is tricky - we should return a borrowed reference but not swallow non-KeyError exceptions. 8-|
@@ -1196,7 +1198,7 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
     return ep->me_value;
 #endif
 }
-#define __Pyx_PyDict_GetItemStr           PyDict_GetItem
+#define __Pyx_PyDict_GetItemStr(dict, name)           DICT_GET_ITEM(dict, name)
 #endif
 
 /* Type slots */
