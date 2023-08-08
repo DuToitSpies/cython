@@ -1306,7 +1306,7 @@ class BoolNode(ConstNode):
 
     def calculate_result_code(self):
         if self.type.is_pyobject:
-            return 'Py_True' if self.value else 'Py_False'
+            return 'API_TRUE' if self.value else 'API_FALSE'
         else:
             return str(int(self.value))
 
