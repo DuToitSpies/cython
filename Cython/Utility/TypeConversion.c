@@ -467,7 +467,7 @@ static CYTHON_INLINE PyObject* __Pyx__PyNumber_Float(PyObject* obj) {
 #if CYTHON_USE_PYLONG_INTERNALS
 no_error:
 #endif
-    return PyFloat_FromDouble(val);
+    return PYOBJECT_FROM_DOUBLE(val);
 }
 
 /////////////// GCCDiagnostics.proto ///////////////
