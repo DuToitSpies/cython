@@ -762,7 +762,7 @@ static void __Pyx_WriteUnraisable(const char *name, int clineno,
 /////////////// CLineInTraceback.proto ///////////////
 
 #ifdef CYTHON_CLINE_IN_TRACEBACK  /* 0 or 1 to disable/enable C line display in tracebacks at C compile time */
-#define __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF tstate, c_line)  (((CYTHON_CLINE_IN_TRACEBACK)) ? c_line : 0)
+#define __Pyx_CLineForTraceback(tstate, c_line)  (((CYTHON_CLINE_IN_TRACEBACK)) ? c_line : 0)
 #else
 static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tstate, int c_line);/*proto*/
 #endif
@@ -813,7 +813,7 @@ static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tsta
         // No need to handle errors here when we reset the exception state just afterwards.
         (void) PYOBJECT_SET_ATTR(${cython_runtime_cname}, PYIDENT("cline_in_traceback"), API_FALSE);
     }
-    else if (API_IS_EQUAL(use_cline, API_FALSE) || ((!API_IS_EQUAL(use_cline, API_TRUE)) && API_IS_FALSE(use_cline) != 0)) {
+    else if (API_IS_EQUAL(use_cline, API_FALSE) || ((!(API_IS_EQUAL(use_cline, API_TRUE))) && API_IS_FALSE(use_cline) != 0)) {
         c_line = 0;
     }
     __Pyx_ErrRestoreInState(tstate, ptype, pvalue, ptraceback);
