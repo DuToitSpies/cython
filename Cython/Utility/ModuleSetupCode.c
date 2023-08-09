@@ -771,6 +771,7 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
+  #define TUPLE_PACK(num_args, ...) HPyTuple_Pack(HPY_CONTEXT_CNAME, num_args, __VA_ARGS__)
 #else
   #define HPY_CONTEXT_ONLY_ARG_DEF void
   #define HPY_CONTEXT_ONLY_ARG_CALL
@@ -819,7 +820,10 @@ class __Pyx_FakeReference {
   #define PYMODULE_GETDICT_ATTR(mod) PyModule_GetDict(mod) 
 
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
+
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
+  #define TUPLE_PACK(num_args, ...) PyTuple_Pack(num_args, __VA_ARGS__)
+
 #endif
 
 /////////////// PythonCompatibility ///////////////

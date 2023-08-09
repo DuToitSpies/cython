@@ -8176,11 +8176,11 @@ class SequenceNode(ExprNode):
 
         if self.type is tuple_type and (self.is_literal or self.slow) and not c_mult:
             # use PyTuple_Pack() to avoid generating huge amounts of one-time code
-            code.putln('%s = PyTuple_Pack(%d, %s); %s' % (
+            code.putln('%s = TUPLE_PACK(%d, %s); %s' % (
                 target,
                 len(self.args),
                 ', '.join(arg.py_result() for arg in self.args),
-                code.error_goto_if_null(target, self.pos)))
+                code.error_goto_if_null_object(target, self.pos)))
             code.put_gotref(target, py_object_type)
         elif self.type.is_ctuple:
             for i, arg in enumerate(self.args):
