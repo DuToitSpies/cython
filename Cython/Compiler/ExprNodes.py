@@ -859,7 +859,7 @@ class ExprNode(Node):
                 self.generate_subexpr_disposal_code(code)
                 self.free_subexpr_temps(code)
             elif self.type.is_pyobject:
-                code.putln("%s = 0;" % self.result())
+                code.putln("%s = API_NULL_VALUE;" % self.result())
             elif self.type.is_memoryviewslice:
                 code.putln("%s.memview = NULL;" % self.result())
                 code.putln("%s.data = NULL;" % self.result())
@@ -2433,10 +2433,10 @@ class NameNode(AtomicExprNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("GetBuiltinName", "ObjectHandling.c"))
             code.putln(
-                '%s = __Pyx_GetBuiltinName(%s); %s' % (
+                '%s = __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL %s); %s' % (
                 self.result(),
                 interned_cname,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
             self.generate_gotref(code)
 
         elif entry.is_pyglobal or (entry.is_builtin and entry.scope.is_module_scope):
@@ -2450,7 +2450,7 @@ class NameNode(AtomicExprNode):
                     '__Pyx_GetModuleGlobalName(%s, %s); %s' % (
                         self.result(),
                         interned_cname,
-                        code.error_goto_if_null(self.result(), self.pos)))
+                        code.error_goto_if_null_object(self.result(), self.pos)))
             else:
                 # FIXME: is_pyglobal is also used for class namespace
                 code.globalstate.use_utility_code(
@@ -8051,13 +8051,18 @@ class SequenceNode(ExprNode):
             if self.type is list_type:
                 create_func, set_item_func = 'PyList_New', '__Pyx_PyList_SET_ITEM'
             elif self.type is tuple_type:
-                create_func, set_item_func = 'PyTuple_New', '__Pyx_PyTuple_SET_ITEM'
+                create_func, set_item_func = 'TUPLE_CREATE_START', 'TUPLE_CREATE_ASSIGN'
             else:
                 raise InternalError("sequence packing for unexpected type %s" % self.type)
             arg_count = len(self.args)
-            code.putln("%s = %s(%s%s); %s" % (
-                target, create_func, arg_count, size_factor,
-                code.error_goto_if_null(target, self.pos)))
+            if self.type is tuple_type:
+                code.putln("%s(%s,%s%s); %s" % (
+                    create_func, target, arg_count, size_factor,
+                    code.error_goto_if_null_object(target, self.pos)))
+            else:
+                code.putln("%s = %s(%s%s); %s" % (
+                    target, create_func, arg_count, size_factor,
+                    code.error_goto_if_null(target, self.pos)))
             code.put_gotref(target, py_object_type)
 
             if c_mult:
@@ -8089,6 +8094,9 @@ class SequenceNode(ExprNode):
                     (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
                     arg.py_result(),
                     code.error_goto(self.pos)))
+                
+            if self.type is tuple_type:
+                code.putln("TUPLE_CREATE_FINALISE(%s)" % target)
 
             if c_mult:
                 code.putln('}')

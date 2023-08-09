@@ -1239,15 +1239,15 @@ static CYTHON_INLINE PyObject* __Pyx_PyBoolOrNull_FromLong(long b) {
 
 /////////////// GetBuiltinName.proto ///////////////
 
-static PyObject *__Pyx_GetBuiltinName(PyObject *name); /*proto*/
+static PYOBJECT_TYPE __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name); /*proto*/
 
 /////////////// GetBuiltinName ///////////////
 //@requires: PyObjectGetAttrStrNoError
 //@substitute: naming
 
-static PyObject *__Pyx_GetBuiltinName(PyObject *name) {
-    PyObject* result = __Pyx_PyObject_GetAttrStrNoError($builtins_cname, name);
-    if (unlikely(!result) && !PyErr_Occurred()) {
+static PYOBJECT_TYPE __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name) {
+    PYOBJECT_TYPE result = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL $builtins_cname, name);
+    if (unlikely(API_IS_NULL(result)) && !PyErr_Occurred()) {
         PyErr_Format(PyExc_NameError,
             "name '%U' is not defined", name);
     }
@@ -1343,7 +1343,7 @@ static int __Pyx_SetNewInClass(PyObject *ns, PyObject *name, PyObject *value) {
     static PY_UINT64_T __pyx_dict_version = 0; \
     static PyObject *__pyx_dict_cached_value = NULL; \
     (var) = (likely(__pyx_dict_version == __PYX_GET_DICT_VERSION($moddict_cname))) ? \
-        (likely(__pyx_dict_cached_value) ? __Pyx_NewRef(__pyx_dict_cached_value) : __Pyx_GetBuiltinName(name)) : \
+        (likely(__pyx_dict_cached_value) ? __Pyx_NewRef(__pyx_dict_cached_value) : __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL name)) : \
         __Pyx__GetModuleGlobalName(name, &__pyx_dict_version, &__pyx_dict_cached_value); \
 } while(0)
 #define __Pyx_GetModuleGlobalNameUncached(var, name)  do { \
@@ -1353,9 +1353,9 @@ static int __Pyx_SetNewInClass(PyObject *ns, PyObject *name, PyObject *value) {
 } while(0)
 static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value); /*proto*/
 #else
-#define __Pyx_GetModuleGlobalName(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
-#define __Pyx_GetModuleGlobalNameUncached(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
-static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name); /*proto*/
+#define __Pyx_GetModuleGlobalName(var, name)  (var) = __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_ARG_CALL name)
+#define __Pyx_GetModuleGlobalNameUncached(var, name)  (var) = __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_ARG_CALL name)
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name); /*proto*/
 #endif
 
 
@@ -1364,17 +1364,17 @@ static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name); /*pro
 //@substitute: naming
 
 #if CYTHON_USE_DICT_VERSIONS
-static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value)
+static PYOBJECT_TYPE __Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value)
 #else
-static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name)
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name)
 #endif
 {
-    PyObject *result;
+    PYOBJECT_TYPE result;
 // FIXME: clean up the macro guard order here: limited API first, then borrowed refs, then cpython
 #if !CYTHON_AVOID_BORROWED_REFS
 #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000
     // Identifier names are always interned and have a pre-calculated hash value.
-    result = _PyDict_GetItem_KnownHash($moddict_cname, name, ((PyASCIIObject *) name)->hash);
+    result = _PyDict_GetItem_KnownHash(HPY_LEGACY_OBJECT_AS($moddict_cname), name, ((PyASCIIObject *) name)->hash);
     __PYX_UPDATE_DICT_CACHE($moddict_cname, result, *dict_cached_value, *dict_version)
     if (likely(result)) {
         return __Pyx_NewRef(result);
@@ -1397,14 +1397,14 @@ static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name)
     }
 #endif
 #else
-    result = PyObject_GetItem($moddict_cname, name);
+    result = PYOBJECT_GET_ITEM($moddict_cname, name);
     __PYX_UPDATE_DICT_CACHE($moddict_cname, result, *dict_cached_value, *dict_version)
-    if (likely(result)) {
-        return __Pyx_NewRef(result);
+    if (likely_object(result)) {
+        return __Pyx_hNewRef(result);
     }
     PyErr_Clear();
 #endif
-    return __Pyx_GetBuiltinName(name);
+    return __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL name);
 }
 
 //////////////////// GetAttr.proto ////////////////////

@@ -10293,6 +10293,9 @@ if Options.gcc_branch_hints:
     && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))
   #define likely(x)   __builtin_expect(!!(x), 1)
   #define unlikely(x) __builtin_expect(!!(x), 0)
+
+  #define likely_object(x)   __builtin_expect(!API_IS_NULL(x), 1)
+  #define unlikely_object(x) __builtin_expect(!API_IS_NULL(x), 0)
 #else /* !__GNUC__ or GCC < 2.95 */
   #define likely(x)   (x)
   #define unlikely(x) (x)

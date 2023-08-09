@@ -1498,7 +1498,7 @@ class GlobalState:
         interned_cname = self.get_interned_identifier(name).cname
         self.use_utility_code(
             UtilityCode.load_cached("GetBuiltinName", "ObjectHandling.c"))
-        w.putln('%s = __Pyx_GetBuiltinName(%s); if (!%s) %s' % (
+        w.putln('%s = __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL %s); if (!%s) %s' % (
             cname,
             interned_cname,
             cname,
@@ -2595,8 +2595,8 @@ class CCodeWriter:
         self.putln("#if %s" % cond)
         self.putln("    #undef likely")
         self.putln("    #undef unlikely")
-        self.putln("    #define likely(x)   __builtin_expect(!!(x), 1)")
-        self.putln("    #define unlikely(x) __builtin_expect(!!(x), 0)")
+        self.putln("    #define likely(x)   __builtin_expect(!!(HPY_LEGACY_OBJECT_AS(x)), 1)")
+        self.putln("    #define unlikely(x) __builtin_expect(!!(HPY_LEGACY_OBJECT_AS(x)), 0)")
         self.putln("#endif")
 
 

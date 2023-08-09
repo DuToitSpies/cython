@@ -400,6 +400,8 @@
   #define CYTHON_FAST_THREAD_STATE 0
   #undef CYTHON_USE_TYPE_SLOTS
   #define CYTHON_USE_TYPE_SLOTS 0
+  #undef CYTHON_AVOID_BORROWED_REFS
+  #define CYTHON_AVOID_BORROWED_REFS 1
   /* We don't use refnanny in HPy since it has the debug mode */
   #undef CYTHON_REFNANNY
   #define CYTHON_REFNANNY 0
@@ -705,6 +707,8 @@ class __Pyx_FakeReference {
   #define DICT_GET_ITEM_STR(o, attr_name) HPy_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
 
+  #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
@@ -715,6 +719,9 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
+  #define TUPLE_CREATE_START(builder, size) HPyTupleBuilder temp_builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
+  #define TUPLE_CREATE_ASSIGN(builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, temp_builder, index, item)
+  #define TUPLE_CREATE_FINALISE(target) target = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, temp_builder);
   #define TUPLE_PACK(num_args, ...) HPyTuple_Pack(HPY_CONTEXT_CNAME, num_args, __VA_ARGS__)
 #else
   #define HPY_CONTEXT_ONLY_ARG_DEF void
@@ -756,6 +763,8 @@ class __Pyx_FakeReference {
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
 
+  #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) PyObject_SetItem(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR(o, attr_name) PyObject_GetAttr(o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
@@ -766,6 +775,9 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
+  #define TUPLE_CREATE_START(target, size) target=PyTuple_New(size)
+  #define TUPLE_CREATE_ASSIGN(tuple, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
+  #define TUPLE_CREATE_FINALISE(target)
   #define TUPLE_PACK(num_args, ...) PyTuple_Pack(num_args, __VA_ARGS__)
 
 #endif
