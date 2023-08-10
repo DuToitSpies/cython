@@ -2517,7 +2517,7 @@ class NameNode(AtomicExprNode):
                 assert False, repr(entry)
             code.put_error_if_neg(
                 self.pos,
-                '%s(%s, %s, %s)' % (
+                '%s(PYOBJECT_GLOBAL_LOAD(%s), %s, %s)' % (
                     setter,
                     namespace,
                     interned_cname,
