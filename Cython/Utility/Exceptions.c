@@ -1002,7 +1002,7 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
     py_frame = PyFrame_New(
         tstate,            /*PyThreadState *tstate,*/
         py_code,           /*PyCodeObject *code,*/
-        HPY_LEGACY_OBJECT_AS($moddict_cname),    /*PyObject *globals,*/
+        HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD($moddict_cname)),    /*PyObject *globals,*/
         0                  /*PyObject *locals*/
     );
     if (!py_frame) goto bad;

@@ -510,6 +510,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         self.generate_typeobj_definitions(env, code)
         self.generate_method_table(env, code)
         self.generate_hpy_define_array(env, code)
+        self.define_globals_array(env, code)
         if env.has_import_star:
             self.generate_import_star(env, code)
 
@@ -881,7 +882,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln('static CYTHON_INLINE void __Pyx_pretend_to_initialize(void* ptr) { (void)ptr; }')
         code.putln('')
         code.putln('#if !CYTHON_USE_MODULE_STATE')
-        code.putln('static PYOBJECT_TYPE %s = API_NULL_VALUE;' % env.module_cname)
+        code.putln('static PYOBJECT_GLOBAL_TYPE %s;' % env.module_cname)
         if Options.pre_import is not None:
             code.putln('static PyObject *%s;' % Naming.preimport_cname)
         code.putln('#endif')
@@ -2742,6 +2743,25 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if wrapper_code_writer.getvalue():
             wrapper_code_writer.putln("")
 
+
+
+    def define_globals_array(self, env, code):
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("static HPyGlobal *globals_array[10];")
+        code.putln("#endif")
+
+    def generate_globals_array(self, env, code):
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("globals_array[0] = &%s;" % env.module_cname)
+        code.putln("globals_array[1] = &%s;" % env.module_dict_cname)
+        code.putln("globals_array[2] = &%s;" % Naming.cython_runtime_cname)
+        code.putln("globals_array[3] = &%s;" % Naming.empty_tuple)
+        code.putln("globals_array[4] = &%s;" % Naming.empty_bytes)
+        code.putln("globals_array[5] = &%s;" % Naming.empty_unicode)
+        if Options.pre_import is not None:
+            code.putln("globals_array[6] = &%s;" % Naming.preimport_cname)
+        code.putln("#endif")    
+
     def generate_dict_getter_function(self, scope, code):
         dict_attr = scope.lookup_here("__dict__")
         if not dict_attr or not dict_attr.is_variable:
@@ -2862,12 +2882,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
     def generate_module_state_start(self, env, code):
         # TODO: Refactor to move module state struct decl closer to the static decl
         code.putln('typedef struct {')
-        code.putln('PYOBJECT_TYPE %s;' % env.module_dict_cname)
+        code.putln('PYOBJECT_GLOBAL_TYPE %s;' % env.module_dict_cname)
         code.putln('PYOBJECT_TYPE %s;' % Naming.builtins_cname)
-        code.putln('PYOBJECT_TYPE %s;' % Naming.cython_runtime_cname)
-        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_tuple)
-        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_bytes)
-        code.putln('PYOBJECT_TYPE %s;' % Naming.empty_unicode)
+        code.putln('PYOBJECT_GLOBAL_TYPE %s;' % Naming.cython_runtime_cname)
+        code.putln('PYOBJECT_GLOBAL_TYPE %s;' % Naming.empty_tuple)
+        code.putln('PYOBJECT_GLOBAL_TYPE %s;' % Naming.empty_bytes)
+        code.putln('PYOBJECT_GLOBAL_TYPE %s;' % Naming.empty_unicode)
         if Options.pre_import is not None:
             code.putln('PyObject *%s;' % Naming.preimport_cname)
         for type_cname, used_name in Naming.used_types_and_macros:
@@ -2926,7 +2946,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         module_state_clear.putln("#endif")
         module_state_traverse.putln("return 0;")
         module_state_traverse.putln("}")
-        module_state_traverse.putln("#endif")
+        module_state_traverse.putln("#endif")        
 
     def generate_module_state_defines(self, env, code):
         code.putln('#define %s %s->%s' % (
@@ -3084,6 +3104,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln('int pystate_addmodule_run = 0;')
         code.putln("#endif")
 
+        self.generate_globals_array(env, code)
+
         tempdecl_code = code.insertion_point()
 
         profile = code.globalstate.directives['profile']
@@ -3099,7 +3121,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         # See issues listed here: https://docs.python.org/3/c-api/init.html#sub-interpreter-support
         code.putln("if (API_IS_NOT_NULL(%s)) {" % Naming.module_cname)
         # Hack: enforce single initialisation.
-        code.putln("if (API_IS_EQUAL(%s, %s)) return 0;" % (
+        code.putln("if (API_IS_EQUAL(PYOBJECT_GLOBAL_LOAD(%s), %s)) return 0;" % (
             Naming.module_cname,
             Naming.pymodinit_module_arg,
         ))
@@ -3144,12 +3166,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#ifdef __Pxy_PyFrame_Initialize_Offsets")
         code.putln("__Pxy_PyFrame_Initialize_Offsets();")
         code.putln("#endif")
-        code.putln("%s = TUPLE_CREATE_EMPTY(); %s" % (
-            Naming.empty_tuple, code.error_goto_if_null_object(Naming.empty_tuple, self.pos)))
-        code.putln("%s = BYTES_FROM_STR_AND_SIZE(\"\", 0); %s" % (
-            Naming.empty_bytes, code.error_goto_if_null_object(Naming.empty_bytes, self.pos)))
-        code.putln("%s = HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0)); %s" % (
-            Naming.empty_unicode, code.error_goto_if_null_object(Naming.empty_unicode, self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, TUPLE_CREATE_EMPTY()); %s" % (
+            Naming.empty_tuple, code.error_goto_if_null_object("TUPLE_CREATE_EMPTY()", self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, BYTES_FROM_STR_AND_SIZE(\"\", 0)); %s" % (
+            Naming.empty_bytes, code.error_goto_if_null_object("BYTES_FROM_STR_AND_SIZE(\"\", 0)", self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))); %s" % (
+            Naming.empty_unicode, code.error_goto_if_null_object("HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))", self.pos)))
 
         for ext_type in ('CyFunction', 'FusedFunction', 'Coroutine', 'Generator', 'AsyncGen', 'StopAsyncIteration'):
             code.putln("#ifdef __Pyx_%s_USED" % ext_type)
@@ -3173,7 +3195,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         code.putln("if (%s) {" % self.is_main_module_flag_cname())
         code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, %s, %s)' % (
-            env.module_cname,
+            Naming.pymodinit_module_arg,
             code.intern_identifier(EncodedString("__name__")),
             code.intern_identifier(EncodedString("__main__"))))
         code.putln("}")
@@ -3244,7 +3266,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put_label(code.error_label)
         for cname, type in code.funcstate.all_managed_temps():
             code.put_xdecref(cname, type)
-        code.putln('if (API_IS_NOT_NULL(%s)) {' % env.module_cname)
+        code.putln('if (API_IS_NOT_NULL(%s)) {' % Naming.pymodinit_module_arg)
         code.putln('if (API_IS_NOT_NULL(%s) && stringtab_initialized) {' % env.module_dict_cname)
         # We can run into errors before the module or stringtab are initialized.
         # In this case it is not safe to add a traceback (because it uses the stringtab)
@@ -3257,13 +3279,13 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         ##code.put_decref_clear(env.module_dict_cname, py_object_type, nanny=False)
         code.putln('}')
         code.putln("#if CYTHON_USING_HPY")
-        code.putln("PYOBJECT_DEALLOC(%s);" % env.module_cname)
+        code.putln("PYOBJECT_DEALLOC(%s);" % Naming.pymodinit_module_arg)
         code.putln("#elif !CYTHON_USE_MODULE_STATE")
-        code.put_decref_clear(env.module_cname, py_object_type, nanny=False, clear_before_decref=True)
+        code.put_decref_clear(Naming.pymodinit_module_arg, py_object_type, nanny=False, clear_before_decref=True)
         code.putln("#else")
         # This section is mainly for the limited API. env.module_cname still owns a reference so
         # decrement that
-        code.put_decref(env.module_cname, py_object_type, nanny=False)
+        code.put_decref(Naming.pymodinit_module_arg, py_object_type, nanny=False)
         # Also remove the failed module from the module state lookup
         # fetch/restore the error indicator because PyState_RemvoeModule might fail itself
         code.putln("if (pystate_addmodule_run) {")
@@ -3282,9 +3304,9 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put_finish_refcount_context()
 
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
-        code.putln("return (API_IS_NOT_NULL(%s)) ? 0 : -1;" % env.module_cname)
+        code.putln("return (API_IS_NOT_NULL(%s)) ? 0 : -1;" % Naming.pymodinit_module_arg)
         code.putln("#elif PY_MAJOR_VERSION >= 3")
-        code.putln("return %s;" % env.module_cname)
+        code.putln("return %s;" % Naming.pymodinit_module_arg)
         code.putln("#else")
         code.putln("return;")
         code.putln("#endif")
@@ -3418,7 +3440,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                    code.error_goto_if_null_object("modules", self.pos))
         code.putln('if (API_IS_NULL(DICT_GET_ITEM_STR(modules, %s))) {' % fq_module_name_cstring)
         code.putln(code.error_goto_if_neg('DICT_SET_ITEM_STR(modules, %s, %s)' % (
-            fq_module_name_cstring, env.module_cname), self.pos))
+            fq_module_name_cstring, Naming.pymodinit_module_arg), self.pos))
         code.putln("}")
         code.putln("}")
         code.putln("#endif")
@@ -3620,11 +3642,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#else")
         code.putln("  .doc = %s," % doc)
         code.putln("  .size = 0,")
-        code.putln("  .legacy_methods = 0,")
+        code.putln("  .legacy_methods = %s," % env.method_table_cname)
         if env.is_c_class_scope and not env.hpyfunc_entries:
             code.putln("  .defines = methods,")
         else:
             code.putln("  .defines = %s," % env.hpy_defines_cname)
+        code.putln("  .globals = globals_array,")
         code.putln("#endif")
         code.putln("};")
         code.putln('#ifdef __cplusplus')
@@ -3641,10 +3664,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             doc = "0"
 
         code.putln("#if CYTHON_PEP489_MULTI_PHASE_INIT")
-        code.putln("%s = %s;" % (
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, %s);" % (
             env.module_cname,
             Naming.pymodinit_module_arg))
+        code.putln("#if !CYTHON_USING_HPY")
         code.put_incref(env.module_cname, py_object_type, nanny=False)
+        code.putln("#endif")
         code.putln("#else")
         code.putln("#if PY_MAJOR_VERSION < 3")
         code.putln(
@@ -3688,22 +3713,30 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("CYTHON_UNUSED_VAR(%s);" % module_temp)  # only used in limited API
 
         code.putln(
-            "%s = PYMODULE_GETDICT_ATTR(%s); %s" % (
-                env.module_dict_cname, env.module_cname,
-                code.error_goto_if_null_object(env.module_dict_cname, self.pos)))
+            "PYOBJECT_GLOBAL_STORE(%s, PYMODULE_GETDICT_ATTR(%s)); %s" % (
+                env.module_dict_cname, Naming.pymodinit_module_arg,
+                code.error_goto_if_null_object("PYMODULE_GETDICT_ATTR(%s)" % Naming.pymodinit_module_arg, self.pos)))
+        code.putln("#if !CYTHON_USING_HPY")
         code.put_incref(env.module_dict_cname, py_object_type, nanny=False)
 
         code.putln(
             '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef(__Pyx_BUILTIN_MODULE_NAME)); %s' % (
                 Naming.builtins_cname,
                 code.error_goto_if_null_object(Naming.builtins_cname, self.pos)))
+        code.put_incref(Naming.builtins_cname, py_object_type, nanny=False)
+        code.putln('#else')
+        code.putln('%s = %s->h_Builtins;' % (
+            Naming.builtins_cname,
+            Naming.hpy_context_cname
+        ))
+        code.putln('#endif')
         code.putln(
-            '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("cython_runtime")); %s' % (
+            'PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("cython_runtime"))); %s' % (
                 Naming.cython_runtime_cname,
                 code.error_goto_if_null_object(Naming.cython_runtime_cname, self.pos)))
         code.putln(
             'if (PYOBJECT_SET_ATTR_STR(%s, "__builtins__", %s) < 0) %s' % (
-                env.module_cname,
+                Naming.pymodinit_module_arg,
                 Naming.builtins_cname,
                 code.error_goto(self.pos)))
         if Options.pre_import is not None:

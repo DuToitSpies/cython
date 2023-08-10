@@ -731,6 +731,8 @@ class __Pyx_FakeReference {
   #define PYOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
+  #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
+  #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
 
   #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -749,6 +751,7 @@ class __Pyx_FakeReference {
   #define PYMODULEDEF_TYPE HPyModuleDef
 
   #define API_NULL_VALUE HPy_NULL
+  #define API_DEFAULT_VALUE HPy_NULL
   #define API_IS_NULL(h) HPy_IsNull(h)
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
@@ -788,6 +791,8 @@ class __Pyx_FakeReference {
   #define PYOBJECT_TYPE PyObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
   #define PYOBJECT_GLOBAL_TYPE PyObject *
+  #define PYOBJECT_GLOBAL_STORE(global, h) global = h
+  #define PYOBJECT_GLOBAL_LOAD(global) global
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
 
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
@@ -803,6 +808,7 @@ class __Pyx_FakeReference {
   #define HPY_LEGACY_OBJECT_AS(o) o
 
   #define API_NULL_VALUE NULL
+  #define API_DEFAULT_VALUE 0
   #define API_IS_NULL(h) !h //Both are here as otherwise we would get !!h for API_IS_NOT_NULL, which is hard to read - but it can be made so if necessary
   #define API_IS_NOT_NULL(h) h
   #define API_IS_EQUAL(a, b) a==b
