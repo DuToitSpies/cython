@@ -1240,8 +1240,8 @@ class PyObjectType(PyrexType):
 
     name = "object"
     is_pyobject = 1
-    default_value = "0"
-    declaration_value = "0"
+    default_value = "API_DEFAULT_VALUE"
+    declaration_value = "API_DEFAULT_VALUE"
     buffer_defaults = None
     is_extern = False
     is_subclassed = False

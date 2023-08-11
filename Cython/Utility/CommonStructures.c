@@ -1,11 +1,11 @@
 /////////////// FetchSharedCythonModule.proto ///////
 
-static PyObject *__Pyx_FetchSharedCythonABIModule(void);
+static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(void);
 
 /////////////// FetchSharedCythonModule ////////////
 
-static PyObject *__Pyx_FetchSharedCythonABIModule(void) {
-    return __Pyx_PyImport_AddModuleRef(__PYX_ABI_MODULE_NAME);
+static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(void) {
+    return HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef(__PYX_ABI_MODULE_NAME));
 }
 
 /////////////// FetchCommonType.proto ///////////////
@@ -13,7 +13,7 @@ static PyObject *__Pyx_FetchSharedCythonABIModule(void) {
 #if !CYTHON_USE_TYPE_SPECS
 static PyTypeObject* __Pyx_FetchCommonType(PyTypeObject* type);
 #else
-static PyTypeObject* __Pyx_FetchCommonTypeFromSpec(PyObject *module, PyType_Spec *spec, PyObject *bases);
+static PyTypeObject* __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases);
 #endif
 
 /////////////// FetchCommonType ///////////////
@@ -82,24 +82,25 @@ bad:
 }
 #else
 
-static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(PyObject *module, PyType_Spec *spec, PyObject *bases) {
-    PyObject *abi_module, *cached_type = NULL;
+static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases) {
+    PYOBJECT_TYPE abi_module;
+    PYOBJECT_TYPE cached_type = API_NULL_VALUE;
     // get the final part of the object name (after the last dot)
     const char* object_name = strrchr(spec->name, '.');
     object_name = object_name ? object_name+1 : spec->name;
 
     abi_module = __Pyx_FetchSharedCythonABIModule();
-    if (!abi_module) return NULL;
+    if (API_IS_NULL(abi_module)) return NULL;
 
-    cached_type = PyObject_GetAttrString(abi_module, object_name);
+    cached_type = PYOBJECT_GET_ATTR_S(abi_module, object_name);
     if (cached_type) {
-        Py_ssize_t basicsize;
+        API_SSIZE_T basicsize;
 #if CYTHON_COMPILING_IN_LIMITED_API
-        PyObject *py_basicsize;
-        py_basicsize = PyObject_GetAttrString(cached_type, "__basicsize__");
-        if (unlikely(!py_basicsize)) goto bad;
-        basicsize = PyLong_AsSsize_t(py_basicsize);
-        Py_DECREF(py_basicsize);
+        PYOBJECT_TYPE py_basicsize;
+        py_basicsize = PYOBJECT_GET_ATTR_STR(cached_type, "__basicsize__");
+        if (unlikely(API_IS_NULL(py_basicsize))) goto bad;
+        basicsize = PYOBJECT_LONG_AS_SSIZE(py_basicsize);
+        PYOBJECT_DEALLOC(py_basicsize);
         py_basicsize = 0;
         if (unlikely(basicsize == (Py_ssize_t)-1) && PyErr_Occurred()) goto bad;
 #else
@@ -125,13 +126,13 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(PyObject *module, PyType_Spec
     if (PyObject_SetAttrString(abi_module, object_name, cached_type) < 0) goto bad;
 
 done:
-    Py_DECREF(abi_module);
+    PYOBJECT_DEALLOC(abi_module);
     // NOTE: always returns owned reference, or NULL on error
     assert(cached_type == NULL || PyType_Check(cached_type));
     return (PyTypeObject *) cached_type;
 
 bad:
-    Py_XDECREF(cached_type);
+    PYOBJECT_DEALLOC(cached_type);
     cached_type = NULL;
     goto done;
 }

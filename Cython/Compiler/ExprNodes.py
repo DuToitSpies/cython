@@ -1327,7 +1327,7 @@ class BoolNode(ConstNode):
 
 class NullNode(ConstNode):
     type = PyrexTypes.c_null_ptr_type
-    value = "NULL"
+    value = "API_NULL_VALUE"
     constant_result = 0
 
     def get_constant_c_result_code(self):
@@ -9864,7 +9864,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
     gil_message = "Constructing Python function"
 
     def closure_result_code(self):
-        return "NULL"
+        return "API_NULL_VALUE"
 
     def generate_result_code(self, code):
         if self.binding:
@@ -9902,7 +9902,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
         if self.code_object:
             code_object_result = self.code_object.py_result()
         else:
-            code_object_result = 'NULL'
+            code_object_result = 'API_NULL_VALUE'
 
         flags = []
         if def_node.is_staticmethod:
@@ -9922,7 +9922,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
             flags = '0'
 
         code.putln(
-            '%s = %s(&%s, %s, %s, %s, %s, %s, %s); %s' % (
+            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, %s, %s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s); %s' % (
                 self.result(),
                 constructor,
                 self.pymethdef_cname,
@@ -9932,7 +9932,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
                 self.get_py_mod_name(code),
                 Naming.moddict_cname,
                 code_object_result,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
 
         self.generate_gotref(code)
 
@@ -10046,8 +10046,11 @@ class CodeObjectNode(ExprNode):
         elif self.def_node.is_generator:
             flags.append('CO_GENERATOR')
 
-        code.putln("%s = (PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), \
-                   HPY_LEGACY_OBJECT_AS(%s), %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %s, %s, %d, HPY_LEGACY_OBJECT_AS(%s)); %s" % (
+        code.putln("%s = HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, \
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)))); %s" % (
             self.result_code,
             len(func.args) - func.num_kwonly_args,  # argcount
             func.num_posonly_args,     # posonlyargcount (Py3.8+ only)
@@ -10064,7 +10067,7 @@ class CodeObjectNode(ExprNode):
             func_name,                 # name
             self.pos[1],               # firstlineno
             Naming.empty_bytes,        # lnotab
-            code.error_goto_if_null(self.result_code, self.pos),
+            code.error_goto_if_null_object(self.result_code, self.pos),
             ))
 
 
