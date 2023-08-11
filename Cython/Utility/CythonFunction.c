@@ -97,7 +97,7 @@ static CYTHON_INLINE void __Pyx_CyFunction_SetAnnotationsDict(PyObject *m,
                                                               PyObject *dict);
 
 
-static int __pyx_CyFunction_init(PyObject *module);
+static int __pyx_CyFunction_init(PYOBJECT_GLOBAL_TYPE module);
 
 #if CYTHON_METH_FASTCALL
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
@@ -1156,14 +1156,14 @@ static PyTypeObject __pyx_CyFunctionType_type = {
 #endif  /* CYTHON_USE_TYPE_SPECS */
 
 
-static int __pyx_CyFunction_init(PyObject *module) {
+static int __pyx_CyFunction_init(PYOBJECT_GLOBAL_TYPE module) {
 #if CYTHON_USE_TYPE_SPECS
     __pyx_CyFunctionType = __Pyx_FetchCommonTypeFromSpec(module, &__pyx_CyFunctionType_spec, NULL);
 #else
     CYTHON_UNUSED_VAR(module);
     __pyx_CyFunctionType = __Pyx_FetchCommonType(&__pyx_CyFunctionType_type);
 #endif
-    if (unlikely(__pyx_CyFunctionType == NULL)) {
+    if (unlikely(API_IS_NULL(__pyx_CyFunctionType))) {
         return -1;
     }
     return 0;
@@ -1202,18 +1202,20 @@ static CYTHON_INLINE void __Pyx_CyFunction_SetAnnotationsDict(PyObject *func, Py
 
 //////////////////// CythonFunction.proto ////////////////////
 
-static PyObject *__Pyx_CyFunction_New(PyMethodDef *ml,
-                                      int flags, PyObject* qualname,
-                                      PyObject *closure,
-                                      PyObject *module, PyObject *globals,
-                                      PyObject* code);
+static PYOBJECT_TYPE __Pyx_CyFunction_New(HPY_CONTEXT_FIRST_ARG_DEF
+                                      PYMETHODDEF_TYPE *ml,
+                                      int flags, PYOBJECT_TYPE qualname,
+                                      PYOBJECT_TYPE closure,
+                                      PYOBJECT_TYPE module, PYOBJECT_TYPE globals,
+                                      PYOBJECT_TYPE code);
 
 //////////////////// CythonFunction ////////////////////
 //@requires: CythonFunctionShared
 
-static PyObject *__Pyx_CyFunction_New(PyMethodDef *ml, int flags, PyObject* qualname,
-                                      PyObject *closure, PyObject *module, PyObject* globals, PyObject* code) {
-    PyObject *op = __Pyx_CyFunction_Init(
+static PYOBJECT_TYPE __Pyx_CyFunction_New(HPY_CONTEXT_FIRST_ARG_DEF PYMETHODDEF_TYPE *ml, int flags, PYOBJECT_TYPE qualname,
+                                      PYOBJECT_TYPE closure, PYOBJECT_TYPE module, PYOBJECT_TYPE globals, PYOBJECT_TYPE code) {
+#if !CYTHON_USING_HPY
+    PYOBJECT_TYPE op = __Pyx_CyFunction_Init(
         PyObject_GC_New(__pyx_CyFunctionObject, __pyx_CyFunctionType),
         ml, flags, qualname, closure, module, globals, code
     );
@@ -1221,6 +1223,10 @@ static PyObject *__Pyx_CyFunction_New(PyMethodDef *ml, int flags, PyObject* qual
         PyObject_GC_Track(op);
     }
     return op;
+#else
+    PYOBJECT_TYPE op = HPy_NULL;
+    return op;
+#endif
 }
 
 //////////////////// CyFunctionClassCell.proto ////////////////////

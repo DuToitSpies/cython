@@ -2122,7 +2122,7 @@ class CCodeWriter:
         if entry.init is not None:
             self.put_safe(" = %s" % entry.type.literal_code(entry.init))
         elif entry.type.is_pyobject:
-            self.put(" = NULL")
+            self.put(" = API_NULL_VALUE")
         self.putln(";")
         self.funcstate.scope.use_entry_utility_code(entry)
 
@@ -2349,7 +2349,7 @@ class CCodeWriter:
             if method_noargs in method_flags:
                 # Special NOARGS methods really take no arguments besides 'self', but PyCFunction expects one.
                 func_cname = Naming.method_wrapper_prefix + func_cname
-                self.putln("static PyObject *%s(PyObject *self, CYTHON_UNUSED PyObject *arg) {" % func_cname)
+                self.putln("static PYOBJECT_TYPE %s(PYOBJECT_TYPE self, CYTHON_UNUSED PYOBJECT_TYPE arg) {" % func_cname)
                 func_call = "%s(self)" % entry.func_cname
                 if entry.name == "__next__":
                     self.putln("PyObject *res = %s;" % func_call)
@@ -2360,6 +2360,14 @@ class CCodeWriter:
                     self.putln("return %s;" % func_call)
                 self.putln("}")
         return func_cname
+    
+    def put_hpymethoddef(self, entry, term, allow_skip=True, wrapper_code_writer=None):
+        method_flags = entry.signature.hpy_method_flags()
+        if not method_flags:
+            return None
+        entry_name = entry.name.as_c_string_literal()
+        self.putln("HPyDef_METH(%s, %s, %s, .doc=%s);" % (
+            entry.pymethdef_cname, entry_name, method_flags, entry.doc_cname if entry.doc else '0'))
 
     # GIL methods
 

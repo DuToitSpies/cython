@@ -728,6 +728,8 @@ class __Pyx_FakeReference {
   #define HPY_CONTEXT_FIRST_ARG_DEF HPY_CONTEXT_TYPE HPY_CONTEXT_CNAME,
   #define HPY_CONTEXT_FIRST_ARG_CALL HPY_CONTEXT_CNAME,
 
+  #define API_SSIZE_T HPy_ssize_t
+
   #define PYOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
@@ -745,10 +747,14 @@ class __Pyx_FakeReference {
   #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
   #define PYOBJECT_FROM_STRING(s) HPyUnicode_FromString(HPY_CONTEXT_CNAME, s) //not yet needed in C API version
 
+  #define PYOBJECT_LONG_AS_SSIZE(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+
   #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
   #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
 
   #define PYMODULEDEF_TYPE HPyModuleDef
+  #define PYMETHODDEF_TYPE HPyDef
+  #define TYPESPEC_TYPE HPyType_Spec
 
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
@@ -788,6 +794,8 @@ class __Pyx_FakeReference {
   #define HPY_CONTEXT_FIRST_ARG_DEF
   #define HPY_CONTEXT_FIRST_ARG_CALL
 
+  #define API_SSIZE_T Py_ssize_t
+
   #define PYOBJECT_TYPE PyObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
   #define PYOBJECT_GLOBAL_TYPE PyObject *
@@ -804,8 +812,14 @@ class __Pyx_FakeReference {
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
 
+  #define PYOBJECT_LONG_AS_SSIZE(l) PyLong_AsSsize_t(l)
+
   #define HPY_LEGACY_OBJECT_FROM(o) o
   #define HPY_LEGACY_OBJECT_AS(o) o
+
+  #define PYMODULEDEF_TYPE struct PyModuleDef
+  #define PYMETHODDEF_TYPE PyMethodDef
+  #define TYPESPEC_TYPE PyType_Spec
 
   #define API_NULL_VALUE NULL
   #define API_DEFAULT_VALUE 0
@@ -816,8 +830,6 @@ class __Pyx_FakeReference {
   #define API_FALSE Py_False
   #define API_IS_TRUE(h) PyObject_IsTrue(h)
   #define API_IS_FALSE(h) !PyObject_Not(h)
-
-  #define PYMODULEDEF_TYPE struct PyModuleDef
 
   #define DICT_NEW() 
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
@@ -1983,12 +1995,12 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannySetupContext(name, acquire_gil)
   #define __Pyx_RefNannyFinishContextNogil()
   #define __Pyx_RefNannyFinishContext()
-  #define __Pyx_INCREF(r) Py_INCREF(r)
-  #define __Pyx_DECREF(r) Py_DECREF(r)
+  #define __Pyx_INCREF(r) PYOBJECT_ALLOC(r)
+  #define __Pyx_DECREF(r) PYOBJECT_DEALLOC(r)
   #define __Pyx_GOTREF(r)
   #define __Pyx_GIVEREF(r)
-  #define __Pyx_XINCREF(r) Py_XINCREF(r)
-  #define __Pyx_XDECREF(r) Py_XDECREF(r)
+  #define __Pyx_XINCREF(r) PYOBJECT_XALLOC(r)
+  #define __Pyx_XDECREF(r) PYOBJECT_XDEALLOC(r)
   #define __Pyx_XGOTREF(r)
   #define __Pyx_XGIVEREF(r)
 #endif /* CYTHON_REFNANNY */

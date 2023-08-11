@@ -2026,7 +2026,7 @@ class FuncDefNode(StatNode, BlockNode):
             return_type = return_type.cv_base_type
         if not return_type.is_void:
             if return_type.is_pyobject:
-                init = " = NULL"
+                init = " = API_NULL_VALUE"
             elif return_type.is_memoryviewslice:
                 init = ' = ' + return_type.literal_code(return_type.default_value)
 
@@ -2945,7 +2945,7 @@ class CFuncDefNode(FuncDefNode):
 
     def error_value(self):
         if self.return_type.is_pyobject:
-            return "0"
+            return "API_DEFAULT_VALUE"
         else:
             return self.entry.type.exception_value
 
@@ -3427,7 +3427,7 @@ class DefNode(FuncDefNode):
             if arg.needs_conversion:
                 arg.entry = env.declare_var(arg.name, arg.type, arg.pos)
                 if arg.type.is_pyobject:
-                    arg.entry.init = "0"
+                    arg.entry.init = "API_DEFAULT_VALUE"
             else:
                 arg.entry = self.declare_argument(env, arg)
             arg.entry.is_arg = 1
@@ -3445,7 +3445,7 @@ class DefNode(FuncDefNode):
             entry = env.declare_var(arg.name, type, arg.pos)
             entry.is_arg = 1
             entry.used = 1
-            entry.init = "0"
+            entry.init = "API_DEFAULT_VALUE"
             entry.xdecref_cleanup = 1
             arg.entry = entry
 
@@ -3505,7 +3505,7 @@ class DefNode(FuncDefNode):
             return
         arg_code_list = []
         if self.entry.signature.has_dummy_arg:
-            self_arg = 'PyObject *%s' % Naming.self_cname
+            self_arg = 'PYOBJECT_TYPE %s' % Naming.self_cname
             if not self.needs_outer_scope:
                 self_arg = 'CYTHON_UNUSED ' + self_arg
             arg_code_list.append(self_arg)
@@ -3538,10 +3538,10 @@ class DefNode(FuncDefNode):
         if preprocessor_guard:
             decls_code.putln(preprocessor_guard)
         decls_code.putln(
-            "static %s(%s); /* proto */" % (dc, arg_code))
+            "static %s(HPY_CONTEXT_FIRST_ARG_DEF %s); /* proto */" % (dc, arg_code))
         if preprocessor_guard:
             decls_code.putln("#endif")
-        code.putln("static %s(%s) {" % (dc, arg_code))
+        code.putln("static %s(HPY_CONTEXT_FIRST_ARG_DEF %s) {" % (dc, arg_code))
 
     def generate_argument_declarations(self, env, code):
         pass
@@ -3668,7 +3668,7 @@ class DefNodeWrapper(FuncDefNode):
         args = ', '.join(args)
         if not self.return_type.is_void:
             code.put('%s = ' % Naming.retval_cname)
-        code.putln('%s(%s);' % (
+        code.putln('%s(HPY_CONTEXT_FIRST_ARG_CALL %s);' % (
             self.target.entry.pyfunc_cname, args))
 
     def generate_function_definitions(self, env, code):
@@ -3691,7 +3691,7 @@ class DefNodeWrapper(FuncDefNode):
         tempvardecl_code = code.insertion_point()
 
         if self.return_type.is_pyobject:
-            retval_init = ' = 0'
+            retval_init = ' = API_DEFAULT_VALUE'
         else:
             retval_init = ''
         if not self.return_type.is_void:
@@ -3754,7 +3754,7 @@ class DefNodeWrapper(FuncDefNode):
         sig = self.signature
 
         if sig.has_dummy_arg or self.self_in_stararg:
-            arg_code = "PyObject *%s" % Naming.self_cname
+            arg_code = "PYOBJECT_TYPE %s" % Naming.self_cname
             if not sig.has_dummy_arg:
                 arg_code = 'CYTHON_UNUSED ' + arg_code
             arg_code_list.append(arg_code)
@@ -3762,18 +3762,18 @@ class DefNodeWrapper(FuncDefNode):
         for arg in self.args:
             if not arg.is_generic:
                 if arg.is_self_arg or arg.is_type_arg:
-                    arg_code_list.append("PyObject *%s" % arg.hdr_cname)
+                    arg_code_list.append("PYOBJECT_TYPE %s" % arg.hdr_cname)
                 else:
                     arg_code_list.append(
                         arg.hdr_type.declaration_code(arg.hdr_cname))
         entry = self.target.entry
         if not entry.is_special and sig.method_flags() == [TypeSlots.method_noargs]:
-            arg_code_list.append("CYTHON_UNUSED PyObject *unused")
+            arg_code_list.append("CYTHON_UNUSED PYOBJECT_TYPE unused")
         if sig.has_generic_args:
-            varargs_args = "PyObject *%s, PyObject *%s" % (
+            varargs_args = "PYOBJECT_TYPE %s, PYOBJECT_TYPE %s" % (
                     Naming.args_cname, Naming.kwds_cname)
             if sig.use_fastcall:
-                fastcall_args = "PyObject *const *%s, Py_ssize_t %s, PyObject *%s" % (
+                fastcall_args = "PYOBJECT_TYPE const *%s, API_SSIZE_T %s, PYOBJECT_TYPE %s" % (
                         Naming.args_cname, Naming.nargs_cname, Naming.kwds_cname)
                 arg_code_list.append(
                     "\n#if CYTHON_METH_FASTCALL\n%s\n#else\n%s\n#endif\n" % (
@@ -3782,7 +3782,7 @@ class DefNodeWrapper(FuncDefNode):
                 arg_code_list.append(varargs_args)
         if entry.is_special:
             for n in range(len(self.args), sig.max_num_fixed_args()):
-                arg_code_list.append("CYTHON_UNUSED PyObject *unused_arg_%s" % n)
+                arg_code_list.append("CYTHON_UNUSED PYOBJECT_TYPE unused_arg_%s" % n)
         arg_code = ", ".join(arg_code_list)
 
         # Prevent warning: unused function '__pyx_pw_5numpy_7ndarray_1__getbuffer__'
@@ -3793,7 +3793,7 @@ class DefNodeWrapper(FuncDefNode):
             with_pymethdef = False
 
         dc = self.return_type.declaration_code(entry.func_cname)
-        header = "%sstatic %s(%s)" % (mf, dc, arg_code)
+        header = "%sstatic %s(HPY_CONTEXT_FIRST_ARG_DEF %s)" % (mf, dc, arg_code)
         code.putln("%s; /*proto*/" % header)
 
         if proto_only:
@@ -3827,9 +3827,13 @@ class DefNodeWrapper(FuncDefNode):
                 code.putln('#endif')
 
         if with_pymethdef or self.target.fused_py_func:
+            code.putln("#if !CYTHON_USING_HPY")
             code.put(
                 "static PyMethodDef %s = " % entry.pymethdef_cname)
             code.put_pymethoddef(self.target.entry, ";", allow_skip=False)
+            code.putln("#else")
+            code.put_hpymethoddef(self.target.entry, ";", allow_skip=False)
+            code.putln("#endif")
         code.putln("%s {" % header)
 
     def generate_argument_declarations(self, env, code):
