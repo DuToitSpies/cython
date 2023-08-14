@@ -1,10 +1,10 @@
 /////////////// FetchSharedCythonModule.proto ///////
 
-static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(void);
+static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_DEF);
 
 /////////////// FetchSharedCythonModule ////////////
 
-static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(void) {
+static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_DEF) {
     return HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef(__PYX_ABI_MODULE_NAME));
 }
 
@@ -41,12 +41,12 @@ static int __Pyx_VerifyCachedType(PyObject *cached_type,
 
 #if !CYTHON_USE_TYPE_SPECS
 static PyTypeObject* __Pyx_FetchCommonType(PyTypeObject* type) {
-    PyObject* abi_module;
+    PYOBJECT_TYPE abi_module;
     const char* object_name;
     PyTypeObject *cached_type = NULL;
 
-    abi_module = __Pyx_FetchSharedCythonABIModule();
-    if (!abi_module) return NULL;
+    abi_module = __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_CALL);
+    if (API_IS_NULL(abi_module)) return API_NULL_VALUE;
     // get the final part of the object name (after the last dot)
     object_name = strrchr(type->tp_name, '.');
     object_name = object_name ? object_name+1 : type->tp_name;
@@ -86,14 +86,14 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
     PYOBJECT_TYPE abi_module;
     PYOBJECT_TYPE cached_type = API_NULL_VALUE;
     // get the final part of the object name (after the last dot)
-    const char* object_name = strrchr(spec->name, '.');
-    object_name = object_name ? object_name+1 : spec->name;
+    const char* object_name = strrchr(TYPESPEC_GET(spec,name), '.');
+    object_name = object_name ? object_name+1 : TYPESPEC_GET(spec,name);
 
-    abi_module = __Pyx_FetchSharedCythonABIModule();
+    abi_module = __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_CALL);
     if (API_IS_NULL(abi_module)) return NULL;
 
-    cached_type = PYOBJECT_GET_ATTR_S(abi_module, object_name);
-    if (cached_type) {
+    cached_type = PYOBJECT_GET_ATTR_STR(abi_module, object_name);
+    if (API_IS_NOT_NULL(cached_type)) {
         API_SSIZE_T basicsize;
 #if CYTHON_COMPILING_IN_LIMITED_API
         PYOBJECT_TYPE py_basicsize;
@@ -101,16 +101,16 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
         if (unlikely(API_IS_NULL(py_basicsize))) goto bad;
         basicsize = PYOBJECT_LONG_AS_SSIZE(py_basicsize);
         PYOBJECT_DEALLOC(py_basicsize);
-        py_basicsize = 0;
+        py_basicsize = API_DEFAULT_VALUE;
         if (unlikely(basicsize == (Py_ssize_t)-1) && PyErr_Occurred()) goto bad;
 #else
         basicsize = likely(PyType_Check(cached_type)) ? ((PyTypeObject*) cached_type)->tp_basicsize : -1;
 #endif
         if (__Pyx_VerifyCachedType(
-              cached_type,
+              HPY_LEGACY_OBJECT_AS(cached_type),
               object_name,
               basicsize,
-              spec->basicsize) < 0) {
+              TYPESPEC_GET(spec, basicsize)) < 0) {
             goto bad;
         }
         goto done;
@@ -121,19 +121,21 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
     // We pass the ABI module reference to avoid keeping the user module alive by foreign type usages.
     CYTHON_UNUSED_VAR(module);
     cached_type = __Pyx_PyType_FromModuleAndSpec(abi_module, spec, bases);
-    if (unlikely(!cached_type)) goto bad;
-    if (unlikely(__Pyx_fix_up_extension_type_from_spec(spec, (PyTypeObject *) cached_type) < 0)) goto bad;
-    if (PyObject_SetAttrString(abi_module, object_name, cached_type) < 0) goto bad;
+    if (unlikely(API_IS_NULL(cached_type))) goto bad;
+#if !CYTHON_USING_HPY
+    if (unlikely(__Pyx_fix_up_extension_type_from_spec(spec, (PyTypeObject *) cached_type) < 0)) goto bad; //TODO: port this function
+#endif
+    if (PYOBJECT_SET_ATTR_STR(abi_module, object_name, cached_type) < 0) goto bad;
 
 done:
     PYOBJECT_DEALLOC(abi_module);
     // NOTE: always returns owned reference, or NULL on error
-    assert(cached_type == NULL || PyType_Check(cached_type));
-    return (PyTypeObject *) cached_type;
+    assert(API_IS_NULL(cached_type) || PyType_Check(cached_type));
+    return (PyTypeObject *) HPY_LEGACY_OBJECT_AS(cached_type);
 
 bad:
     PYOBJECT_DEALLOC(cached_type);
-    cached_type = NULL;
+    cached_type = API_NULL_VALUE;
     goto done;
 }
 #endif

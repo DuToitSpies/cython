@@ -421,7 +421,7 @@ static CYTHON_INLINE void __Pyx_Coroutine_ResetFrameBackpointer(__Pyx_ExcInfoStr
 #define __Pyx_Coroutine_New(body, code, closure, name, qualname, module_name)  \
     __Pyx__Coroutine_New(__pyx_CoroutineType, body, code, closure, name, qualname, module_name)
 
-static int __pyx_Coroutine_init(PyObject *module); /*proto*/
+static int __pyx_Coroutine_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module); /*proto*/
 static PyObject *__Pyx__Coroutine_await(PyObject *coroutine); /*proto*/
 
 typedef struct {
@@ -1756,11 +1756,11 @@ static PyTypeObject __pyx_CoroutineType_type = {
 };
 #endif /* CYTHON_USE_TYPE_SPECS */
 
-static int __pyx_Coroutine_init(PyObject *module) {
+static int __pyx_Coroutine_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module) {
     CYTHON_MAYBE_UNUSED_VAR(module);
     // on Windows, C-API functions can't be used in slots statically
 #if CYTHON_USE_TYPE_SPECS
-    __pyx_CoroutineType = __Pyx_FetchCommonTypeFromSpec(module, &__pyx_CoroutineType_spec, NULL);
+    __pyx_CoroutineType = __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_CALL module, &__pyx_CoroutineType_spec, NULL);
 #else
     __pyx_CoroutineType_type.tp_getattro = __Pyx_PyObject_GenericGetAttrNoDict;
     __pyx_CoroutineType = __Pyx_FetchCommonType(&__pyx_CoroutineType_type);

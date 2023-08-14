@@ -885,7 +885,7 @@ static PyObject *__Pyx_PyCode_Replace_For_AddTraceback(PyObject *code, PyObject 
     #endif
 }
 
-static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARGUMENT_CALL const char *funcname, int c_line,
+static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_CALL const char *funcname, int c_line,
                                int py_line, const char *filename) {
     PyObject *code_object = NULL, *py_py_line = NULL, *py_funcname = NULL, *dict = NULL;
     PyObject *replace = NULL, *getframe = NULL, *frame = NULL;
@@ -894,7 +894,7 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARGUMENT_CALL const char *funcn
     if (c_line) {
         // Avoid "unused" warning as long as we don't use this.
         (void) $cfilenm_cname;
-        (void) __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARGUMENT_CALL __Pyx_PyThreadState_Current, c_line);
+        (void) __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_CALL __Pyx_PyThreadState_Current, c_line);
     }
 
     // DW - this is a horrendous hack, but I'm quite proud of it. Essentially

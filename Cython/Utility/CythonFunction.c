@@ -97,7 +97,7 @@ static CYTHON_INLINE void __Pyx_CyFunction_SetAnnotationsDict(PyObject *m,
                                                               PyObject *dict);
 
 
-static int __pyx_CyFunction_init(PYOBJECT_GLOBAL_TYPE module);
+static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module);
 
 #if CYTHON_METH_FASTCALL
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
@@ -415,19 +415,19 @@ __Pyx_CyFunction_get_annotations(__pyx_CyFunctionObject *op, void *context) {
     return result;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_is_coroutine(__pyx_CyFunctionObject *op, void *context) {
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject *op, void *context) {
     int is_coroutine;
     CYTHON_UNUSED_VAR(context);
     if (op->func_is_coroutine) {
-        return __Pyx_NewRef(op->func_is_coroutine);
+        return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
     }
 
     is_coroutine = op->flags & __Pyx_CYFUNCTION_COROUTINE;
     if (is_coroutine) {
-        PyObject *module, *fromlist, *marker = PYIDENT("_is_coroutine");
+        PyObject *module, *fromlist, *marker = HPY_LEGACY_OBJECT_AS(PYIDENT("_is_coroutine"));
         fromlist = PyList_New(1);
-        if (unlikely(!fromlist)) return NULL;
+        if (unlikely(!fromlist)) return API_NULL_VALUE;
         Py_INCREF(marker);
 #if CYTHON_ASSUME_SAFE_MACROS
         PyList_SET_ITEM(fromlist, 0, marker);
@@ -438,20 +438,20 @@ __Pyx_CyFunction_get_is_coroutine(__pyx_CyFunctionObject *op, void *context) {
             return NULL;
         }
 #endif
-        module = PyImport_ImportModuleLevelObject(PYIDENT("asyncio.coroutines"), NULL, NULL, fromlist, 0);
+        module = PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(PYIDENT("asyncio.coroutines")), NULL, NULL, fromlist, 0);
         Py_DECREF(fromlist);
         if (unlikely(!module)) goto ignore;
-        op->func_is_coroutine = __Pyx_PyObject_GetAttrStr(module, marker);
+        op->func_is_coroutine = HPY_LEGACY_OBJECT_AS(__Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM(module), HPY_LEGACY_OBJECT_FROM(marker)));
         Py_DECREF(module);
         if (likely(op->func_is_coroutine)) {
-            return __Pyx_NewRef(op->func_is_coroutine);
+            return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
         }
 ignore:
         PyErr_Clear();
     }
 
     op->func_is_coroutine = __Pyx_PyBool_FromLong(is_coroutine);
-    return __Pyx_NewRef(op->func_is_coroutine);
+    return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
 }
 
 //static PyObject *
@@ -1156,14 +1156,14 @@ static PyTypeObject __pyx_CyFunctionType_type = {
 #endif  /* CYTHON_USE_TYPE_SPECS */
 
 
-static int __pyx_CyFunction_init(PYOBJECT_GLOBAL_TYPE module) {
+static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module) {
 #if CYTHON_USE_TYPE_SPECS
-    __pyx_CyFunctionType = __Pyx_FetchCommonTypeFromSpec(module, &__pyx_CyFunctionType_spec, NULL);
+    __pyx_CyFunctionType = __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_CALL module, &__pyx_CyFunctionType_spec, API_NULL_VALUE);
 #else
     CYTHON_UNUSED_VAR(module);
     __pyx_CyFunctionType = __Pyx_FetchCommonType(&__pyx_CyFunctionType_type);
 #endif
-    if (unlikely(API_IS_NULL(__pyx_CyFunctionType))) {
+    if (unlikely(!__pyx_CyFunctionType)) {
         return -1;
     }
     return 0;
