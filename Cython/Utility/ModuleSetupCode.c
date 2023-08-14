@@ -449,6 +449,10 @@
   #define CYTHON_USE_TYPE_SLOTS 0
   #undef CYTHON_AVOID_BORROWED_REFS
   #define CYTHON_AVOID_BORROWED_REFS 1
+  #undef CYTHON_USE_TYPE_SPECS
+  #define CYTHON_USE_TYPE_SPECS 1
+  #undef CYTHON_COMPILING_IN_LIMITED_API
+  #define CYTHON_COMPILING_IN_LIMITED_API 1
   /* We don't use refnanny in HPy since it has the debug mode */
   #undef CYTHON_REFNANNY
   #define CYTHON_REFNANNY 0
@@ -741,6 +745,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_ALLOC_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
 
   #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -751,10 +756,13 @@ class __Pyx_FakeReference {
 
   #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
   #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
+  #define HPY_LEGACY_OBJECT_ARRAY_AS(o, ssize) HPy_AsPyObjectArray(HPY_CONTEXT_CNAME, o, ssize)
 
   #define PYMODULEDEF_TYPE HPyModuleDef
   #define PYMETHODDEF_TYPE HPyDef
   #define TYPESPEC_TYPE HPyType_Spec
+  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) HPyType_FromSpec(HPY_CONTEXT_CNAME, &s, HPy_NULL)
+  #define TYPESPEC_GET(s, field) s.field
 
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
@@ -776,7 +784,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
-  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPyObject_GetAttrString(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
 
   #define PYMODULE_GETDICT_ATTR(mod) HPy_GetAttr_s(HPY_CONTEXT_CNAME, mod, "__dict__") 
@@ -807,6 +815,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
+  #define PYOBJECT_ALLOC_NEWREF(h) (Py_INCREF(h), h)
   #define REFNANNY_DEALLOC(func, h) func(h)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
@@ -816,10 +825,13 @@ class __Pyx_FakeReference {
 
   #define HPY_LEGACY_OBJECT_FROM(o) o
   #define HPY_LEGACY_OBJECT_AS(o) o
+  #define HPY_LEGACY_OBJECT_ARRAY_AS(o, ssize) o
 
   #define PYMODULEDEF_TYPE struct PyModuleDef
   #define PYMETHODDEF_TYPE PyMethodDef
   #define TYPESPEC_TYPE PyType_Spec
+  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) PyType_FromModuleAndSpec(m, s, b)
+  #define TYPESPEC_GET(s, field) s->field
 
   #define API_NULL_VALUE NULL
   #define API_DEFAULT_VALUE 0
@@ -1139,7 +1151,7 @@ static CYTHON_INLINE int __Pyx__IsSameCFunction(PyObject *func, void *cfunc) {
   #define __Pyx_PyType_FromModuleAndSpec(m, s, b)  ((void)m, PyType_FromSpecWithBases(s, b))
   typedef PyObject *(*__Pyx_PyCMethod)(PyObject *, PyTypeObject *, PyObject *const *, size_t, PyObject *);
 #else
-  #define __Pyx_PyType_FromModuleAndSpec(m, s, b)  PyType_FromModuleAndSpec(m, s, b)
+  #define __Pyx_PyType_FromModuleAndSpec(m, s, b)  TYPE_FROM_MOD_AND_SPEC(m, s, b)
   #define __Pyx_PyCMethod  PyCMethod
 #endif
 #ifndef METH_METHOD

@@ -812,6 +812,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         else:
             self._put_setup_code(code, "CInitCode")
         self._put_setup_code(code, "HPyInitCode")
+        code.put(UtilityCode.load_as_string("HPyHelperFuncs", "HPyUtils.c")[1])
         self._put_setup_code(code, "PythonCompatibility")
         self._put_setup_code(code, "MathInitCode")
 
@@ -3175,7 +3176,10 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         for ext_type in ('CyFunction', 'FusedFunction', 'Coroutine', 'Generator', 'AsyncGen', 'StopAsyncIteration'):
             code.putln("#ifdef __Pyx_%s_USED" % ext_type)
-            code.put_error_if_neg(self.pos, "__pyx_%s_init(%s)" % (ext_type, env.module_cname))
+            if ext_type == 'CyFunction':
+                code.put_error_if_neg(self.pos, "__pyx_%s_init(HPY_CONTEXT_FIRST_ARG_CALL %s)" % (ext_type, env.module_cname))
+            else:
+                code.put_error_if_neg(self.pos, "__pyx_%s_init(%s)" % (ext_type, env.module_cname))
             code.putln("#endif")
 
         code.putln("/*--- Library function declarations ---*/")

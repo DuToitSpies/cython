@@ -738,7 +738,7 @@ bad:
 
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n);
-static CYTHON_INLINE PyObject* __Pyx_PyTuple_FromArray(PyObject *const *src, Py_ssize_t n);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyTuple_FromArray(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE const *src, API_SSIZE_T n);
 #endif
 
 /////////////// TupleAndListFromArray ///////////////
@@ -754,18 +754,22 @@ static CYTHON_INLINE void __Pyx_copy_object_array(PyObject *const *CYTHON_RESTRI
     }
 }
 
-static CYTHON_INLINE PyObject *
-__Pyx_PyTuple_FromArray(PyObject *const *src, Py_ssize_t n)
+static CYTHON_INLINE PYOBJECT_TYPE
+__Pyx_PyTuple_FromArray(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE const *src, API_SSIZE_T n)
 {
     PyObject *res;
     if (n <= 0) {
+#if !CYTHON_USING_HPY
         Py_INCREF($empty_tuple);
         return $empty_tuple;
+#else
+        return PYOBJECT_GLOBAL_LOAD($empty_tuple);
+#endif
     }
     res = PyTuple_New(n);
-    if (unlikely(res == NULL)) return NULL;
-    __Pyx_copy_object_array(src, ((PyTupleObject*)res)->ob_item, n);
-    return res;
+    if (unlikely(res == NULL)) return API_NULL_VALUE;
+    __Pyx_copy_object_array(HPY_LEGACY_OBJECT_ARRAY_AS(src, n), ((PyTupleObject*)res)->ob_item, (Py_ssize_t) n);
+    return HPY_LEGACY_OBJECT_FROM(res);
 }
 
 static CYTHON_INLINE PyObject *
@@ -2825,7 +2829,7 @@ typedef const char *__Pyx_TypeName;
 
 #if CYTHON_COMPILING_IN_LIMITED_API
 static __Pyx_TypeName
-__Pyx_PyType_GetName(PyTypeObject* tp)
+__Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp)
 {
     PyObject *name = __Pyx_PyObject_GetAttrStr((PyObject *)tp,
                                                PYIDENT("__name__"));
