@@ -19,4 +19,12 @@ HPy_AsPyObjectArray(HPyContext *ctx, HPy *h_arr, HPy_ssize_t n)
     }
     return arr;
 }
+
+static HPyType_SpecParam* get_temp_specparams(HPyContext *ctx) {
+    HPyType_SpecParam temp_params[] = {
+            { HPyType_SpecParam_Base, ctx->h_LongType },
+            { (HPyType_SpecParam_Kind)0 }
+    };
+    return temp_params;
+}
 #endif
