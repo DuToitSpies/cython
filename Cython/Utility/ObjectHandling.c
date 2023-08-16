@@ -1555,6 +1555,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name);/*proto*/
 #else
 #define __Pyx_PyObject_GetAttrStr(o,n) PYOBJECT_GET_ATTR(o,n) //Needed to turn this into a function macro to be able to pass the context properly
+#define __Pyx_PyObject_GetAttrStr_legacy(o,n) PyObject_GetAttr(o,n)  //Used for functions where the context isn't reachable yet
 #endif
 
 /////////////// PyObjectGetAttrStr ///////////////
@@ -2814,10 +2815,10 @@ static CYTHON_INLINE PyObject* __Pyx_PySequence_Multiply(PyObject *seq, Py_ssize
 /////////////// FormatTypeName.proto ///////////////
 
 #if CYTHON_COMPILING_IN_LIMITED_API
-typedef PyObject *__Pyx_TypeName;
+typedef PYOBJECT_TYPE __Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%U"
-static __Pyx_TypeName __Pyx_PyType_GetName(PyTypeObject* tp); /*proto*/
-#define __Pyx_DECREF_TypeName(obj) Py_XDECREF(obj)
+static __Pyx_TypeName __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp); /*proto*/
+#define __Pyx_DECREF_TypeName(obj) PYOBJECT_XDEALLOC(obj)
 #else
 typedef const char *__Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%.200s"
@@ -2827,16 +2828,20 @@ typedef const char *__Pyx_TypeName;
 
 /////////////// FormatTypeName ///////////////
 
+//Duplication will be removed once port is completed
+
 #if CYTHON_COMPILING_IN_LIMITED_API
 static __Pyx_TypeName
 __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp)
 {
-    PyObject *name = __Pyx_PyObject_GetAttrStr((PyObject *)tp,
+    PYOBJECT_TYPE name = __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM((PyObject *)tp),
                                                PYIDENT("__name__"));
-    if (unlikely(name == NULL) || unlikely(!PyUnicode_Check(name))) {
+    if (unlikely(API_IS_NULL(name)) || unlikely(!PyUnicode_Check(HPY_LEGACY_OBJECT_AS(name)))) {
         PyErr_Clear();
-        Py_XDECREF(name);
-        name = __Pyx_NewRef(PYIDENT("?"));
+#if !CYTHON_USING_HPY
+        Py_XDECREF(HPY_LEGACY_OBJECT_AS(name));
+        name = __Pyx_NewRef(PYIDENT("?")); //Not sure how this should look in HPy
+#endif
     }
     return name;
 }

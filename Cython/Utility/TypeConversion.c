@@ -114,7 +114,7 @@ static CYTHON_INLINE size_t __Pyx_Py_UNICODE_strlen(const Py_UNICODE *u)
 static CYTHON_INLINE PyObject * __Pyx_PyBool_FromLong(long b);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrue(PyObject*);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject*);
-static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(PyObject* x);
+static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x);
 
 #define __Pyx_PySequence_Tuple(obj) \
     (likely(PyTuple_CheckExact(obj)) ? __Pyx_NewRef(obj) : PySequence_Tuple(obj))
@@ -318,8 +318,8 @@ static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject* x) {
     return retval;
 }
 
-static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(PyObject* result, const char* type_name) {
-    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(Py_TYPE(result));
+static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_DEF PyObject* result, const char* type_name) {
+    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL Py_TYPE(result));
     if (PyLong_Check(result)) {
         // CPython issue #17576: warn if 'result' not of exact type int.
         if (PyErr_WarnFormat(PyExc_DeprecationWarning, 1,
@@ -342,7 +342,7 @@ static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(PyObject* result, const
     return NULL;
 }
 
-static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(PyObject* x) {
+static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x) {
 #if CYTHON_USE_TYPE_SLOTS
   PyNumberMethods *m;
 #endif
@@ -363,7 +363,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(PyObject* x) {
 #endif
   if (likely(res)) {
       if (unlikely(!PyLong_CheckExact(res))) {
-          return __Pyx_PyNumber_IntOrLongWrongResultType(res, name);
+          return __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_CALL res, name);
       }
   }
   else if (!PyErr_Occurred()) {
@@ -918,7 +918,7 @@ static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value, Py_ssize_t wid
 
 /////////////// CIntFromPy.proto ///////////////
 
-static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(PyObject *);
+static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyObject *);
 
 /////////////// CIntFromPy ///////////////
 //@requires: CIntFromPyVerify
@@ -926,7 +926,7 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(PyObject *);
 
 {{py: from Cython.Utility import pylong_join }}
 
-static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(PyObject *x) {
+static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -1026,7 +1026,7 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(PyObject *x) {
         // large integer type and no access to PyLong internals => allow for a more expensive conversion
         {
             {{TYPE}} val;
-            PyObject *v = __Pyx_PyNumber_IntOrLong(x);
+            PyObject *v = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
             if (likely(v)) {
                 int ret = -1;
 #if PY_VERSION_HEX < 0x030d0000 && !(CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API) || defined(_PyLong_AsByteArray)
@@ -1137,9 +1137,9 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(PyObject *x) {
         {{endif}}
     } else {
         {{TYPE}} val;
-        PyObject *tmp = __Pyx_PyNumber_IntOrLong(x);
+        PyObject *tmp = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
         if (!tmp) return ({{TYPE}}) -1;
-        val = {{FROM_PY_FUNCTION}}(tmp);
+        val = {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_CALL tmp);
         Py_DECREF(tmp);
         return val;
     }

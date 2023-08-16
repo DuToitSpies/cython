@@ -1064,6 +1064,7 @@ static PyType_Slot __pyx_CyFunctionType_slots[] = {
     {0, 0},
 };
 
+#if !CYTHON_USING_HPY
 static PyType_Spec __pyx_CyFunctionType_spec = {
     __PYX_TYPE_MODULE_PREFIX "cython_function_or_method",
     sizeof(__pyx_CyFunctionObject),
@@ -1077,6 +1078,14 @@ static PyType_Spec __pyx_CyFunctionType_spec = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE, /*tp_flags*/
     __pyx_CyFunctionType_slots
 };
+#else
+static HPyType_Spec __pyx_CyFunctionType_spec = {
+    .basicsize = sizeof(__pyx_CyFunctionObject),
+    .itemsize = 0,
+    .flags = HPy_TPFLAGS_DEFAULT | HPy_TPFLAGS_HAVE_GC | HPy_TPFLAGS_BASETYPE, /*tp_flags*/
+    .legacy_slots = __pyx_CyFunctionType_slots
+};
+#endif
 #else /* CYTHON_USE_TYPE_SPECS */
 
 static PyTypeObject __pyx_CyFunctionType_type = {
@@ -1158,7 +1167,7 @@ static PyTypeObject __pyx_CyFunctionType_type = {
 
 static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module) {
 #if CYTHON_USE_TYPE_SPECS
-    __pyx_CyFunctionType = __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_CALL module, &__pyx_CyFunctionType_spec, API_NULL_VALUE);
+    __pyx_CyFunctionType = __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_CALL module, __pyx_CyFunctionType_spec, API_NULL_VALUE);
 #else
     CYTHON_UNUSED_VAR(module);
     __pyx_CyFunctionType = __Pyx_FetchCommonType(&__pyx_CyFunctionType_type);

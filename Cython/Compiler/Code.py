@@ -2366,8 +2366,8 @@ class CCodeWriter:
         if not method_flags:
             return None
         entry_name = entry.name.as_c_string_literal()
-        self.putln("HPyDef_METH(%s, %s, %s, .doc=%s);" % (
-            entry.pymethdef_cname, entry_name, method_flags, entry.doc_cname if entry.doc else '0'))
+        self.putln("HPyDef_METH_IMPL(%s, %s, %s, %s, .doc=%s);" % (
+            entry.pymethdef_cname, entry_name, entry.func_cname, method_flags, entry.doc_cname if entry.doc else '0'))
 
     # GIL methods
 
