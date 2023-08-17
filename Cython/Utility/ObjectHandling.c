@@ -2735,7 +2735,7 @@ static __Pyx_TypeName
 __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp)
 {
     PYOBJECT_TYPE name = __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM((PyObject *)tp),
-                                               PYIDENT("__name__"));
+                                               PYOBJECT_GLOBAL_LOAD(PYIDENT("__name__")));
     if (unlikely(API_IS_NULL(name)) || unlikely(!PyUnicode_Check(HPY_LEGACY_OBJECT_AS(name)))) {
         PyErr_Clear();
 #if !CYTHON_USING_HPY

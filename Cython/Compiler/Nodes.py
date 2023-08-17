@@ -3758,8 +3758,8 @@ class DefNodeWrapper(FuncDefNode):
                     arg_code_list.append(
                         arg.hdr_type.declaration_code(arg.hdr_cname))
         entry = self.target.entry
-        if not entry.is_special and sig.method_flags() == [TypeSlots.method_noargs]:
-            arg_code_list.append("CYTHON_UNUSED PYOBJECT_TYPE unused")
+        #if not entry.is_special and sig.method_flags() == [TypeSlots.method_noargs]:
+        #    arg_code_list.append("CYTHON_UNUSED PYOBJECT_TYPE unused")
         if sig.has_generic_args:
             varargs_args = "PYOBJECT_TYPE %s, PYOBJECT_TYPE %s" % (
                     Naming.args_cname, Naming.kwds_cname)

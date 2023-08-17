@@ -35,14 +35,14 @@ static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t) 
         PyObject *str;
         if (t->is_unicode | t->is_str) {
             if (t->intern) {
-                str = PyUnicode_InternFromString(t->s);
+                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_InternFromString(t->s)));
             } else if (t->encoding) {
-                str = PyUnicode_Decode(t->s, t->n - 1, t->encoding, NULL);
+                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_Decode(t->s, t->n - 1, t.encoding, NULL)));
             } else {
-                str = PyUnicode_FromStringAndSize(t->s, t->n - 1);
+                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(t->s, t->n - 1)));
             }
         } else {
-            str = PyBytes_FromStringAndSize(t->s, t->n - 1);
+            PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, BYTES_FROM_STR_AND_SIZE(t->s, t->n - 1));
         }
         if (!str)
             return -1;

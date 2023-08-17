@@ -425,7 +425,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
 
     is_coroutine = op->flags & __Pyx_CYFUNCTION_COROUTINE;
     if (is_coroutine) {
-        PyObject *module, *fromlist, *marker = HPY_LEGACY_OBJECT_AS(PYIDENT("_is_coroutine"));
+        PyObject *module, *fromlist, *marker = HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("_is_coroutine")));
         fromlist = PyList_New(1);
         if (unlikely(!fromlist)) return API_NULL_VALUE;
         Py_INCREF(marker);
@@ -438,7 +438,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
             return NULL;
         }
 #endif
-        module = PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(PYIDENT("asyncio.coroutines")), NULL, NULL, fromlist, 0);
+        module = PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("asyncio.coroutines"))), NULL, NULL, fromlist, 0);
         Py_DECREF(fromlist);
         if (unlikely(!module)) goto ignore;
         op->func_is_coroutine = HPY_LEGACY_OBJECT_AS(__Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM(module), HPY_LEGACY_OBJECT_FROM(marker)));
