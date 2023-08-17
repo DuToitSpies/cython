@@ -2741,19 +2741,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("")
 
         if wrapper_code_writer.getvalue():
-            wrapper_code_writer.putln("")
-
-    def generate_globals_array(self, env, code):
-        code.putln("#if CYTHON_USING_HPY")
-        code.putln("globals_array[0] = &%s;" % env.module_cname)
-        code.putln("globals_array[1] = &%s;" % env.module_dict_cname)
-        code.putln("globals_array[2] = &%s;" % Naming.cython_runtime_cname)
-        code.putln("globals_array[3] = &%s;" % Naming.empty_tuple)
-        code.putln("globals_array[4] = &%s;" % Naming.empty_bytes)
-        code.putln("globals_array[5] = &%s;" % Naming.empty_unicode)
-        if Options.pre_import is not None:
-            code.putln("globals_array[6] = &%s;" % Naming.preimport_cname)
-        code.putln("#endif")    
+            wrapper_code_writer.putln("")  
 
     def generate_dict_getter_function(self, scope, code):
         dict_attr = scope.lookup_here("__dict__")
@@ -3096,8 +3084,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#if CYTHON_USE_MODULE_STATE")
         code.putln('int pystate_addmodule_run = 0;')
         code.putln("#endif")
-
-        self.generate_globals_array(env, code)
 
         tempdecl_code = code.insertion_point()
 
