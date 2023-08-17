@@ -2527,7 +2527,7 @@ class NameNode(AtomicExprNode):
                 assert False, repr(entry)
             code.put_error_if_neg(
                 self.pos,
-                '%s(PYOBJECT_GLOBAL_LOAD(%s), %s, %s)' % (
+                '%s(PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), %s)' % (
                     setter,
                     namespace,
                     interned_cname,
@@ -10065,7 +10065,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
             flags = '0'
 
         code.putln(
-            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, %s, %s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s); %s' % (
+            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), %s); %s' % (
                 self.result(),
                 constructor,
                 self.pymethdef_cname,
@@ -10192,8 +10192,8 @@ class CodeObjectNode(ExprNode):
         code.putln("%s = HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
                    HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
                    HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)))); %s" % (
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), %d, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)))); %s" % (
             self.result_code,
             len(func.args) - func.num_kwonly_args,  # argcount
             func.num_posonly_args,     # posonlyargcount (Py3.8+ only)

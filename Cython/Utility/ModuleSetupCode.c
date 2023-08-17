@@ -740,6 +740,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
+  #define CAPI_NEEDS_DEREFERENCE
 
   #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -810,6 +811,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
+  #define CAPI_NEEDS_DEREFERENCE &
 
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
@@ -1660,7 +1662,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 
 /////////////// UtilityFunctionPredeclarations.proto ///////////////
 
-typedef struct {PYOBJECT_TYPE* p; const char *s; const Py_ssize_t n; const char* encoding;
+typedef struct {PYOBJECT_GLOBAL_TYPE CAPI_IS_POINTER p; const char *s; const Py_ssize_t n; const char* encoding;
                 const char is_unicode; const char is_str; const char intern; } __Pyx_StringTabEntry; /*proto*/
 
 

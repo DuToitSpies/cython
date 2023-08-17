@@ -510,7 +510,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         self.generate_typeobj_definitions(env, code)
         self.generate_method_table(env, code)
         self.generate_hpy_define_array(env, code)
-        self.define_globals_array(env, code)
         if env.has_import_star:
             self.generate_import_star(env, code)
 
@@ -2744,13 +2743,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if wrapper_code_writer.getvalue():
             wrapper_code_writer.putln("")
 
-
-
-    def define_globals_array(self, env, code):
-        code.putln("#if CYTHON_USING_HPY")
-        code.putln("static HPyGlobal *globals_array[10];")
-        code.putln("#endif")
-
     def generate_globals_array(self, env, code):
         code.putln("#if CYTHON_USING_HPY")
         code.putln("globals_array[0] = &%s;" % env.module_cname)
@@ -3198,7 +3190,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
 
         code.putln("if (%s) {" % self.is_main_module_flag_cname())
-        code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, %s, %s)' % (
+        code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s))' % (
             Naming.pymodinit_module_arg,
             code.intern_identifier(EncodedString("__name__")),
             code.intern_identifier(EncodedString("__main__"))))

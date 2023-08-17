@@ -1143,6 +1143,7 @@ class GlobalState:
         'cached_constants',
         'init_constants',
         'init_globals',  # (utility code called at init-time)
+        'globals_table',
         'init_module',
         'cleanup_globals',
         'cleanup_module',
@@ -1152,6 +1153,8 @@ class GlobalState:
         'utility_code_pragmas_end',  # clean-up the utility_code_pragmas
         'end'
     ]
+
+    globals_counter = 5
 
     # h files can only have a much smaller list of sections
     h_code_layout = [
@@ -1217,6 +1220,13 @@ class GlobalState:
         w.enter_cfunc_scope()
         w.putln("")
         w.putln("static CYTHON_SMALL_CODE int __Pyx_InitConstants(HPY_CONTEXT_ONLY_ARG_DEF) {")
+
+        w = self.parts['globals_table']
+        w.enter_cfunc_scope()
+        self.globals_counter = 0
+        w.putln("")
+        w.putln("#if CYTHON_USING_HPY")
+        w.putln("static CYTHON_SMALL_CODE int __Pyx_InitGlobalsTable() {")
 
         if not Options.generate_cleanup_code:
             del self.parts['cleanup_globals']
@@ -1293,13 +1303,19 @@ class GlobalState:
         w.putln("}")
         w.exit_cfunc_scope()
 
-        for part in ['init_globals', 'init_constants']:
+        for part in ['init_globals', 'init_constants', 'globals_table']:
             w = self.parts[part]
             w.putln("return 0;")
             if w.label_used(w.error_label):
                 w.put_label(w.error_label)
                 w.putln("return -1;")
             w.putln("}")
+            if (part == 'init_constants'):
+                w.putln("#if CYTHON_USING_HPY")
+                w.putln("HPyGlobal *globals_array[%s];" % self.globals_counter)
+                w.putln("#endif")
+            if (part == 'globals_table'):
+                w.putln("#endif")
             w.exit_cfunc_scope()
 
         if Options.generate_cleanup_code:
@@ -1602,7 +1618,7 @@ class GlobalState:
                 else:
                     encoding = '"%s"' % py_string.encoding.lower()
 
-                self.parts['module_state'].putln("PYOBJECT_TYPE %s;" % py_string.cname)
+                self.parts['module_state'].putln("PYOBJECT_GLOBAL_TYPE %s;" % py_string.cname)
                 self.parts['module_state_defines'].putln("#define %s %s->%s" % (
                     py_string.cname,
                     Naming.modulestateglobal_cname,
@@ -1611,9 +1627,11 @@ class GlobalState:
                     py_string.cname)
                 self.parts['module_state_traverse'].putln("Py_VISIT(traverse_module_state->%s);" %
                     py_string.cname)
+                self.parts['globals_table'].putln("globals_array[%d] = &%s;" % (self.globals_counter, py_string.cname))
+                self.globals_counter += 1
                 if py_string.py3str_cstring:
                     w.putln("#if PY_MAJOR_VERSION >= 3")
-                    w.putln("{&%s, %s, sizeof(%s), %s, %d, %d, %d}," % (
+                    w.putln("{CAPI_NEEDS_DEREFERENCE %s, %s, sizeof(%s), %s, %d, %d, %d}," % (
                         py_string.cname,
                         py_string.py3str_cstring.cname,
                         py_string.py3str_cstring.cname,
@@ -1621,7 +1639,7 @@ class GlobalState:
                         py_string.intern
                         ))
                     w.putln("#else")
-                w.putln("{&%s, %s, sizeof(%s), %s, %d, %d, %d}," % (
+                w.putln("{CAPI_NEEDS_DEREFERENCE %s, %s, sizeof(%s), %s, %d, %d, %d}," % (
                     py_string.cname,
                     c_cname,
                     c_cname,
