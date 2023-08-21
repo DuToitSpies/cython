@@ -31,7 +31,7 @@ from . import Nodes
 from .Nodes import Node, SingleAssignmentNode
 from . import PyrexTypes
 from .PyrexTypes import py_object_type, typecast, error_type, \
-    unspecified_type
+    unspecified_type, tuple_builder_type
 from . import TypeSlots
 from .Builtin import (
     list_type, tuple_type, set_type, dict_type, type_type,
@@ -2418,7 +2418,7 @@ class NameNode(AtomicExprNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("GetModuleGlobalName", "ObjectHandling.c"))
             code.putln(
-                '__Pyx_GetModuleGlobalName(%s, %s);' % (
+                '__Pyx_GetModuleGlobalName(%s, PYOBJECT_GLOBAL_LOAD(%s));' % (
                     self.result(),
                     interned_cname))
             if not self.cf_is_null:
@@ -2447,7 +2447,7 @@ class NameNode(AtomicExprNode):
                 code.globalstate.use_utility_code(
                     UtilityCode.load_cached("GetModuleGlobalName", "ObjectHandling.c"))
                 code.putln(
-                    '__Pyx_GetModuleGlobalName(%s, %s); %s' % (
+                    '__Pyx_GetModuleGlobalName(%s, PYOBJECT_GLOBAL_LOAD(%s)); %s' % (
                         self.result(),
                         interned_cname,
                         code.error_goto_if_null_object(self.result(), self.pos)))
@@ -2500,6 +2500,7 @@ class NameNode(AtomicExprNode):
             assert entry.type.is_pyobject, "Python global or builtin not a Python object"
             interned_cname = code.intern_identifier(self.entry.name)
             namespace = self.entry.scope.namespace_cname
+            rhs_result = rhs.py_result()
             if entry.is_member:
                 # if the entry is a member we have to cheat: SetAttr does not work
                 # on types, so we create a descriptor which is then added to tp_dict.
@@ -2508,6 +2509,8 @@ class NameNode(AtomicExprNode):
                 setter = 'DICT_SET_ITEM'
                 namespace = Naming.moddict_cname
                 interned_cname = interned_cname
+                if not rhs_result.startswith("__pyx_t_"):
+                    rhs_result = "PYOBJECT_GLOBAL_LOAD(" + rhs_result + ")" #temp fix for globals and non-globals being handled by the same code
             elif entry.is_pyclass_attr:
                 # Special-case setting __new__
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
@@ -2521,7 +2524,7 @@ class NameNode(AtomicExprNode):
                     setter,
                     namespace,
                     interned_cname,
-                    rhs.py_result()))
+                    rhs_result))
             if debug_disposal_code:
                 print("NameNode.generate_assignment_code:")
                 print("...generating disposal code for %s" % rhs)
@@ -8036,10 +8039,10 @@ class SequenceNode(ExprNode):
 
         if self.type is tuple_type and (self.is_literal or self.slow) and not c_mult:
             # use PyTuple_Pack() to avoid generating huge amounts of one-time code
-            code.putln('%s = TUPLE_PACK(%d, %s); %s' % (
+            code.putln('PYOBJECT_GLOBAL_STORE(%s, TUPLE_PACK(%d, PYOBJECT_GLOBAL_LOAD(%s))); %s' % (
                 target,
                 len(self.args),
-                ', '.join(arg.py_result() for arg in self.args),
+                '), PYOBJECT_GLOBAL_LOAD('.join(arg.py_result() for arg in self.args),
                 code.error_goto_if_null_object(target, self.pos)))
             code.put_gotref(target, py_object_type)
         elif self.type.is_ctuple:
@@ -8051,13 +8054,17 @@ class SequenceNode(ExprNode):
             if self.type is list_type:
                 create_func, set_item_func = 'PyList_New', '__Pyx_PyList_SET_ITEM'
             elif self.type is tuple_type:
+                builder_type = tuple_builder_type
                 create_func, set_item_func = 'TUPLE_CREATE_START', 'TUPLE_CREATE_ASSIGN'
+                build_func = 'TUPLE_CREATE_FINALISE'
             else:
                 raise InternalError("sequence packing for unexpected type %s" % self.type)
+            if self.type is tuple_type:
+                tmp_builder = code.funcstate.allocate_temp(tuple_builder_type, manage_ref=False)
             arg_count = len(self.args)
             if self.type is tuple_type:
-                code.putln("%s(%s,%s%s); %s" % (
-                    create_func, target, arg_count, size_factor,
+                code.putln("%s(%s,%s,%s%s); %s" % (
+                    create_func, target, tmp_builder, arg_count, size_factor,
                     code.error_goto_if_null_object(target, self.pos)))
             else:
                 code.putln("%s = %s(%s%s); %s" % (
@@ -8088,15 +8095,25 @@ class SequenceNode(ExprNode):
                 if c_mult or not arg.result_in_temp():
                     code.put_incref(arg.result(), arg.ctype())
                 arg.generate_giveref(code)
-                code.putln("if (%s(%s, %s, %s)) %s;" % (
-                    set_item_func,
-                    target,
-                    (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
-                    arg.py_result(),
-                    code.error_goto(self.pos)))
+                if self.type is tuple_type:
+                    code.putln("if (%s(%s, %s, %s, %s)) %s;" % (
+                        set_item_func,
+                        target,
+                        tmp_builder,
+                        (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
+                        arg.py_result(),
+                        code.error_goto(self.pos)))
+                else:
+                    code.putln("if (%s(%s, %s, %s)) %s;" % (
+                        set_item_func,
+                        target,
+                        (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
+                        arg.py_result(),
+                        code.error_goto(self.pos)))
                 
             if self.type is tuple_type:
-                code.putln("TUPLE_CREATE_FINALISE(%s)" % target)
+                code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
+                code.funcstate.release_temp(tmp_builder)
 
             if c_mult:
                 code.putln('}')

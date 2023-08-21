@@ -1401,8 +1401,8 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_
     }
 #endif
 #else
-    result = PYOBJECT_GET_ITEM($moddict_cname, name);
-    __PYX_UPDATE_DICT_CACHE($moddict_cname, result, *dict_cached_value, *dict_version)
+    result = PYOBJECT_GET_ITEM(PYOBJECT_GLOBAL_LOAD($moddict_cname), name);
+    __PYX_UPDATE_DICT_CACHE(PYOBJECT_GLOBAL_LOAD($moddict_cname), result, *dict_cached_value, *dict_version)
     if (likely_object(result)) {
         return __Pyx_hNewRef(result);
     }
