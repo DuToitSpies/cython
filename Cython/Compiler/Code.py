@@ -1531,9 +1531,12 @@ class GlobalState:
                   for c in self.py_constants]
         consts.sort()
         for _, cname, c in consts:
+            c.type.is_global = True
             self.parts['module_state'].putln("%s;" % c.type.declaration_code(cname))
             self.parts['module_state_defines'].putln(
                 "#define %s %s->%s" % (cname, Naming.modulestateglobal_cname, cname))
+            self.parts['globals_table'].putln("globals_array[%d] = &%s;" % (self.globals_counter, cname))
+            self.globals_counter += 1
             if not c.type.needs_refcounting:
                 # Note that py_constants is used for all argument defaults
                 # which aren't necessarily PyObjects, so aren't appropriate
@@ -1666,24 +1669,26 @@ class GlobalState:
         init_constants = self.parts['init_constants']
         for py_type, _, _, value, value_code, c in consts:
             cname = c.cname
-            self.parts['module_state'].putln("PYOBJECT_TYPE %s;" % cname)
+            self.parts['module_state'].putln("PYOBJECT_GLOBAL_TYPE %s;" % cname)
             self.parts['module_state_defines'].putln("#define %s %s->%s" % (
                 cname, Naming.modulestateglobal_cname, cname))
             self.parts['module_state_clear'].putln(
                 "Py_CLEAR(clear_module_state->%s);" % cname)
             self.parts['module_state_traverse'].putln(
                 "Py_VISIT(traverse_module_state->%s);" % cname)
+            self.parts['globals_table'].putln("globals_array[%d] = &%s;" % (self.globals_counter, cname))
+            self.globals_counter += 1
             if py_type == 'float':
                 function = 'PYOBJECT_FROM_DOUBLE(%s)'
             elif py_type == 'long':
-                function = 'PyLong_FromString("%s", 0, 0)'
+                function = 'HPY_LEGACY_OBJECT_FROM(PyLong_FromString((char *)"%s", 0, 0))'
             elif Utils.long_literal(value):
-                function = 'PyInt_FromString("%s", 0, 0)'
+                function = 'HPY_LEGACY_OBJECT_FROM(PyInt_FromString((char *)"%s", 0, 0))'
             elif len(value.lstrip('-')) > 4:
                 function = "PYOBJECT_FROM_LONG(%sL)"
             else:
                 function = "PYOBJECT_FROM_LONG(%s)"
-            init_constants.putln('%s = %s; %s' % (
+            init_constants.putln('PYOBJECT_GLOBAL_STORE(%s, %s); %s' % (
                 cname, function % value_code,
                 init_constants.error_goto_if_null_object(cname, self.module_pos)))
 
@@ -2135,6 +2140,7 @@ class CCodeWriter:
             self.put(entry.type.cpp_optional_declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         else:
+            entry.type.is_global = True
             self.put(entry.type.declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         if entry.init is not None:
@@ -2151,6 +2157,7 @@ class CCodeWriter:
             else:
                 decl = type.declaration_code(name)
             if type.is_pyobject:
+                type.is_global=False
                 self.putln("%s = API_NULL_VALUE;" % decl)
             elif type.is_memoryviewslice:
                 self.putln("%s = %s;" % (decl, type.literal_code(type.default_value)))

@@ -1239,6 +1239,7 @@ class PyObjectType(PyrexType):
 
     name = "object"
     is_pyobject = 1
+    is_global = False
     default_value = "API_DEFAULT_VALUE"
     declaration_value = "API_DEFAULT_VALUE"
     buffer_defaults = None
@@ -1279,6 +1280,9 @@ class PyObjectType(PyrexType):
             for_display = 0, dll_linkage = None, pyrex = 0):
         if pyrex or for_display:
             base_code = "object"
+        elif self.is_global:
+            base_code = public_decl("PYOBJECT_GLOBAL_TYPE", dll_linkage)
+            entity_code = "%s" % entity_code
         else:
             base_code = public_decl("PYOBJECT_TYPE", dll_linkage)
             entity_code = "%s" % entity_code
@@ -1397,6 +1401,45 @@ builtin_types_with_trashcan = frozenset({
     'dict', 'list', 'set', 'frozenset', 'tuple', 'type',
 })
 
+class TupleBuilderType(PyrexType):
+    #
+    #  Class for a C tuple builder
+    #
+
+    name = "tuple_builder"
+    buffer_defaults = None
+    is_extern = False
+    is_subclassed = False
+    is_gc_simple = False
+    builtin_trashcan = False  # builtin type using trashcan
+
+    def __str__(self):
+        return "tuple builder"
+
+    def __repr__(self):
+        return "<TupleBuilder>"
+
+    def default_coerced_ctype(self):
+        """The default C type that this Python type coerces to, or None."""
+        return None
+
+    def assignable_from(self, src_type):
+        # except for pointers, conversion will be attempted
+        return False
+
+    def declaration_code(self, entity_code,
+                         for_display = 0, dll_linkage = None, pyrex = 0):
+        return self.base_declaration_code("TUPLE_BUILDER_TYPE", entity_code)
+
+    def py_type_name(self):
+        return "object"
+
+    def __lt__(self, other):
+        """
+        Make sure we sort highest, as instance checking on py_type_name
+        ('object') is always true
+        """
+        return False
 
 class BuiltinObjectType(PyObjectType):
     #  objstruct_cname  string           Name of PyObject struct
@@ -4764,6 +4807,7 @@ error_type =    ErrorType()
 unspecified_type = UnspecifiedType()
 
 py_object_type = PyObjectType()
+tuple_builder_type = TupleBuilderType()
 
 c_void_type =        CVoidType()
 

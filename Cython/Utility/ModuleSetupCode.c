@@ -793,9 +793,10 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
-  #define TUPLE_CREATE_START(builder, size) HPyTupleBuilder temp_builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
-  #define TUPLE_CREATE_ASSIGN(builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, temp_builder, index, item)
-  #define TUPLE_CREATE_FINALISE(target) target = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, temp_builder);
+  #define TUPLE_BUILDER_TYPE HPyTupleBuilder
+  #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
+  #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
+  #define TUPLE_CREATE_FINALISE(target, builder) target = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, builder);
   #define TUPLE_PACK(num_args, ...) HPyTuple_Pack(HPY_CONTEXT_CNAME, num_args, __VA_ARGS__)
 #else
   #define HPY_CONTEXT_ONLY_ARG_DEF void
@@ -863,9 +864,10 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
-  #define TUPLE_CREATE_START(target, size) target=PyTuple_New(size)
-  #define TUPLE_CREATE_ASSIGN(tuple, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
-  #define TUPLE_CREATE_FINALISE(target)
+  #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
+  #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
+  #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
+  #define TUPLE_CREATE_FINALISE(target, null)
   #define TUPLE_PACK(num_args, ...) PyTuple_Pack(num_args, __VA_ARGS__)
 
 #endif
