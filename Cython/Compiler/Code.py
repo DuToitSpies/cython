@@ -2140,7 +2140,7 @@ class CCodeWriter:
             self.put(entry.type.cpp_optional_declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         else:
-            entry.type.is_global = True
+            entry.type.is_global = False
             self.put(entry.type.declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         if entry.init is not None:
