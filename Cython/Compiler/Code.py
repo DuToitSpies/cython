@@ -2311,9 +2311,9 @@ class CCodeWriter:
         from .PyrexTypes import py_object_type, typecast
         py_none = typecast(type, py_object_type, "Py_None")
         if nanny:
-            self.putln("%s = %s; __Pyx_INCREF(Py_None);" % (cname, py_none))
+            self.putln("%s = __Pyx_NewRef(Py_None);" % (cname))
         else:
-            self.putln("%s = %s; Py_INCREF(Py_None);" % (cname, py_none))
+            self.putln("%s = Py_NewRef(Py_None);" % (cname))
 
     def put_init_var_to_py_none(self, entry, template = "%s", nanny=True):
         code = template % entry.cname
