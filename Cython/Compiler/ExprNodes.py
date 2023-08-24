@@ -795,7 +795,9 @@ class ExprNode(Node):
         If the result is in a temp, it is already a new reference.
         """
         if not self.result_in_temp():
+            code.putln("#if !CYTHON_USING_HPY")
             code.put_incref(self.result(), self.ctype())
+            code.putln("#endif")
 
     def make_owned_memoryviewslice(self, code):
         """
@@ -3029,7 +3031,11 @@ class IteratorNode(ScopedExprNode):
                 code.putln("#endif")
                 code.putln("--%s;" % self.counter_cname)  # len -> last item
             else:
-                code.putln("%s = 0;" % self.counter_cname)
+                init_value = '0'
+            code.putln("%s = __Pyx_NewRef(%s);" % (
+                self.result(),
+                self.sequence.py_result()))
+            code.putln("%s = 0;" % self.counter_cname)
 
         if not is_builtin_sequence:
             self.iter_func_ptr = code.funcstate.allocate_temp(self._func_iternext_type, manage_ref=False)
@@ -3085,12 +3091,11 @@ class IteratorNode(ScopedExprNode):
             inc_dec = '++'
         code.putln("#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS")
         code.putln(
-            "%s = Py%s_GET_ITEM(%s, %s); __Pyx_INCREF(%s); %s%s; %s" % (
+            "%s = __Pyx_NewRef(Py%s_GET_ITEM(%s, %s)); %s%s; %s" % (
                 result_name,
                 test_name,
                 self.py_result(),
                 self.counter_cname,
-                result_name,
                 self.counter_cname,
                 inc_dec,
                 # use the error label to avoid C compiler warnings if we only use it below
@@ -6573,7 +6578,7 @@ class PyMethodCallNode(CallNode):
             self.function.free_temps(code)
 
         self_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-        code.putln("%s = NULL;" % self_arg)
+        code.putln("%s = API_NULL_VALUE;" % self_arg)
         arg_offset_cname = code.funcstate.allocate_temp(PyrexTypes.c_int_type, manage_ref=False)
         code.putln("%s = 0;" % arg_offset_cname)
 
@@ -8232,9 +8237,11 @@ class SequenceNode(ExprNode):
 
             for i in range(arg_count):
                 arg = self.args[i]
+                code.putln("#if !CYTHON_USING_HPY") #This icref is only needed in the C API as the SET_ITEM functions steal their references
                 if c_mult or not arg.result_in_temp():
                     code.put_incref(arg.result(), arg.ctype())
                 arg.generate_giveref(code)
+                code.putln("#endif")
                 if self.type is tuple_type:
                     code.putln("if (%s(%s, %s, %s, %s)) %s;" % (
                         set_item_func,
@@ -8378,8 +8385,10 @@ class SequenceNode(ExprNode):
                 code.putln("%s = Py%s_GET_ITEM(sequence, %d); " % (
                     item.result(), sequence_types[1], i))
             code.putln("}")
+        code.putln("#if !CYTHON_USING_HPY")
         for item in self.unpacked_items:
             code.put_incref(item.result(), item.ctype())
+        code.putln("#endif")
 
         code.putln("#else")
         # in non-CPython, use the PySequence protocol (which can fail)
@@ -10508,8 +10517,7 @@ class YieldExprNode(ExprNode):
         self.generate_sent_value_handling_code(code, Naming.sent_value_cname)
         if self.result_is_used:
             self.allocate_temp_result(code)
-            code.put('%s = %s; ' % (self.result(), Naming.sent_value_cname))
-            code.put_incref(self.result(), py_object_type)
+            code.put('%s = __Pyx_NewRef(%s); ' % (self.result(), Naming.sent_value_cname))
 
     def generate_sent_value_handling_code(self, code, value_cname):
         code.putln(code.error_goto_if_null(value_cname, self.pos))
@@ -14472,14 +14480,22 @@ class CoerceToTempNode(CoercionNode):
     def generate_result_code(self, code):
         #self.arg.generate_evaluation_code(code) # Already done
         # by generic generate_subexpr_evaluation_code!
-        code.putln("%s = %s;" % (
-            self.result(), self.arg.result_as(self.ctype())))
+
         if self.use_managed_ref:
-            if not self.type.is_memoryviewslice:
-                code.put_incref(self.result(), self.ctype())
+            if self.type.is_pyobject:
+                code.putln("%s = __Pyx_NewRef(%s);" % (
+                    self.result(), self.arg.result_as(self.ctype())))
+            elif not self.type.is_memoryviewslice:
+                code.putln("%s = %s;" % (
+                    self.result(), self.arg.result_as(self.ctype())))
             else:
+                code.putln("%s = %s;" % (
+                    self.result(), self.arg.result_as(self.ctype())))
                 code.put_incref_memoryviewslice(self.result(), self.type,
                                             have_gil=not self.in_nogil_context)
+        else:
+            code.putln("%s = %s;" % (  
+                self.result(), self.arg.result_as(self.ctype())))
 
 
 class ProxyNode(CoercionNode):

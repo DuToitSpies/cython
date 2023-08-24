@@ -3723,7 +3723,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 code.error_goto(self.pos)))
         if Options.pre_import is not None:
             code.putln(
-                '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("%s")); %s' % (
+                '%s = __Pyx_NewRef(HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef("%s"))); %s' % (
                     Naming.preimport_cname,
                     Options.pre_import,
                     code.error_goto_if_null_object(Naming.preimport_cname, self.pos)))

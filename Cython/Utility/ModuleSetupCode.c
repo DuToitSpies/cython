@@ -453,6 +453,8 @@
   #define CYTHON_USE_TYPE_SPECS 1
   #undef CYTHON_COMPILING_IN_LIMITED_API
   #define CYTHON_COMPILING_IN_LIMITED_API 1
+  #undef CYTHON_UNPACK_METHODS
+  #define CYTHON_UNPACK_METHODS 0
   /* We don't use refnanny in HPy since it has the debug mode */
   #undef CYTHON_REFNANNY
   #define CYTHON_REFNANNY 0
@@ -793,6 +795,7 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
+  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, pos)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -818,7 +821,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
-  #define PYOBJECT_ALLOC_NEWREF(h) (Py_INCREF(h), h)
+  #define PYOBJECT_ALLOC_NEWREF(h) Py_NewRef(h)
   #define REFNANNY_DEALLOC(func, h) func(h)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
@@ -864,6 +867,7 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
+  #define TUPLE_GET_ITEM(h, pos) PyTuple_GET_ITEM(HPY_CONTEXT_CNAME, h, pos)
   #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
@@ -1811,7 +1815,6 @@ static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int co
 }
 
 static PyCodeObject *__pyx_find_code_object(int code_line) {
-    PyCodeObject* code_object;
     int pos;
     if (unlikely(!code_line) || unlikely(!__pyx_code_cache.entries)) {
         return NULL;
@@ -1820,9 +1823,7 @@ static PyCodeObject *__pyx_find_code_object(int code_line) {
     if (unlikely(pos >= __pyx_code_cache.count) || unlikely(__pyx_code_cache.entries[pos].code_line != code_line)) {
         return NULL;
     }
-    code_object = __pyx_code_cache.entries[pos].code_object;
-    Py_INCREF(code_object);
-    return code_object;
+    return __Pyx_NewRef(__pyx_code_cache.entries[pos].code_object);
 }
 
 static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object) {

@@ -2089,10 +2089,9 @@ class FuncDefNode(StatNode, BlockNode):
                 Naming.empty_tuple))
             code.putln("if (unlikely(!%s)) {" % Naming.cur_scope_cname)
             # Scope unconditionally DECREFed on return.
-            code.putln("%s = %s;" % (
+            code.putln("%s = __Pyx_NewRef(%s);" % (
                 Naming.cur_scope_cname,
                 lenv.scope_class.type.cast_code("Py_None")))
-            code.put_incref("Py_None", py_object_type)
             code.putln(code.error_goto(self.pos))
             code.putln("} else {")
             code.put_gotref(Naming.cur_scope_cname, lenv.scope_class.type)
@@ -4003,7 +4002,7 @@ class DefNodeWrapper(FuncDefNode):
                 code.error_goto_if_null(self.star_arg.entry.cname, self.pos)
             ))
             code.put_var_gotref(self.star_arg.entry)
-            code.put_incref(Naming.self_cname, py_object_type)
+            code.put_incref(Naming.self_cname, py_object_type) #TODO: convert this to use TupleBuilder - only hide INCREF behind #if then
             code.put_giveref(Naming.self_cname, py_object_type)
             code.putln("PyTuple_SET_ITEM(%s, 0, %s);" % (
                 self.star_arg.entry.cname, Naming.self_cname))
@@ -4258,8 +4257,7 @@ class DefNodeWrapper(FuncDefNode):
                 # If there are no positional arguments, use the args tuple
                 # directly
                 assert not self.signature.use_fastcall
-                code.put_incref(Naming.args_cname, py_object_type)
-                code.putln("%s = %s;" % (self.star_arg.entry.cname, Naming.args_cname))
+                code.putln("%s = __Pyx_NewRef(%s);" % (self.star_arg.entry.cname, Naming.args_cname))
             else:
                 # It is possible that this is a slice of "negative" length,
                 # as in args[5:3]. That's not a problem, the function below
@@ -6873,7 +6871,7 @@ class ReturnStatNode(StatNode):
                 value.make_owned_reference(code)
                 code.putln("%s = %s;" % (
                     Naming.retval_cname,
-                    value.result_as(self.return_type)))
+                    value.result_as(self.return_type))) #Need to change this to also use is_global to load globals when needed
                 value.generate_post_assignment_code(code)
             value.free_temps(code)
         else:
