@@ -689,9 +689,13 @@ class __Pyx_FakeReference {
   #define CAPI_NEEDS_DEREFERENCE
 
   #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_GLOBAL_ALLOC(h) 
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_GLOBAL_XALLOC(h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_GLOBAL_DEALLOC(h) //This one might not be empty, still need to test this to be sure
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_GLOBAL_XDEALLOC(h)
   #define PYOBJECT_ALLOC_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
 
@@ -762,9 +766,13 @@ class __Pyx_FakeReference {
   #define CAPI_NEEDS_DEREFERENCE &
 
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
+  #define PYOBJECT_GLOBAL_ALLOC(h) PYOBJECT_ALLOC(h)
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
+  #define PYOBJECT_GLOBAL_XALLOC(h) PYOBJECT_XALLOC(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
+  #define PYOBJECT_GLOBAL_DEALLOC(h) PYOBJECT_DEALLOC(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
+  #define PYOBJECT_GLOBAL_XDEALLOC(h) PYOBJECT_XDEALLOC(h)
   #define PYOBJECT_ALLOC_NEWREF(h) Py_NewRef(h)
   #define REFNANNY_DEALLOC(func, h) func(h)
 
@@ -1936,7 +1944,9 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannyFinishContext() \
           __Pyx_RefNanny->FinishContext(&__pyx_refnanny)
   #define __Pyx_INCREF(r)  __Pyx_RefNanny->INCREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
+  #define __Pyx_GLOBAL_INCREF(r) __Pyx_INCREF(r)
   #define __Pyx_DECREF(r)  __Pyx_RefNanny->DECREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
+  #define __Pyx_GLOBAL_DECREF(r) __Pyx_DECREF(r)
   #define __Pyx_GOTREF(r)  __Pyx_RefNanny->GOTREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
   #define __Pyx_GIVEREF(r) __Pyx_RefNanny->GIVEREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
   #define __Pyx_XINCREF(r)  do { if((r) == NULL); else {__Pyx_INCREF(r); }} while(0)
@@ -1949,7 +1959,9 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannyFinishContextNogil()
   #define __Pyx_RefNannyFinishContext()
   #define __Pyx_INCREF(r) PYOBJECT_ALLOC(r)
+  #define __Pyx_GLOBAL_INCREF PYOBJECT_GLOBAL_ALLOC(r)
   #define __Pyx_DECREF(r) PYOBJECT_DEALLOC(r)
+  #define __Pyx_GLOBAL_DECREF PYOBJECT_GLOBAL_DEALLOC(r)
   #define __Pyx_GOTREF(r)
   #define __Pyx_GIVEREF(r)
   #define __Pyx_XINCREF(r) PYOBJECT_XALLOC(r)

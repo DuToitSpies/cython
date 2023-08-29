@@ -7,7 +7,7 @@ import cython
 cython.declare(error=object, warning=object, warn_once=object, InternalError=object,
                CompileError=object, UtilityCode=object, TempitaUtilityCode=object,
                StringEncoding=object, operator=object, local_errors=object, report_error=object,
-               Naming=object, Nodes=object, PyrexTypes=object, py_object_type=object,
+               Naming=object, Nodes=object, PyrexTypes=object, py_object_type=object, py_object_global_type=object,
                list_type=object, tuple_type=object, set_type=object, dict_type=object,
                unicode_type=object, str_type=object, bytes_type=object, type_type=object,
                Builtin=object, Symtab=object, Utils=object, find_coercion_error=object,
@@ -30,7 +30,7 @@ from . import Naming
 from . import Nodes
 from .Nodes import Node, SingleAssignmentNode
 from . import PyrexTypes
-from .PyrexTypes import py_object_type, typecast, error_type, \
+from .PyrexTypes import py_object_type, py_object_global_type, typecast, error_type, \
     unspecified_type, tuple_builder_type
 from . import TypeSlots
 from .Builtin import (
@@ -2028,6 +2028,8 @@ class NameNode(AtomicExprNode):
         #  C function with a Python equivalent, manufacture a NameNode
         #  referring to the Python builtin.
         #print "NameNode.coerce_to:", self.name, dst_type ###
+        if self.type is py_object_global_type and dst_type is py_object_type:
+            dst_type = py_object_global_type #temp workaround until globals work probably
         if dst_type is py_object_type:
             entry = self.entry
             if entry and entry.is_cfunction:
@@ -2140,6 +2142,8 @@ class NameNode(AtomicExprNode):
             if type.is_pyobject and type.equivalent_type:
                 type = type.equivalent_type
             return type
+        if entry and entry.type is py_object_global_type:
+            return py_object_global_type
         if self.name == 'object':
             # This is normally parsed as "simple C type", but not if we don't parse C types.
             return py_object_type

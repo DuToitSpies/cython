@@ -67,6 +67,9 @@ class BaseType:
             return "%s %s" % (base_code, entity_code)
         else:
             return base_code
+        
+    def load_value(self, cname): #Needed to load HPyGlobals
+        return cname
 
     def __deepcopy__(self, memo):
         """
@@ -234,6 +237,7 @@ class PyrexType(BaseType):
     #
 
     is_pyobject = 0
+    is_global = 0
     is_unspecified = 0
     is_extension_type = 0
     is_final_type = 0
@@ -1240,7 +1244,6 @@ class PyObjectType(PyrexType):
 
     name = "object"
     is_pyobject = 1
-    is_global = False
     default_value = "API_DEFAULT_VALUE"
     declaration_value = "API_DEFAULT_VALUE"
     buffer_defaults = None
@@ -1401,6 +1404,151 @@ builtin_types_that_cannot_create_refcycles = frozenset({
 builtin_types_with_trashcan = frozenset({
     'dict', 'list', 'set', 'frozenset', 'tuple', 'type',
 })
+
+class PyObjectGlobalType(PyObjectType):
+    #
+    #  Base class for all Python object types (reference-counted).
+    #
+    #  buffer_defaults  dict or None     Default options for bu
+
+    name = "global_object"
+    is_pyobject = 1
+    is_global = 1
+    default_value = "API_DEFAULT_VALUE"
+    declaration_value = "API_DEFAULT_VALUE"
+    buffer_defaults = None
+
+    is_extern = False
+    is_subclassed = False
+    is_gc_simple = False
+    builtin_trashcan = False  # builtin type using trashcan
+    needs_refcounting = True
+    rank = 0
+
+    def __str__(self):
+        return "Python global object"
+
+    def __repr__(self):
+        return "<PyObjectType>"
+
+    def can_coerce_to_pyobject(self, env):
+        return True
+
+    def can_coerce_from_pyobject(self, env):
+        return True
+
+    def load_value(self, cname):
+        return "PYOBJECT_GLOBAL_LOAD(%s)" % cname
+
+    def default_coerced_ctype(self):
+        """The default C type that this Python type coerces to, or None."""
+        return None
+
+    def assignable_from(self, src_type):
+        # except for pointers, conversion will be attempted
+        return not src_type.is_ptr or src_type.is_string or src_type.is_pyunicode_ptr
+
+    def declaration_code(self, entity_code,
+            for_display = 0, dll_linkage = None, pyrex = 0):
+        if pyrex or for_display:
+            base_code = "object"
+        elif self.is_global:
+            base_code = public_decl("PYOBJECT_GLOBAL_TYPE", dll_linkage)
+            entity_code = "%s" % entity_code
+        else:
+            base_code = public_decl("PYOBJECT_TYPE", dll_linkage)
+            entity_code = "%s" % entity_code
+        return self.base_declaration_code(base_code, entity_code)
+
+    def as_pyobject(self, cname):
+        return "PYOBJECT_GLOBAL_LOAD(%s)" % cname
+
+    def py_type_name(self):
+        return "global_object"
+
+    def __lt__(self, other):
+        """
+        Make sure we sort highest, as instance checking on py_type_name
+        ('object') is always true
+        """
+        return False
+
+    def global_init_code(self, entry, code):
+        pass
+
+    def check_for_null_code(self, cname):
+        return "PYOBJECT_GLOBAL_LOAD(%s)" % cname
+
+    def generate_incref(self, code, cname, nanny):
+        if nanny:
+            code.putln("__Pyx__GLOBAL_INCREF(%s);" % self.as_pyobject(cname))
+        else:
+            code.putln("PYOBJECT_GLOBAL_ALLOC(%s);" % self.as_pyobject(cname))
+
+    def generate_xincref(self, code, cname, nanny):
+        if nanny:
+            code.putln("__Pyx_GLOBAL_XINCREF(%s);" % self.as_pyobject(cname))
+        else:
+            code.putln("PYOJBECT_GLOBAL_XALLOC(%s);" % self.as_pyobject(cname))
+
+    def generate_decref(self, code, cname, nanny, have_gil):
+        # have_gil is for the benefit of memoryviewslice - it's ignored here
+        assert have_gil
+        self._generate_decref(code, cname, nanny, null_check=False, clear=False)
+
+    def generate_xdecref(self, code, cname, nanny, have_gil):
+        # in this (and other) PyObjectType functions, have_gil is being
+        # passed to provide a common interface with MemoryviewSlice.
+        # It's ignored here
+        self._generate_decref(code, cname, nanny, null_check=True,
+                         clear=False)
+
+    def generate_decref_clear(self, code, cname, clear_before_decref, nanny, have_gil):
+        self._generate_decref(code, cname, nanny, null_check=False,
+                         clear=True, clear_before_decref=clear_before_decref)
+
+    def generate_xdecref_clear(self, code, cname, clear_before_decref=False, nanny=True, have_gil=None):
+        self._generate_decref(code, cname, nanny, null_check=True,
+                         clear=True, clear_before_decref=clear_before_decref)
+
+    def generate_gotref(self, code, cname):
+        code.putln("__Pyx_GOTREF(%s);" % self.as_pyobject(cname))
+
+    def generate_xgotref(self, code, cname):
+        code.putln("__Pyx_XGOTREF(%s);" % self.as_pyobject(cname))
+
+    def generate_giveref(self, code, cname):
+        code.putln("__Pyx_GIVEREF(%s);" % self.as_pyobject(cname))
+
+    def generate_xgiveref(self, code, cname):
+        code.putln("__Pyx_XGIVEREF(%s);" % self.as_pyobject(cname))
+
+    def generate_decref_set(self, code, cname, rhs_cname):
+        code.putln("__Pyx_DECREF_SET(%s, %s);" % (cname, rhs_cname))
+
+    def generate_xdecref_set(self, code, cname, rhs_cname):
+        code.putln("__Pyx_XDECREF_SET(%s, %s);" % (cname, rhs_cname))
+
+    def _generate_decref(self, code, cname, nanny, null_check=False,
+                    clear=False, clear_before_decref=False):
+        prefix = '__Pyx' if nanny else 'Py'
+        X = 'X' if null_check else ''
+
+        if clear:
+            if clear_before_decref:
+                if not nanny:
+                    X = ''  # CPython doesn't have a Py_XCLEAR()
+                code.putln("%s_%sCLEAR(%s);" % (prefix, X, cname))
+            else:
+                code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s); %s = API_NULL_VALUE;" % (
+                    prefix, X, self.as_pyobject(cname), cname))
+        else:
+            code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s);" % (
+                prefix, X, self.as_pyobject(cname)))
+
+    def nullcheck_string(self, cname):
+        return cname
+
 
 class TupleBuilderType(PyrexType):
     #
@@ -4803,6 +4951,7 @@ error_type =    ErrorType()
 unspecified_type = UnspecifiedType()
 
 py_object_type = PyObjectType()
+py_object_global_type = PyObjectGlobalType()
 tuple_builder_type = TupleBuilderType()
 
 c_void_type =        CVoidType()
