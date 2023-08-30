@@ -1017,6 +1017,12 @@ class ExprNode(Node):
 
                     error(self.pos, msg % tup)
 
+        elif dst_type is py_object_global_type:
+            src = CoerceToGlobalPyObjectNode(src, env)
+
+        elif src.type is py_object_global_type:
+            src = CoerceFromGlobalPyObjectNode(src, env)
+
         elif dst_type.is_pyobject:
             # We never need a type check when assigning None to a Python object type.
             if src.is_none:
@@ -2028,8 +2034,6 @@ class NameNode(AtomicExprNode):
         #  C function with a Python equivalent, manufacture a NameNode
         #  referring to the Python builtin.
         #print "NameNode.coerce_to:", self.name, dst_type ###
-        if self.type is py_object_global_type and dst_type is py_object_type:
-            dst_type = py_object_global_type #temp workaround until globals work probably
         if dst_type is py_object_type:
             entry = self.entry
             if entry and entry.is_cfunction:
@@ -13848,6 +13852,69 @@ class CoerceToMemViewSliceNode(CoercionNode):
             code
         ))
 
+class CoerceToGlobalPyObjectNode(CoercionNode):
+    """
+    Coerce an object from a standard PyObject to a global PyObject. This
+    is needed for HPy, as these are seperate handle types in the HPy API
+    """
+
+    type = py_object_global_type
+
+    def __init__(self, arg, env):
+        CoercionNode.__init__(self, arg)
+    
+    def generate_result_code(self, code):
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, %s);" % (self.result(), self.arg.result()))
+
+    def calculate_result_code(self):
+        return self.arg.result()
+
+    def generate_post_assignment_code(self, code):
+        self.arg.generate_post_assignment_code(code)
+
+    def allocate_temp_result(self, code):
+        pass
+
+    def release_temp_result(self, code):
+        pass
+
+    def free_temps(self, code):
+        self.arg.free_temps(code)
+
+    def free_subexpr_temps(self, code):
+        self.arg.free_subexpr_temps(code)
+    
+class CoerceFromGlobalPyObjectNode(CoercionNode):
+    """
+    Coerce an object from a global PyObject to a standard PyObject. This
+    is needed for HPy, as these are seperate handle types in the HPy API
+    """
+
+    type = py_object_global_type
+
+    def __init__(self, arg, env):
+        CoercionNode.__init__(self, arg)
+    
+    def generate_result_code(self, code):
+        code.putln("%s  = PYOBJECT_GLOBAL_LOAD(%s);" % (self.result(), self.arg.result()))
+
+    def calculate_result_code(self):
+        return self.arg.result()
+
+    def generate_post_assignment_code(self, code):
+        self.arg.generate_post_assignment_code(code)
+
+    def allocate_temp_result(self, code):
+        pass
+
+    def release_temp_result(self, code):
+        pass
+
+    def free_temps(self, code):
+        self.arg.free_temps(code)
+
+    def free_subexpr_temps(self, code):
+        self.arg.free_subexpr_temps(code)
 
 class CastNode(CoercionNode):
     #  Wrap a node in a C type cast.
