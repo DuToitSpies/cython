@@ -79,11 +79,17 @@ static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc)
 #undef __Pyx_IsSameCFunction
 #define __Pyx_IsSameCFunction(func, cfunc)   __Pyx__IsSameCyOrCFunction(func, cfunc)
 
-static PyObject *__Pyx_CyFunction_Init(__pyx_CyFunctionObject* op, PyMethodDef *ml,
+#if !CYTHON_USING_HPY
+static PYOBJECT_TYPE __Pyx_CyFunction_Init(__pyx_CyFunctionObject* op, PyMethodDef *ml,
                                       int flags, PyObject* qualname,
                                       PyObject *closure,
                                       PyObject *module, PyObject *globals,
                                       PyObject* code);
+#else
+static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF HPy h_op, HPyDef *ml, 
+                                        int flags, HPy qualname, HPy closure, 
+                                        HPy module, HPy globals, HPy code);
+#endif
 
 static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(__pyx_CyFunctionObject* f, PyObject* classobj);
 static CYTHON_INLINE void *__Pyx_CyFunction_InitDefaults(PyObject *m,
@@ -562,6 +568,7 @@ static PyMethodDef __pyx_CyFunction_methods[] = {
 #define __Pyx_CyFunction_weakreflist(cyfunc) (((PyCFunctionObject*)cyfunc)->m_weakreflist)
 #endif
 
+#if !CYTHON_USING_HPY //Will combine these later, this is just a temporary measure
 static PyObject *__Pyx_CyFunction_Init(__pyx_CyFunctionObject *op, PyMethodDef *ml, int flags, PyObject* qualname,
                                        PyObject *closure, PyObject *module, PyObject* globals, PyObject* code) {
 #if !CYTHON_COMPILING_IN_LIMITED_API
@@ -637,6 +644,43 @@ static PyObject *__Pyx_CyFunction_Init(__pyx_CyFunctionObject *op, PyMethodDef *
 #endif
     return (PyObject *) op;
 }
+#else
+static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF HPy h_op, HPyDef *ml, int flags, HPy qualname,
+                                       HPy closure, HPy module, HPy globals, HPy code) {
+    __pyx_CyFunctionObject* op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_FIRST_ARG_CALL h_op);
+    PyCFunctionObject *cf = (PyCFunctionObject*) op;
+    if (unlikely(op == NULL))
+        return HPy_NULL;
+    op->flags = flags;
+    __Pyx_CyFunction_weakreflist(op) = NULL;
+    cf->m_ml = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL ml); //Find out what to do here
+    cf->m_self = (PyObject *) op;
+    op->func_closure = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL closure);
+    cf->m_module = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL module);
+    op->func_dict = NULL;
+    op->func_name = NULL;
+    op->func_qualname = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL qualname);
+    op->func_doc = NULL;
+#if PY_VERSION_HEX < 0x030900B1
+    op->func_classobj = NULL;
+#else
+    ((PyCMethodObject*)op)->mm_class = NULL;
+#endif
+    op->func_globals = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL globals);
+    Py_INCREF(op->func_globals);
+    op->func_code = HPy_AsPyObject(HPY_CONTEXT_FIRST_ARG_CALL code);
+    // Dynamic Default args
+    op->defaults_pyobjects = 0;
+    op->defaults_size = 0;
+    op->defaults = NULL;
+    op->defaults_tuple = NULL;
+    op->defaults_kwdict = NULL;
+    op->defaults_getter = NULL;
+    op->func_annotations = NULL;
+    op->func_is_coroutine = NULL;
+    return HPy_FromPyObject(HPY_CONTEXT_FIRST_ARG_CALL op);
+}
+#endif
 
 static int
 __Pyx_CyFunction_clear(__pyx_CyFunctionObject *m)
@@ -1233,8 +1277,14 @@ static PYOBJECT_TYPE __Pyx_CyFunction_New(HPY_CONTEXT_FIRST_ARG_DEF PYMETHODDEF_
     }
     return op;
 #else
-    PYOBJECT_TYPE op = HPy_NULL;
+    __pyx_CyFunctionObject *func_obj;
+    HPy __pyx_HPyCyFunctionType = HPy_FromPyObject(HPY_CONTEXT_FIRST_ARG_CALL __pyx_CyFunctionType);
+    HPy func = HPy_New(HPY_CONTEXT_CNAME, __pyx_HPyCyFunctionType, &func_obj);
+    HPy op = __Pyx_CyFunction_Init(
+        HPY_CONTEXT_FIRST_ARG_CALL func, ml, flags, qualname, closure, module, globals, code
+    );
     return op;
+
 #endif
 }
 
