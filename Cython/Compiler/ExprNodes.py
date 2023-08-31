@@ -7,7 +7,7 @@ import cython
 cython.declare(error=object, warning=object, warn_once=object, InternalError=object,
                CompileError=object, UtilityCode=object, TempitaUtilityCode=object,
                StringEncoding=object, operator=object, local_errors=object, report_error=object,
-               Naming=object, Nodes=object, PyrexTypes=object, py_object_type=object, py_object_global_type=object,
+               Naming=object, Nodes=object, PyrexTypes=object, py_object_type=object,
                list_type=object, tuple_type=object, set_type=object, dict_type=object,
                unicode_type=object, str_type=object, bytes_type=object, type_type=object,
                Builtin=object, Symtab=object, Utils=object, find_coercion_error=object,
@@ -30,7 +30,7 @@ from . import Naming
 from . import Nodes
 from .Nodes import Node, SingleAssignmentNode
 from . import PyrexTypes
-from .PyrexTypes import py_object_type, py_object_global_type, typecast, error_type, \
+from .PyrexTypes import py_object_type, typecast, error_type, \
     unspecified_type, tuple_builder_type
 from . import TypeSlots
 from .Builtin import (
@@ -1017,12 +1017,6 @@ class ExprNode(Node):
 
                     error(self.pos, msg % tup)
 
-        elif dst_type is py_object_global_type:
-            src = CoerceToGlobalPyObjectNode(src, env)
-
-        elif src.type is py_object_global_type:
-            src = CoerceFromGlobalPyObjectNode(src, env)
-
         elif dst_type.is_pyobject:
             # We never need a type check when assigning None to a Python object type.
             if src.is_none:
@@ -1367,6 +1361,17 @@ class IntNode(ConstNode):
     unsigned = ""
     longness = ""
     is_c_literal = None  # unknown
+    is_global = True
+
+    # hex_value and base_10_value are designed only to simplify
+    # writing tests to get a consistent representation of value
+    @property
+    def hex_value(self):
+        return Utils.strip_py2_long_suffix(hex(Utils.str_to_number(self.value)))
+
+    @property
+    def base_10_value(self):
+        return str(Utils.str_to_number(self.value))
 
     # hex_value and base_10_value are designed only to simplify
     # writing tests to get a consistent representation of value
@@ -2156,8 +2161,6 @@ class NameNode(AtomicExprNode):
             if type.is_pyobject and type.equivalent_type:
                 type = type.equivalent_type
             return type
-        if entry and entry.type is py_object_global_type:
-            return py_object_global_type
         if self.name == 'object':
             # This is normally parsed as "simple C type", but not if we don't parse C types.
             return py_object_type
@@ -10223,11 +10226,11 @@ class CodeObjectNode(ExprNode):
         elif self.def_node.is_generator:
             flags.append('CO_GENERATOR')
 
-        code.putln("%s = HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
                    HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
                    HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
                    HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), %d, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)))); %s" % (
+                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), %d, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s))))); %s" % (
             self.result_code,
             len(func.args) - func.num_kwonly_args,  # argcount
             func.num_posonly_args,     # posonlyargcount (Py3.8+ only)
@@ -13980,70 +13983,6 @@ class CoerceToMemViewSliceNode(CoercionNode):
             self.pos,
             code
         ))
-
-class CoerceToGlobalPyObjectNode(CoercionNode):
-    """
-    Coerce an object from a standard PyObject to a global PyObject. This
-    is needed for HPy, as these are seperate handle types in the HPy API
-    """
-
-    type = py_object_global_type
-
-    def __init__(self, arg, env):
-        CoercionNode.__init__(self, arg)
-    
-    def generate_result_code(self, code):
-        code.putln("PYOBJECT_GLOBAL_STORE(%s, %s);" % (self.result(), self.arg.result()))
-
-    def calculate_result_code(self):
-        return self.arg.result()
-
-    def generate_post_assignment_code(self, code):
-        self.arg.generate_post_assignment_code(code)
-
-    def allocate_temp_result(self, code):
-        pass
-
-    def release_temp_result(self, code):
-        pass
-
-    def free_temps(self, code):
-        self.arg.free_temps(code)
-
-    def free_subexpr_temps(self, code):
-        self.arg.free_subexpr_temps(code)
-    
-class CoerceFromGlobalPyObjectNode(CoercionNode):
-    """
-    Coerce an object from a global PyObject to a standard PyObject. This
-    is needed for HPy, as these are seperate handle types in the HPy API
-    """
-
-    type = py_object_global_type
-
-    def __init__(self, arg, env):
-        CoercionNode.__init__(self, arg)
-    
-    def generate_result_code(self, code):
-        code.putln("%s  = PYOBJECT_GLOBAL_LOAD(%s);" % (self.result(), self.arg.result()))
-
-    def calculate_result_code(self):
-        return self.arg.result()
-
-    def generate_post_assignment_code(self, code):
-        self.arg.generate_post_assignment_code(code)
-
-    def allocate_temp_result(self, code):
-        pass
-
-    def release_temp_result(self, code):
-        pass
-
-    def free_temps(self, code):
-        self.arg.free_temps(code)
-
-    def free_subexpr_temps(self, code):
-        self.arg.free_subexpr_temps(code)
 
 class CastNode(CoercionNode):
     #  Wrap a node in a C type cast.
