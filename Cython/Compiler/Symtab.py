@@ -14,7 +14,7 @@ from .Errors import warning, error, InternalError
 from .StringEncoding import EncodedString
 from . import Options, Naming
 from . import PyrexTypes
-from .PyrexTypes import py_object_type, py_object_global_type, unspecified_type
+from .PyrexTypes import py_object_type, unspecified_type
 from .TypeSlots import (
     pyfunction_signature, pymethod_signature, richcmp_special_methods,
     get_slot_table, get_property_accessor_signature)
@@ -1551,7 +1551,7 @@ class ModuleScope(Scope):
         self._reject_pytyping_modifiers(pos, pytyping_modifiers, ('typing.Optional',))  # let's allow at least this one
         if not is_cdef:
             if type is unspecified_type:
-                type = py_object_global_type
+                type = py_object_type
             if not (type.is_pyobject and not type.is_extension_type):
                 raise InternalError(
                     "Non-cdef global variable is not a generic Python object")
@@ -1628,7 +1628,7 @@ class ModuleScope(Scope):
     def declare_global(self, name, pos):
         entry = self.lookup_here(name)
         if not entry:
-            self.declare_var(name, py_object_global_type, pos)
+            self.declare_var(name, py_object_type, pos)
 
     def use_utility_code(self, new_code):
         if new_code is not None:

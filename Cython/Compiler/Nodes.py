@@ -7,7 +7,7 @@ import cython
 
 cython.declare(os=object, copy=object, chain=object,
                Builtin=object, error=object, warning=object, Naming=object, PyrexTypes=object,
-               py_object_type=object, py_object_global_type=object, ModuleScope=object,
+               py_object_type=object, ModuleScope=object,
                LocalScope=object, ClosureScope=object, StructOrUnionScope=object, PyClassScope=object,
                CppClassScope=object, UtilityCode=object, EncodedString=object,
                error_type=object)
@@ -20,7 +20,7 @@ from .Errors import error, warning, InternalError, CompileError, CannotSpecializ
 from . import Naming
 from . import PyrexTypes
 from . import TypeSlots
-from .PyrexTypes import py_object_type, py_object_global_type, error_type
+from .PyrexTypes import py_object_type, error_type
 from .Symtab import (ModuleScope, LocalScope, ClosureScope, PropertyScope,
                      StructOrUnionScope, PyClassScope, CppClassScope, TemplateScope, GeneratorExpressionScope,
                      CppScopedEnumScope, punycodify_name)
@@ -6861,7 +6861,7 @@ class ReturnStatNode(StatNode):
                 value.make_owned_reference(code)
                 code.putln("%s = %s;" % (
                     Naming.retval_cname,
-                    value.type.load_value(value.result()))) #Need to change this to also use is_global to load globals when needed
+                    value.result_as(self.return_type)))
                 value.generate_post_assignment_code(code)
             value.free_temps(code)
         else:
