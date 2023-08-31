@@ -738,6 +738,8 @@ class __Pyx_FakeReference {
 
   #define PYOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
+  #define PYOBJECT_FIELD_STORE(owner, field, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, owner, &field, h)
+  #define PYOBJECT_FIELD_LOAD(owner, field) HPyGlobal_Load(HPY_CONTEXT_CNAME, owner, field)
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
@@ -745,13 +747,9 @@ class __Pyx_FakeReference {
   #define CAPI_NEEDS_DEREFERENCE
 
   #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_GLOBAL_ALLOC(h) 
   #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_GLOBAL_XALLOC(h)
   #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_GLOBAL_DEALLOC(h) //This one might not be empty, still need to test this to be sure
   #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_GLOBAL_XDEALLOC(h)
   #define PYOBJECT_ALLOC_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
 
@@ -806,6 +804,7 @@ class __Pyx_FakeReference {
   #define TUPLE_CREATE_FINALISE(target, builder) target = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, builder);
   #define TUPLE_PACK(num_args, ...) HPyTuple_Pack(HPY_CONTEXT_CNAME, num_args, __VA_ARGS__)
 #else
+  #define HPY_CONTEXT_CNAME
   #define HPY_CONTEXT_ONLY_ARG_DEF void
   #define HPY_CONTEXT_ONLY_ARG_CALL
   #define HPY_CONTEXT_FIRST_ARG_DEF
@@ -815,6 +814,8 @@ class __Pyx_FakeReference {
 
   #define PYOBJECT_TYPE PyObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
+  #define PYOBJECT_FIELD_STORE(owner, field, h) owner->field = h
+  #define PYOBJECT_FIELD_LOAD(owner, field) owner->field
   #define PYOBJECT_GLOBAL_TYPE PyObject *
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
@@ -822,13 +823,9 @@ class __Pyx_FakeReference {
   #define CAPI_NEEDS_DEREFERENCE &
 
   #define PYOBJECT_ALLOC(h) Py_INCREF(h)
-  #define PYOBJECT_GLOBAL_ALLOC(h) PYOBJECT_ALLOC(h)
   #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
-  #define PYOBJECT_GLOBAL_XALLOC(h) PYOBJECT_XALLOC(h)
   #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
-  #define PYOBJECT_GLOBAL_DEALLOC(h) PYOBJECT_DEALLOC(h)
   #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
-  #define PYOBJECT_GLOBAL_XDEALLOC(h) PYOBJECT_XDEALLOC(h)
   #define PYOBJECT_ALLOC_NEWREF(h) Py_NewRef(h)
   #define REFNANNY_DEALLOC(func, h) func(h)
 
@@ -2008,9 +2005,7 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannyFinishContext() \
           __Pyx_RefNanny->FinishContext(&__pyx_refnanny)
   #define __Pyx_INCREF(r)  __Pyx_RefNanny->INCREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
-  #define __Pyx_GLOBAL_INCREF(r) __Pyx_INCREF(r)
   #define __Pyx_DECREF(r)  __Pyx_RefNanny->DECREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
-  #define __Pyx_GLOBAL_DECREF(r) __Pyx_DECREF(r)
   #define __Pyx_GOTREF(r)  __Pyx_RefNanny->GOTREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
   #define __Pyx_GIVEREF(r) __Pyx_RefNanny->GIVEREF(__pyx_refnanny, (PyObject *)(r), (__LINE__))
   #define __Pyx_XINCREF(r)  do { if((r) == NULL); else {__Pyx_INCREF(r); }} while(0)
@@ -2023,9 +2018,7 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannyFinishContextNogil()
   #define __Pyx_RefNannyFinishContext()
   #define __Pyx_INCREF(r) PYOBJECT_ALLOC(r)
-  #define __Pyx_GLOBAL_INCREF PYOBJECT_GLOBAL_ALLOC(r)
   #define __Pyx_DECREF(r) PYOBJECT_DEALLOC(r)
-  #define __Pyx_GLOBAL_DECREF PYOBJECT_GLOBAL_DEALLOC(r)
   #define __Pyx_GOTREF(r)
   #define __Pyx_GIVEREF(r)
   #define __Pyx_XINCREF(r) PYOBJECT_XALLOC(r)

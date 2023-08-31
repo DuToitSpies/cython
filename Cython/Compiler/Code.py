@@ -1532,7 +1532,7 @@ class GlobalState:
         consts.sort()
         for _, cname, c in consts:
             c.type.is_global = True
-            self.parts['module_state'].putln("%s;" % c.type.declaration_code(cname))
+            self.parts['module_state'].putln("PYOBJECT_GLOBAL_TYPE %s;" % cname)
             self.parts['module_state_defines'].putln(
                 "#define %s %s->%s" % (cname, Naming.modulestateglobal_cname, cname))
             self.parts['globals_table'].putln("globals_array[%d] = &%s;" % (self.globals_counter, cname))

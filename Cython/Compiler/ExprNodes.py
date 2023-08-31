@@ -10080,7 +10080,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
             constructor = "__Pyx_CyFunction_New"
 
         if self.code_object:
-            code_object_result = self.code_object.py_result()
+            code_object_result = self.code_object.result_code
         else:
             code_object_result = 'API_NULL_VALUE'
 
@@ -10102,7 +10102,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
             flags = '0'
 
         code.putln(
-            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), %s); %s' % (
+            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s)); %s' % (
                 self.result(),
                 constructor,
                 self.pymethdef_cname,
