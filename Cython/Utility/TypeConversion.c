@@ -111,7 +111,7 @@ static CYTHON_INLINE size_t __Pyx_Py_UNICODE_strlen(const Py_UNICODE *u)
 #define __Pyx_hNewRef(obj) PYOBJECT_ALLOC_NEWREF(obj) //This will be merged into Pyx_NewRef eventually, but #if CYTHON_USING_HPY will make all calls to this macro use HPy, even if it hasn't been ported yet
 #define __Pyx_NewRef(obj) Py_NewRef(obj)
 #define __Pyx_Owned_Py_None(b) __Pyx_NewRef(Py_None)
-static CYTHON_INLINE PyObject * __Pyx_PyBool_FromLong(long b);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyBool_FromLong(HPY_CONTEXT_FIRST_ARG_DEF long b);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrue(PyObject*);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject*);
 static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x);
@@ -424,8 +424,8 @@ static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject* o) {
 }
 
 
-static CYTHON_INLINE PyObject * __Pyx_PyBool_FromLong(long b) {
-  return b ? __Pyx_NewRef(Py_True) : __Pyx_NewRef(Py_False);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyBool_FromLong(HPY_CONTEXT_FIRST_ARG_DEF long b) {
+  return b ? __Pyx_hNewRef(API_TRUE) : __Pyx_hNewRef(API_FALSE);
 }
 
 
