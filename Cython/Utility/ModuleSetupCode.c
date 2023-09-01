@@ -682,8 +682,8 @@ class __Pyx_FakeReference {
 
   #define PYOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
-  #define PYOBJECT_FIELD_STORE(owner, field, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, owner, &field, h)
-  #define PYOBJECT_FIELD_LOAD(owner, field) HPyGlobal_Load(HPY_CONTEXT_CNAME, owner, field)
+  #define PYOBJECT_FIELD_STORE(owner, field, h) HPyField_Store(HPY_CONTEXT_CNAME, owner, &field, h)
+  #define PYOBJECT_FIELD_LOAD(owner, field) HPyField_Load(HPY_CONTEXT_CNAME, owner, field)
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
@@ -718,6 +718,8 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) HPy_IsNull(h)
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_NONE_VALUE HPY_CONTEXT_CNAME->h_None
+  #define API_ASSIGN_NONE HPy_Dup(HPY_CONTEXT_CNAME, HPY_CONTEXT_CNAME->h_None)
   #define API_TRUE HPY_CONTEXT_CNAME->h_True
   #define API_FALSE HPY_CONTEXT_CNAME->h_False
   #define API_IS_TRUE(h) HPy_IsTrue(HPY_CONTEXT_CNAME, h)
@@ -728,6 +730,7 @@ class __Pyx_FakeReference {
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) HPy_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
 
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
@@ -758,8 +761,8 @@ class __Pyx_FakeReference {
 
   #define PYOBJECT_TYPE PyObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
-  #define PYOBJECT_FIELD_STORE(owner, field, h) owner->field = h
-  #define PYOBJECT_FIELD_LOAD(owner, field) owner->field
+  #define PYOBJECT_FIELD_STORE(owner, field, h) field = h
+  #define PYOBJECT_FIELD_LOAD(owner, field) field
   #define PYOBJECT_GLOBAL_TYPE PyObject *
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
@@ -793,16 +796,19 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) !h //Both are here as otherwise we would get !!h for API_IS_NOT_NULL, which is hard to read - but it can be made so if necessary
   #define API_IS_NOT_NULL(h) h
   #define API_IS_EQUAL(a, b) a==b
+  #define API_NONE_VALUE Py_None
+  #define API_ASSIGN_NONE Py_None
   #define API_TRUE Py_True
   #define API_FALSE Py_False
   #define API_IS_TRUE(h) PyObject_IsTrue(h)
   #define API_IS_FALSE(h) !PyObject_Not(h)
 
-  #define DICT_NEW() 
+  #define DICT_NEW() PyDict_New()
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
+  #define DICT_CHECK(o) PyDict_Check(o)
 
   #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) PyObject_SetItem(o, attr_name, attr_val)
