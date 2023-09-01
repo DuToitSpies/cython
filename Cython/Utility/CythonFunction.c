@@ -170,7 +170,7 @@ static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(__pyx_CyFunctionObject* 
 }
 
 static PYOBJECT_TYPE
-__Pyx_CyFunction_get_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject *op, void *closure)
+__Pyx_CyFunction_get_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *closure)
 {
     CYTHON_UNUSED_VAR(closure);
 #if !CYTHON_USING_HPY //currently no m_ml in the HPy version of op
@@ -192,137 +192,188 @@ __Pyx_CyFunction_get_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject *op, v
     Py_INCREF(op->func_doc);
     return op->func_doc;
 #else
-    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject(HPY_CONTEXT_CNAME, op);
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     return PYOBJECT_FIELD_LOAD(op, struct_op->func_doc);
 #endif
 }
 
 static int
-__Pyx_CyFunction_set_doc(__pyx_CyFunctionObject *op, PyObject *value, void *context)
+__Pyx_CyFunction_set_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (value == NULL) {
+    if (API_IS_NULL(value)) {
         // Mark as deleted
-        value = Py_None;
+        value = API_ASSIGN_NONE;
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
     __Pyx_Py_XDECREF_SET(op->func_doc, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_doc, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_name(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_name(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(op->func_name == NULL)) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+    if (unlikely(API_IS_NULL(struct_op->func_name))) {
 #if CYTHON_COMPILING_IN_LIMITED_API
         op->func_name = PyObject_GetAttrString(op->func, "__name__");
 #else
         op->func_name = PyUnicode_InternFromString(((PyCFunctionObject*)op)->m_ml->ml_name);
 #endif  /* CYTHON_COMPILING_IN_LIMITED_API */
-        if (unlikely(op->func_name == NULL))
-            return NULL;
+        if (unlikely(API_IS_NULL(struct_op->func_name)))
+            return API_NULL_VALUE;
     }
-    Py_INCREF(op->func_name);
-    return op->func_name;
+    Py_INCREF(struct_op->func_name);
+#endif
+    return PYOBJECT_FIELD_LOAD(op, struct_op->func_name);
 }
 
 static int
-__Pyx_CyFunction_set_name(__pyx_CyFunctionObject *op, PyObject *value, void *context)
+__Pyx_CyFunction_set_name(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(value == NULL || !PyUnicode_Check(value))) {
+    if (unlikely(API_IS_NULL(value) || !PyUnicode_Check(HPY_LEGACY_OBJECT_AS(value)))) {
         PyErr_SetString(PyExc_TypeError,
                         "__name__ must be set to a string object");
         return -1;
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
     __Pyx_Py_XDECREF_SET(op->func_name, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_name, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_qualname(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_qualname(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
     CYTHON_UNUSED_VAR(context);
+#if !CYTHON_USING_HPY
     Py_INCREF(op->func_qualname);
     return op->func_qualname;
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_LOAD(op, struct_op->func_qualname);
+#endif   
 }
 
 static int
-__Pyx_CyFunction_set_qualname(__pyx_CyFunctionObject *op, PyObject *value, void *context)
+__Pyx_CyFunction_set_qualname(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(value == NULL || !PyUnicode_Check(value))) {
+    if (unlikely(value == NULL || !PyUnicode_Check(HPY_LEGACY_OBJECT_AS((value)))) {
         PyErr_SetString(PyExc_TypeError,
                         "__qualname__ must be set to a string object");
         return -1;
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
-    __Pyx_Py_XDECREF_SET(op->func_qualname, value);
+    __Pyx_Py_XDECREF_SET(op->func_name, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_qualname, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_dict(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_dict(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(op->func_dict == NULL)) {
-        op->func_dict = PyDict_New();
-        if (unlikely(op->func_dict == NULL))
-            return NULL;
+    if (unlikely(API_IS_NULL(struct_op->func_dict))) {
+        PYOBJECT_FIELD_STORE(op, struct_op->func_dict, DICT_NEW());
+        if (unlikely(API_IS_NULL(struct_op->func_dict)))
+            return API_NULL_VALUE;
     }
-    Py_INCREF(op->func_dict);
-    return op->func_dict;
+#if !CYTHON_USING_HPY
+    Py_INCREF(struct_op->func_dict);
+#endif
+    return PYOBJECT_FIELD_LOAD(op, struct_op->func_dict);
 }
 
 static int
-__Pyx_CyFunction_set_dict(__pyx_CyFunctionObject *op, PyObject *value, void *context)
+__Pyx_CyFunction_set_dict(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(value == NULL)) {
+    if (unlikely(API_IS_NULL(value))) {
         PyErr_SetString(PyExc_TypeError,
                "function's dictionary may not be deleted");
         return -1;
     }
-    if (unlikely(!PyDict_Check(value))) {
+    if (unlikely(!DICT_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                "setting function's dictionary to a non-dict");
         return -1;
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
     __Pyx_Py_XDECREF_SET(op->func_dict, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_dict, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_globals(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_globals(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
     CYTHON_UNUSED_VAR(context);
+#if !CYTHON_USING_HPY
     Py_INCREF(op->func_globals);
     return op->func_globals;
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_LOAD(op, struct_op->func_globals);
+#endif   
 }
 
-static PyObject *
-__Pyx_CyFunction_get_closure(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_closure(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
     CYTHON_UNUSED_VAR(op);
     CYTHON_UNUSED_VAR(context);
+#if !CYTHON_USING_HPY
     Py_INCREF(Py_None);
-    return Py_None;
+#endif
+    return API_ASSIGN_NONE;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_code(__pyx_CyFunctionObject *op, void *context)
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_code(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
 {
-    PyObject* result = (op->func_code) ? op->func_code : Py_None;
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
+    PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->func_code) ? PYOBJECT_FIELD_LOAD(op, struct_op->func_code) : API_ASSIGN_NONE;
     CYTHON_UNUSED_VAR(context);
+#if !CYTHON_USING_HPY
     Py_INCREF(result);
+#endif
     return result;
 }
 
 static int
-__Pyx_CyFunction_init_defaults(__pyx_CyFunctionObject *op) {
+__Pyx_CyFunction_init_defaults(__pyx_CyFunctionObject *op) { //Find out what to do about init_defaults
     int result = 0;
     PyObject *res = op->defaults_getter((PyObject *) op);
     if (unlikely(!res))
@@ -347,110 +398,155 @@ __Pyx_CyFunction_init_defaults(__pyx_CyFunctionObject *op) {
 }
 
 static int
-__Pyx_CyFunction_set_defaults(__pyx_CyFunctionObject *op, PyObject* value, void *context) {
+__Pyx_CyFunction_set_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context) {
     CYTHON_UNUSED_VAR(context);
-    if (!value) {
+    if (API_IS_NULL(value)) {
         // del => explicit None to prevent rebuilding
-        value = Py_None;
-    } else if (unlikely(value != Py_None && !PyTuple_Check(value))) {
+        value = API_ASSIGN_NONE;
+    } else if (unlikely(!API_IS_EQUAL(value, API_NONE_VALUE) && !DICT_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__defaults__ must be set to a tuple object");
         return -1;
     }
     PyErr_WarnEx(PyExc_RuntimeWarning, "changes to cyfunction.__defaults__ will not "
                  "currently affect the values used in function calls", 1);
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
     __Pyx_Py_XDECREF_SET(op->defaults_tuple, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_tuple, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_defaults(__pyx_CyFunctionObject *op, void *context) {
-    PyObject* result = op->defaults_tuple;
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
+    PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple);
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(!result)) {
-        if (op->defaults_getter) {
-            if (unlikely(__Pyx_CyFunction_init_defaults(op) < 0)) return NULL;
-            result = op->defaults_tuple;
+    if (unlikely(API_IS_NULL(result))) {
+        if (struct_op->defaults_getter) {
+#if !CYTHON_USING_HPY
+            if (unlikely(__Pyx_CyFunction_init_defaults(op) < 0)) return NULL; //First need to port init_defaults
+#endif
+            result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple);
         } else {
-            result = Py_None;
+            result = API_ASSIGN_NONE;
         }
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(result);
+#endif
     return result;
 }
 
 static int
-__Pyx_CyFunction_set_kwdefaults(__pyx_CyFunctionObject *op, PyObject* value, void *context) {
+__Pyx_CyFunction_set_kwdefaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context) {
     CYTHON_UNUSED_VAR(context);
-    if (!value) {
+    if (API_IS_NULL(value)) {
         // del => explicit None to prevent rebuilding
-        value = Py_None;
-    } else if (unlikely(value != Py_None && !PyDict_Check(value))) {
+        value = API_ASSIGN_NONE;
+    } else if (unlikely(API_IS_EQUAL(value, API_NONE_VALUE) && !DICT_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__kwdefaults__ must be set to a dict object");
         return -1;
     }
     PyErr_WarnEx(PyExc_RuntimeWarning, "changes to cyfunction.__kwdefaults__ will not "
                  "currently affect the values used in function calls", 1);
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
     __Pyx_Py_XDECREF_SET(op->defaults_kwdict, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_kwdict, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_kwdefaults(__pyx_CyFunctionObject *op, void *context) {
-    PyObject* result = op->defaults_kwdict;
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_kwdefaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
+    PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(!result)) {
-        if (op->defaults_getter) {
+    if (unlikely(API_IS_NULL(result))) {
+        if (struct_op->defaults_getter) {
+#if !CYTHON_USING_HPY
             if (unlikely(__Pyx_CyFunction_init_defaults(op) < 0)) return NULL;
-            result = op->defaults_kwdict;
+#endif
+            result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
         } else {
-            result = Py_None;
+            result = API_ASSIGN_NONE;
         }
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(result);
+#endif
     return result;
 }
 
 static int
-__Pyx_CyFunction_set_annotations(__pyx_CyFunctionObject *op, PyObject* value, void *context) {
+__Pyx_CyFunction_set_annotations(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context) {
     CYTHON_UNUSED_VAR(context);
-    if (!value || value == Py_None) {
-        value = NULL;
-    } else if (unlikely(!PyDict_Check(value))) {
+    if (API_IS_NULL(value) || API_IS_EQUAL(value, API_NONE_VALUE)) {
+        value = API_NULL_VALUE;
+    } else if (unlikely(!DICT_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__annotations__ must be set to a dict object");
         return -1;
     }
+#if !CYTHON_USING_HPY
     Py_XINCREF(value);
     __Pyx_Py_XDECREF_SET(op->func_annotations, value);
+#else
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_annotations, value);
+#endif
     return 0;
 }
 
-static PyObject *
-__Pyx_CyFunction_get_annotations(__pyx_CyFunctionObject *op, void *context) {
-    PyObject* result = op->func_annotations;
+static PYOBJECT_TYPE
+__Pyx_CyFunction_get_annotations(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
+    PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->func_annotations);
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(!result)) {
-        result = PyDict_New();
-        if (unlikely(!result)) return NULL;
-        op->func_annotations = result;
+    if (unlikely(API_IS_NULL(result))) {
+        result = DICT_NEW();
+        if (unlikely(API_IS_NULL(result))) return API_NULL_VALUE;
+        PYOBJECT_FIELD_STORE(op, struct_op->func_annotations, result);
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(result);
+#endif
     return result;
 }
 
 static PYOBJECT_TYPE
-__Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject *op, void *context) {
+__Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+#endif
     int is_coroutine;
     CYTHON_UNUSED_VAR(context);
-    if (op->func_is_coroutine) {
-        return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
+    if (API_IS_NULL(PYOBJECT_FIELD_LOAD(op, struct_op->func_is_coroutine))) {
+        return __Pyx_hNewRef(PYOBJECT_FIELD_LOAD(op, struct_op->func_is_coroutine));
     }
 
-    is_coroutine = op->flags & __Pyx_CYFUNCTION_COROUTINE;
+    is_coroutine = PYOBJECT_FIELD_LOAD(op, struct_op->flags) & __Pyx_CYFUNCTION_COROUTINE;
     if (is_coroutine) {
         PyObject *module, *fromlist, *marker = HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("_is_coroutine")));
         fromlist = PyList_New(1);
@@ -468,17 +564,17 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
         module = PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("asyncio.coroutines"))), NULL, NULL, fromlist, 0);
         Py_DECREF(fromlist);
         if (unlikely(!module)) goto ignore;
-        op->func_is_coroutine = HPY_LEGACY_OBJECT_AS(__Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM(module), HPY_LEGACY_OBJECT_FROM(marker)));
+        PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM(module), HPY_LEGACY_OBJECT_FROM(marker)));
         Py_DECREF(module);
-        if (likely(op->func_is_coroutine)) {
-            return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
+        if (likely(!API_IS_NULL(PYOBJECT_FIELD_LOAD(op, op->func_is_coroutine)))) {
+            return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(PYOBJECT_FIELD_LOAD(op, struct_op->func_is_coroutine)));
         }
 ignore:
         PyErr_Clear();
     }
 
-    op->func_is_coroutine = __Pyx_PyBool_FromLong(is_coroutine);
-    return __Pyx_hNewRef(HPY_LEGACY_OBJECT_FROM(op->func_is_coroutine));
+    PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, __Pyx_PyBool_FromLong(is_coroutine));
+    return __Pyx_hNewRef(struct_op->func_is_coroutine);
 }
 
 //static PyObject *
@@ -631,22 +727,22 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
     op->flags = flags;
-    PYOBJECT_FIELD_STORE(op, func_closure, closure);
-    PYOBJECT_FIELD_STORE(op, func_dict, API_NULL_VALUE);
-    PYOBJECT_FIELD_STORE(op, func_name, API_NULL_VALUE);
-    PYOBJECT_FIELD_STORE(op, func_qualname, qualname);
-    PYOBJECT_FIELD_STORE(op, func_doc, API_NULL_VALUE);
-    PYOBJECT_FIELD_STORE(op, func_globals, globals);
-    PYOBJECT_FIELD_STORE(op, func_code,code);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_closure, closure);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_dict, API_NULL_VALUE);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_name, API_NULL_VALUE);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_qualname, qualname);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_doc, API_NULL_VALUE);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_globals, globals);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_code,code);
     // Dynamic Default args
     op->defaults_pyobjects = 0;
     op->defaults_size = 0;
     op->defaults = NULL;
-    PYOBJECT_FIELD_STORE(op, defaults_tuple, API_NULL_VALUE );
-    PYOBJECT_FIELD_STORE(op, defaults_kwdict, API_NULL_VALUE );
-    PYOBJECT_FIELD_STORE(op, defaults_getter, API_NULL_VALUE );
-    PYOBJECT_FIELD_STORE(op, func_annotations, API_NULL_VALUE );
-    PYOBJECT_FIELD_STORE(op, func_is_coroutine, API_NULL_VALUE );
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_tuple, API_NULL_VALUE );
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_kwdict, API_NULL_VALUE );
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_getter, API_NULL_VALUE );
+    PYOBJECT_FIELD_STORE(op, struct_op->func_annotations, API_NULL_VALUE );
+    PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, API_NULL_VALUE );
 #if !CYTHON_USING_HPY
     Py_INCREF(op->func_globals);
 #if CYTHON_METH_FASTCALL
@@ -1277,9 +1373,9 @@ static PYOBJECT_TYPE __Pyx_CyFunction_New(HPY_CONTEXT_FIRST_ARG_DEF PYMETHODDEF_
 #else
     __pyx_CyFunctionObject *func_obj;
     HPy __pyx_HPyCyFunctionType = HPy_FromPyObject(HPY_CONTEXT_FIRST_ARG_CALL __pyx_CyFunctionType);
-    HPy op = HPy_New(HPY_CONTEXT_CNAME, __pyx_HPyCyFunctionType, &func_obj);
+    HPy func = HPy_New(HPY_CONTEXT_CNAME, __pyx_HPyCyFunctionType, &func_obj);
     PYOBJECT_TYPE op = __Pyx_CyFunction_Init(
-        HPY_CONTEXT_FIRST_ARG_CALL op, ml, flags, qualname, closure, module, globals, code
+        HPY_CONTEXT_FIRST_ARG_CALL func, ml, flags, qualname, closure, module, globals, code
     );
     return op;
 
