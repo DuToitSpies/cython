@@ -61,6 +61,7 @@ typedef struct {
 #if CYTHON_BACKPORT_VECTORCALL
     __pyx_vectorcallfunc HPyCallFunction;
 #endif
+    HPyDef *func;
 #endif
     PYOBJECT_FIELD_TYPE func_dict;
     PYOBJECT_FIELD_TYPE func_name;
@@ -78,9 +79,7 @@ typedef struct {
     // Defaults info
     PYOBJECT_FIELD_TYPE defaults_tuple;   /* Const defaults tuple */
     PYOBJECT_FIELD_TYPE defaults_kwdict;  /* Const kwonly defaults dict */
-    #if !CYTHON_USING_HPY
-    PyObject *(*defaults_getter)(PyObject *);
-    #endif
+    PYOBJECT_FIELD_TYPE (*defaults_getter)(PYOBJECT_TYPE);
     PYOBJECT_FIELD_TYPE func_annotations; /* function annotations dict */
 
     // Coroutine marker
@@ -374,32 +373,36 @@ __Pyx_CyFunction_get_code(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncD
     return result;
 }
 
-#if !CYTHON_USING_HPY
 static int
-__Pyx_CyFunction_init_defaults(__pyx_CyFunctionObject *op) { //Find out what to do about init_defaults
+__Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    PYOBJECT_TYPE res = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_getter(op));
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+    PYOBJECT_TYPE res = struct_op->defaults_getter((PyObject *) op);
+#endif
     int result = 0;
-    PyObject *res = op->defaults_getter((PyObject *) op);
-    if (unlikely(!res))
+    if (unlikely(API_IS_NULL(res)))
         return -1;
 
     // Cache result
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && !CYTHON_USING_HPY
     op->defaults_tuple = PyTuple_GET_ITEM(res, 0);
     Py_INCREF(op->defaults_tuple);
     op->defaults_kwdict = PyTuple_GET_ITEM(res, 1);
     Py_INCREF(op->defaults_kwdict);
     #else
-    op->defaults_tuple = __Pyx_PySequence_ITEM(res, 0);
-    if (unlikely(!op->defaults_tuple)) result = -1;
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_tuple, TUPLE_GET_ITEM(res, 0));
+    if (unlikely(API_IS_NULL(PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple)))) result = -1;
     else {
-        op->defaults_kwdict = __Pyx_PySequence_ITEM(res, 1);
-        if (unlikely(!op->defaults_kwdict)) result = -1;
+        PYOBJECT_FIELD_STORE(op, struct_op->defaults_kwdict, TUPLE_GET_ITEM(res, 1));
+        if (unlikely(API_IS_NULL(PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict)))) result = -1;
     }
     #endif
-    Py_DECREF(res);
+    PYOBJECT_DEALLOC(res);
     return result;
 }
-#endif
 
 static int
 __Pyx_CyFunction_set_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context) {
@@ -434,12 +437,10 @@ __Pyx_CyFunction_get_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_F
     PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple);
     CYTHON_UNUSED_VAR(context);
     if (unlikely(API_IS_NULL(result))) {
-#if !CYTHON_USING_HPY
         if (struct_op->defaults_getter) {
-            if (unlikely(__Pyx_CyFunction_init_defaults(op) < 0)) return NULL; //First need to port init_defaults
+            if (unlikely(__Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_CALL op) < 0)) return API_NULL_VALUE; //First need to port init_defaults
             result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple);
-        } else 
-#endif
+        } else
         {
             result = API_ASSIGN_NONE;
         }
@@ -483,12 +484,10 @@ __Pyx_CyFunction_get_kwdefaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject
     PYOBJECT_TYPE result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
     CYTHON_UNUSED_VAR(context);
     if (unlikely(API_IS_NULL(result))) {
-#if !CYTHON_USING_HPY
         if (struct_op->defaults_getter) {
-            if (unlikely(__Pyx_CyFunction_init_defaults(op) < 0)) return NULL;
+            if (unlikely(__Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_CALL op) < 0)) return API_NULL_VALUE;
             result = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
         } else 
-#endif
         {
             result = API_ASSIGN_NONE;
         }
@@ -734,6 +733,7 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     Py_XINCREF(code);
 #else
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    struct_op->func = ml;
 #endif
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
@@ -883,19 +883,19 @@ static int __Pyx_CyFunction_traverse(__pyx_CyFunctionObject *m, visitproc visit,
     return 0;
 }
 #else
-static int __Pyx_CyFunction_traverse(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef m, HPyFunc_visitproc visit, void *arg)
+HPyDef_SLOT(__Pyx_CyFunction_traverse, HPy_tp_traverse)
+static int __Pyx_CyFunction_traverse_impl(void *m, HPyFunc_visitproc visit, void *arg)
 {
-    __pyx_CyFunctionObject *struct_m = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, m);
-    HPy_VISIT(&struct_m->func_closure);
-    HPy_VISIT(&struct_m->func_dict);
-    HPy_VISIT(&struct_m->func_name);
-    HPy_VISIT(&struct_m->func_qualname);
-    HPy_VISIT(&struct_m->func_doc);
-    HPy_VISIT(&struct_m->func_globals);
-    HPy_VISIT(&struct_m->func_code);
-    HPy_VISIT(&struct_m->defaults_tuple);
-    HPy_VISIT(&struct_m->defaults_kwdict);
-    HPy_VISIT(&struct_m->func_is_coroutine);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_dict);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_closure);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_name);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_qualname);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_doc);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_globals);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_code);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->defaults_tuple);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->defaults_kwdict);
+    HPy_VISIT(&((__pyx_CyFunctionObject*)m)->func_is_coroutine);
 
 // Need to port init_defaults first
 //    if (m->defaults) {
@@ -910,14 +910,25 @@ static int __Pyx_CyFunction_traverse(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionO
 }
 #endif
 
-static PyObject*
-__Pyx_CyFunction_repr(__pyx_CyFunctionObject *op)
+#if CYTHON_USING_HPY
+HPyDef_SLOT(__Pyx_CyFunction_repr, HPy_tp_repr)
+#endif
+static PYOBJECT_TYPE
+__Pyx_CyFunction_repr_impl(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op)
 {
-    return PyUnicode_FromFormat("<cyfunction %U at %p>",
-                                op->func_qualname, (void *)op);
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    HPy qualname_field = PYOBJECT_FIELD_LOAD(op, struct_op->func_qualname);
+#else
+    __pyx_CyFunctionObject *struct_op = op;
+    PyObject *qualname_field = struct_op->func_qualname;
+#endif
+    return UNICODE_FROM_FORMAT("<cyfunction %U at %R>",
+                                qualname_field, op);
 }
 
-static PyObject * __Pyx_CyFunction_CallMethod(PyObject *func, PyObject *self, PyObject *arg, PyObject *kw) {
+#if !CYTHON_USING_HPY
+static PyObject * __Pyx_CyFunction_CallMethod(HPY_CONTEXT_FIRST_ARG_DEF PyObject *func, PyObject *self, PyObject *arg, PyObject *kw) {
     // originally copied from PyCFunction_Call() in CPython's Objects/methodobject.c
 #if CYTHON_COMPILING_IN_LIMITED_API
     PyObject *f = ((__pyx_CyFunctionObject*)func)->func;
@@ -1022,11 +1033,11 @@ static PyObject * __Pyx_CyFunction_CallMethod(PyObject *func, PyObject *self, Py
     return NULL;
 }
 
-static CYTHON_INLINE PyObject *__Pyx_CyFunction_Call(PyObject *func, PyObject *arg, PyObject *kw) {
+static CYTHON_INLINE PyObject *__Pyx_CyFunction_Call(HPY_CONTEXT_FIRST_ARG_DEF PyObject *func, PyObject *arg, PyObject *kw) {
     PyObject *self, *result;
 #if CYTHON_COMPILING_IN_LIMITED_API
     // PyCFunction_GetSelf returns a borrowed reference
-    self = PyCFunction_GetSelf(((__pyx_CyFunctionObject*)func)->func);
+    self = PyCFunction_GetSelf(((__pyx_CyFunctionObject*)func)->HPY_CONTEXT_FIRST_ARG_CALL func);
     if (unlikely(!self) && PyErr_Occurred()) return NULL;
 #else
     self = ((PyCFunctionObject*)func)->m_self;
@@ -1035,7 +1046,11 @@ static CYTHON_INLINE PyObject *__Pyx_CyFunction_Call(PyObject *func, PyObject *a
     return result;
 }
 
-static PyObject *__Pyx_CyFunction_CallAsMethod(PyObject *func, PyObject *args, PyObject *kw) {
+static PYOBJECT_TYPE __Pyx_CyFunction_CallAsMethod(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE args, PYOBJECT_TYPE kw) {
+#if CYTHON_USING_HPY
+    return __Pyx_CyFunction_HPyCall_impl(HPY_CONTEXT_FIRST_ARG_CALL func, args, HPy_GetAttr_s(HPY_CONTEXT_FIRST_ARG_CALL args, "size"), kw);
+    return HPy_NULL;
+#endif
     PyObject *result;
     __pyx_CyFunctionObject *cyfunc = (__pyx_CyFunctionObject *) func;
 
@@ -1079,7 +1094,7 @@ static PyObject *__Pyx_CyFunction_CallAsMethod(PyObject *func, PyObject *args, P
             return NULL;
         }
 
-        result = __Pyx_CyFunction_CallMethod(func, self, new_args, kw);
+        result = __Pyx_CyFunction_CallMethod(HPY_CONTEXT_FIRST_ARG_CALL func, self, new_args, kw);
         Py_DECREF(new_args);
     } else {
         result = __Pyx_CyFunction_Call(func, args, kw);
@@ -1230,13 +1245,35 @@ static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject 
     return ((__Pyx_PyCMethod)(void(*)(void))def->ml_meth)(self, cls, args, (size_t)nargs, kwnames);
 }
 #endif
+#endif
+
+#if CYTHON_USING_HPY
+HPyDef_SLOT(__Pyx_CyFunction_HPyCall, HPy_tp_call)
+static HPy __Pyx_CyFunction_HPyCall_impl(HPY_CONTEXT_FIRST_ARG_DEF HPy callable, const HPy *args, size_t nargs, HPy kwnames) 
+{
+    HPy result;
+    __pyx_CyFunctionObject *cyfunc = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_FIRST_ARG_CALL callable);
+
+#if CYTHON_METH_FASTCALL
+    // Prefer vectorcall if available. This is not the typical case, as
+    // CPython would normally use vectorcall directly instead of tp_call.
+     __pyx_vectorcallfunc vc = __Pyx_CyFunction_func_vectorcall(cyfunc);
+//#if CYTHON_ASSUME_SAFE_MACROS
+    return HPy_Call(HPY_CONTEXT_FIRST_ARG_CALL callable, args, (size_t)(sizeof(args)), kwnames);
+//#else
+//        // avoid unused function warning
+//        (void) &__Pyx_PyVectorcall_FastCallDict;
+//        return PyVectorcall_Call(func, args, kw);
+#endif
+}
+#endif
 
 #if CYTHON_USE_TYPE_SPECS
 static PyType_Slot __pyx_CyFunctionType_slots[] = {
-    {Py_tp_repr, (void *)__Pyx_CyFunction_repr},
-    {Py_tp_call, (void *)__Pyx_CyFunction_CallAsMethod},
-    {Py_tp_traverse, (void *)__Pyx_CyFunction_traverse},
 #if !CYTHON_USING_HPY
+    {Py_tp_repr, (void *)__Pyx_CyFunction_repr_impl},
+    {Py_tp_call, (void *)__Pyx_CyFunction_CallAsMethod},
+    {Py_tp_traverse, (void *)__Pyx_CyFunction_traverse_impl},
     {Py_tp_dealloc, (void *)__Pyx_CyFunction_dealloc},
     {Py_tp_clear, (void *)__Pyx_CyFunction_clear},
 #endif
@@ -1246,6 +1283,15 @@ static PyType_Slot __pyx_CyFunctionType_slots[] = {
     {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
     {0, 0},
 };
+
+#if CYTHON_USING_HPY
+static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {
+    &__Pyx_CyFunction_repr,
+    &__Pyx_CyFunction_HPyCall,
+    &__Pyx_CyFunction_traverse,
+    NULL
+};
+#endif
 
 #if !CYTHON_USING_HPY
 static PyType_Spec __pyx_CyFunctionType_spec = {
@@ -1266,7 +1312,8 @@ static HPyType_Spec __pyx_CyFunctionType_spec = {
     .basicsize = sizeof(__pyx_CyFunctionObject),
     .itemsize = 0,
     .flags = HPy_TPFLAGS_DEFAULT | HPy_TPFLAGS_HAVE_GC | HPy_TPFLAGS_BASETYPE, /*tp_flags*/
-    .legacy_slots = __pyx_CyFunctionType_slots
+    .legacy_slots = __pyx_CyFunctionType_slots,
+    .defines = __pyx_CyFunctionType_HPyDefines
 };
 #endif
 #else /* CYTHON_USE_TYPE_SPECS */
@@ -1287,7 +1334,7 @@ static PyTypeObject __pyx_CyFunctionType_type = {
     0,                                  /*tp_getattr*/
     0,                                  /*tp_setattr*/
     0,                                  /*tp_as_async*/
-    (reprfunc) __Pyx_CyFunction_repr,   /*tp_repr*/
+    (reprfunc) __Pyx_CyFunction_repr_impl,   /*tp_repr*/
     0,                                  /*tp_as_number*/
     0,                                  /*tp_as_sequence*/
     0,                                  /*tp_as_mapping*/
@@ -1755,7 +1802,7 @@ __pyx_FusedFunction_call(PyObject *func, PyObject *args, PyObject *kw)
                                binding_func->func.defaults_tuple);
             if (unlikely(!tup)) goto bad;
             new_func = (__pyx_FusedFunctionObject *) __Pyx_CyFunction_CallMethod(
-                func, binding_func->__signatures__, tup, NULL);
+                HPY_CONTEXT_FIRST_ARG_CALL func, binding_func->__signatures__, tup, NULL);
         } else {
             tup = PyTuple_Pack(4, binding_func->__signatures__, args,
                                kw == NULL ? Py_None : kw,
