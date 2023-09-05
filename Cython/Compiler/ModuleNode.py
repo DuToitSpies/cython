@@ -3172,7 +3172,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.put_error_if_neg(self.pos, "__Pyx_InitConstants(HPY_CONTEXT_ONLY_ARG_CALL)")
         code.putln("stringtab_initialized = 1;")
         code.put_error_if_neg(self.pos, "__Pyx_InitGlobals()")  # calls any utility code
-
+        code.put_error_if_neg(self.pos, "__Pyx_InitGlobalsTable()")      
 
         code.putln("#if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || "
                    "__PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)")
