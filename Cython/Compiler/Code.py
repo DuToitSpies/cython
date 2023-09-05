@@ -1233,6 +1233,7 @@ class GlobalState:
             w = self.parts['cleanup_globals']
             w.enter_cfunc_scope()
             w.putln("")
+            w.putln("#if !CYTHON_USING_HPY")
             w.putln("static CYTHON_SMALL_CODE void __Pyx_CleanupGlobals(void) {")
 
         code = self.parts['utility_code_proto']
@@ -1316,11 +1317,13 @@ class GlobalState:
         if Options.generate_cleanup_code:
             w = self.parts['cleanup_globals']
             w.putln("}")
+            w.putln("#endif")
             w.exit_cfunc_scope()
 
         if Options.generate_cleanup_code:
             w = self.parts['cleanup_module']
             w.putln("}")
+            w.putln("#endif")
             w.exit_cfunc_scope()
 
     def put_pyobject_decl(self, entry):
