@@ -1225,7 +1225,6 @@ class GlobalState:
         w.enter_cfunc_scope()
         self.globals_counter = 0
         w.putln("")
-        w.putln("#if CYTHON_USING_HPY")
         w.putln("static CYTHON_SMALL_CODE int __Pyx_InitGlobalsTable() {")
 
         if not Options.generate_cleanup_code:
@@ -1311,11 +1310,7 @@ class GlobalState:
                 w.putln("return -1;")
             w.putln("}")
             if (part == 'init_constants'):
-                w.putln("#if CYTHON_USING_HPY")
-                w.putln("HPyGlobal *globals_array[%s];" % self.globals_counter)
-                w.putln("#endif")
-            if (part == 'globals_table'):
-                w.putln("#endif")
+                w.putln("PYOBJECT_GLOBAL_TYPE *globals_array[%s];" % self.globals_counter)
             w.exit_cfunc_scope()
 
         if Options.generate_cleanup_code:
