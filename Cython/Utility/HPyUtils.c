@@ -19,12 +19,21 @@ HPy_AsPyObjectArray(HPyContext *ctx, HPy *h_arr, HPy_ssize_t n)
     }
     return arr;
 }
+#endif
 
-static HPyType_SpecParam* get_temp_specparams(HPyContext *ctx) {
+#if CYTHON_USING_HPY
+HPy __Pyx_Type_FromSpec(HPyContext *ctx, HPy module, HPyType_Spec *spec, HPy base)
+{
     HPyType_SpecParam temp_params[] = {
-            { HPyType_SpecParam_Base, ctx->h_LongType },
-            { (HPyType_SpecParam_Kind)0 }
+        { HPyType_SpecParam_Base, ctx->h_LongType },
+        { (HPyType_SpecParam_Kind)0 }
     };
-    return temp_params;
+    HPy type = HPyType_FromSpec(ctx, spec, temp_params);
+    return type;
+}
+#else
+static inline PyObject *__Pyx_Type_FromSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
+{
+    return PyType_FromModuleAndSpec(module, spec, bases);
 }
 #endif

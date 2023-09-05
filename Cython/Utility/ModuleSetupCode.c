@@ -710,7 +710,7 @@ class __Pyx_FakeReference {
   #define PYMODULEDEF_TYPE HPyModuleDef
   #define PYMETHODDEF_TYPE HPyDef
   #define TYPESPEC_TYPE HPyType_Spec
-  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) HPyType_FromSpec(HPY_CONTEXT_CNAME, &s, get_temp_specparams(HPY_CONTEXT_CNAME))
+  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) __Pyx_Type_FromSpec(HPY_CONTEXT_CNAME, m, &s, b)
   #define TYPESPEC_GET(s, field) s.field
 
   #define API_NULL_VALUE HPy_NULL
@@ -790,7 +790,7 @@ class __Pyx_FakeReference {
   #define PYMODULEDEF_TYPE struct PyModuleDef
   #define PYMETHODDEF_TYPE PyMethodDef
   #define TYPESPEC_TYPE PyType_Spec
-  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) PyType_FromModuleAndSpec(m, s, b)
+  #define TYPE_FROM_MOD_AND_SPEC(m, s, b) __Pyx_Type_FromSpec(m, s, b)
   #define TYPESPEC_GET(s, field) s->field
 
   #define API_NULL_VALUE NULL

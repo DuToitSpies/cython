@@ -1337,7 +1337,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         module_state = globalstate['module_state']
         module_state_defines = globalstate['module_state_defines']
         module_state_clear = globalstate['module_state_clear']
-        module_state_clear.putln("#if CYTHON_USING_HPY")
         module_state_traverse = globalstate['module_state_traverse']
         module_state_typeobj = module_state.insertion_point()
         module_state_defines_typeobj = module_state_defines.insertion_point()
@@ -1368,7 +1367,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                     module_state_traverse.putln(
                         "Py_VISIT(traverse_module_state->%s);" % (
                         entry.type.typeobj_cname))
-        module_state_clear.putln("#endif")
         for writer in [module_state_typeobj, module_state_defines_typeobj]:
             writer.putln("#endif")
 
@@ -2952,7 +2950,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln('#endif')
 
     def generate_module_state_clear(self, env, code):
-        code.putln("#if CYTHON_USE_MODULE_STATE")
+        code.putln("#if CYTHON_USE_MODULE_STATE && !CYTHON_USING_HPY")
         code.putln("static int %s_clear(PyObject *m) {" % Naming.module_cname)
         code.putln("%s *clear_module_state = %s(m);" % (
             Naming.modulestate_cname,
@@ -3435,6 +3433,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if not Options.generate_cleanup_code:
             return
 
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln('static void %s(CYTHON_UNUSED PyObject *self) {' %
                    Naming.cleanup_cname)
         code.enter_cfunc_scope(env)
