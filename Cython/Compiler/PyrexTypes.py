@@ -1312,14 +1312,14 @@ class PyObjectType(PyrexType):
             code.funcstate.needs_refnanny = True
             code.putln("__Pyx_INCREF(%s);" % self.as_pyobject(cname))
         else:
-            code.putln("PYOBJECT_ALLOC(%s);" % self.as_pyobject(cname))
+            code.putln("PYOBJECT_NEWREF(%s);" % self.as_pyobject(cname))
 
     def generate_xincref(self, code, cname, nanny):
         if nanny:
             code.funcstate.needs_refnanny = True
             code.putln("__Pyx_XINCREF(%s);" % self.as_pyobject(cname))
         else:
-            code.putln("PYOJBECT_XALLOC(%s);" % self.as_pyobject(cname))
+            code.putln("PYOJBECT_XNEWREF(%s);" % self.as_pyobject(cname))
 
     def generate_decref(self, code, cname, nanny, have_gil):
         # have_gil is for the benefit of memoryviewslice - it's ignored here
@@ -1379,10 +1379,10 @@ class PyObjectType(PyrexType):
                     X = ''  # CPython doesn't have a Py_XCLEAR()
                 code.putln("%s_%sCLEAR(%s);" % (prefix, X, cname))
             else:
-                code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s); %s = API_NULL_VALUE;" % (
+                code.putln("REFNANNY_CLOSEREF(%s_%sDECREF, %s); %s = API_NULL_VALUE;" % (
                     prefix, X, self.as_pyobject(cname), cname))
         else:
-            code.putln("REFNANNY_DEALLOC(%s_%sDECREF, %s);" % (
+            code.putln("REFNANNY_CLOSEREF(%s_%sDECREF, %s);" % (
                 prefix, X, self.as_pyobject(cname)))
 
     def nullcheck_string(self, cname):

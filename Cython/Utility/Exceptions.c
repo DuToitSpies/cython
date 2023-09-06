@@ -802,7 +802,7 @@ static int __Pyx_CLineForTraceback(HPY_CONTEXT_FIRST_ARG_DEF PyThreadState *tsta
       PYOBJECT_TYPE use_cline_obj = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL ${cython_runtime_cname}, PYIDENT("cline_in_traceback"));
       if (API_IS_NOT_NULL(use_cline_obj)) {
         use_cline = API_IS_FALSE(use_cline_obj) ? API_FALSE : API_TRUE;
-        PYOBJECT_DEALLOC(use_cline_obj);
+        PYOBJECT_CLOSEREF(use_cline_obj);
       } else {
         PyErr_Clear();
         use_cline = API_NULL_VALUE;

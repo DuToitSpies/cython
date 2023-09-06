@@ -690,12 +690,11 @@ class __Pyx_FakeReference {
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
 
-  #define PYOBJECT_ALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_XALLOC(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_DEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_XDEALLOC(h) HPy_Close(HPY_CONTEXT_CNAME, h)
-  #define PYOBJECT_ALLOC_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
-  #define REFNANNY_DEALLOC(func, h) PYOBJECT_DEALLOC(h)
+  #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_XNEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_CLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_XCLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define REFNANNY_CLOSEREF(func, h) PYOBJECT_CLOSEREF(h)
 
   #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
@@ -771,12 +770,11 @@ class __Pyx_FakeReference {
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
   #define CAPI_NEEDS_DEREFERENCE &
 
-  #define PYOBJECT_ALLOC(h) Py_INCREF(h)
-  #define PYOBJECT_XALLOC(h) Py_XINCREF(h)
-  #define PYOBJECT_DEALLOC(h) Py_DECREF(h)
-  #define PYOBJECT_XDEALLOC(h) Py_XDECREF(h)
-  #define PYOBJECT_ALLOC_NEWREF(h) Py_NewRef(h)
-  #define REFNANNY_DEALLOC(func, h) func(h)
+  #define PYOBJECT_NEWREF(h) Py_NewRef(h)
+  #define PYOBJECT_XNEWREF(h) Py_XNewRef(h)
+  #define PYOBJECT_CLOSEREF(h) Py_DECREF(h)
+  #define PYOBJECT_XCLOSEREF(h) Py_XDECREF(h)
+  #define REFNANNY_CLOSEREF(func, h) func(h)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
@@ -1963,12 +1961,12 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_RefNannySetupContext(name, acquire_gil)
   #define __Pyx_RefNannyFinishContextNogil()
   #define __Pyx_RefNannyFinishContext()
-  #define __Pyx_INCREF(r) PYOBJECT_ALLOC(r)
-  #define __Pyx_DECREF(r) PYOBJECT_DEALLOC(r)
+  #define __Pyx_INCREF(r) PYOBJECT_NEWREF(r)
+  #define __Pyx_DECREF(r) PYOBJECT_CLOSEREF(r)
   #define __Pyx_GOTREF(r)
   #define __Pyx_GIVEREF(r)
-  #define __Pyx_XINCREF(r) PYOBJECT_XALLOC(r)
-  #define __Pyx_XDECREF(r) PYOBJECT_XDEALLOC(r)
+  #define __Pyx_XINCREF(r) PYOBJECT_XNEWREF(r)
+  #define __Pyx_XDECREF(r) PYOBJECT_XCLOSEREF(r)
   #define __Pyx_XGOTREF(r)
   #define __Pyx_XGIVEREF(r)
 #endif /* CYTHON_REFNANNY */

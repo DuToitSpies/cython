@@ -400,7 +400,7 @@ __Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_
         if (unlikely(API_IS_NULL(PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict)))) result = -1;
     }
     #endif
-    PYOBJECT_DEALLOC(res);
+    PYOBJECT_CLOSEREF(res);
     return result;
 }
 
