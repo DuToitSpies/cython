@@ -137,7 +137,7 @@ EXT_DEP_MODULES = {
     'tag:ipython':  'IPython.testing.globalipapp',
     'tag:jedi':     'jedi_BROKEN_AND_DISABLED',
     'tag:test.support': 'test.support',  # support module for CPython unit tests
-    'tag:hpy':      'hpy.devel',
+    'tag:hpy':      'hpy',
 }
 
 def patch_inspect_isfunction():
@@ -259,7 +259,7 @@ def update_hpy_extension(ext):
     if not hasattr(dist, 'hpy_abi'):
         # can be 'cpython' or 'universal'
         # for now, always use 'cpython'
-        dist.hpy_abi = 'cpython'
+        dist.hpy_abi = HPY_ABI
         dist.hpy_use_static_libs = False
     hpy_ext.distribution = dist
     hpy_ext._finalize_hpy_ext(ext)
@@ -462,6 +462,7 @@ COMPILER = None
 COMPILER_HAS_INT128 = False
 OPENMP_C_COMPILER_FLAGS = get_openmp_compiler_flags('c')
 OPENMP_CPP_COMPILER_FLAGS = get_openmp_compiler_flags('cpp')
+HPY_ABI = None
 
 # Return this from the EXT_EXTRAS matcher callback to exclude the extension
 EXCLUDE_EXT = object()
@@ -2461,6 +2462,8 @@ def main():
                       help="do not capture stdout, stderr in srctree tests. Makes pdb.set_trace interactive")
     parser.add_option("--limited-api", dest="limited_api", default=False, action="store_true",
                       help="Compiles Cython using CPython's LIMITED_API")
+    parser.add_option("--hpy-abi", dest="hpy_abi", default="cpython", action="store",
+                      help="Select the HPy ABI to use when running tests.")
 
     options, cmd_args = parser.parse_args(args)
 
@@ -2813,6 +2816,10 @@ def runtests(options, cmd_args, coverage=None):
     global COMPILER
     if options.compiler:
         COMPILER = options.compiler
+
+    global HPY_ABI
+    HPY_ABI = options.hpy_abi
+    sys.stderr.write("HPy ABI: '%s'\n" % HPY_ABI)
 
     selected_backends = [ name.strip() for name in options.backends.split(',') if name.strip() ]
     backends = []
