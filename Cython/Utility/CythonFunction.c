@@ -1309,6 +1309,7 @@ static PyType_Spec __pyx_CyFunctionType_spec = {
 };
 #else
 static HPyType_Spec __pyx_CyFunctionType_spec = {
+    __PYX_TYPE_MODULE_PREFIX "cython_function_or_method",
     .basicsize = sizeof(__pyx_CyFunctionObject),
     .itemsize = 0,
     .flags = HPy_TPFLAGS_DEFAULT | HPy_TPFLAGS_HAVE_GC | HPy_TPFLAGS_BASETYPE, /*tp_flags*/
