@@ -3259,7 +3259,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         ##code.put_decref_clear(env.module_dict_cname, py_object_type, nanny=False)
         code.putln('}')
         code.putln("#if CYTHON_USING_HPY")
-        code.putln("PYOBJECT_DEALLOC(%s);" % Naming.pymodinit_module_arg)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % Naming.pymodinit_module_arg)
         code.putln("#elif !CYTHON_USE_MODULE_STATE")
         code.put_decref_clear(Naming.pymodinit_module_arg, py_object_type, nanny=False, clear_before_decref=True)
         code.putln("#else")
@@ -3624,10 +3624,9 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("  .doc = %s," % doc)
         code.putln("  .size = 0,")
         code.putln("  .legacy_methods = %s," % env.method_table_cname)
-        if env.is_c_class_scope and not env.hpyfunc_entries:
-            code.putln("  .defines = methods,")
-        else:
-            code.putln("  .defines = %s," % env.hpy_defines_cname)
+        code.putln("  .defines = methods,")
+        #else:
+         #   code.putln("  .defines = %s," % env.hpy_defines_cname)
         code.putln("  .globals = globals_array,")
         code.putln("#endif")
         code.putln("};")
@@ -3693,12 +3692,15 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")  # CYTHON_PEP489_MULTI_PHASE_INIT
         code.putln("CYTHON_UNUSED_VAR(%s);" % module_temp)  # only used in limited API
 
+        code.putln("PYOBJECT_TYPE temp_moddict = PYOBJECT_NEWREF(PYMODULE_GETDICT_ATTR(%s));" % Naming.pymodinit_module_arg)
+
         code.putln(
-            "PYOBJECT_GLOBAL_STORE(%s, PYMODULE_GETDICT_ATTR(%s)); %s" % (
-                env.module_dict_cname, Naming.pymodinit_module_arg,
-                code.error_goto_if_null_object("PYMODULE_GETDICT_ATTR(%s)" % Naming.pymodinit_module_arg, self.pos)))
+            "PYOBJECT_GLOBAL_STORE(%s, temp_moddict); %s" % (
+                env.module_dict_cname,
+                code.error_goto_if_null_object("temp_moddict", self.pos)))
+        code.putln("PYOBJECT_CLOSEREF(temp_moddict);")
         code.putln("#if !CYTHON_USING_HPY")
-        code.put_incref(env.module_dict_cname, py_object_type, nanny=False)
+        #code.put_incref(env.module_dict_cname, py_object_type, nanny=False)
 
         code.putln(
             '%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyImport_AddModuleRef(__Pyx_BUILTIN_MODULE_NAME)); %s' % (

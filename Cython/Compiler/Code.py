@@ -1223,9 +1223,13 @@ class GlobalState:
 
         w = self.parts['globals_table']
         w.enter_cfunc_scope()
-        self.globals_counter = 0
         w.putln("")
         w.putln("static CYTHON_SMALL_CODE int __Pyx_InitGlobalsTable() {")
+        w.putln("globals_array[0] = &__pyx_d;")
+        w.putln("globals_array[1] = &__pyx_cython_runtime;")
+        w.putln("globals_array[2] = &__pyx_empty_tuple;")
+        w.putln("globals_array[3] = &__pyx_empty_bytes;")
+        w.putln("globals_array[4] = &__pyx_empty_unicode;")
 
         if not Options.generate_cleanup_code:
             del self.parts['cleanup_globals']

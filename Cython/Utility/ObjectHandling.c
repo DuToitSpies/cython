@@ -2818,7 +2818,7 @@ static CYTHON_INLINE PyObject* __Pyx_PySequence_Multiply(PyObject *seq, Py_ssize
 typedef PYOBJECT_TYPE __Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%U"
 static __Pyx_TypeName __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp); /*proto*/
-#define __Pyx_DECREF_TypeName(obj) PYOBJECT_XDEALLOC(obj)
+#define __Pyx_DECREF_TypeName(obj) PYOBJECT_XCLOSEREF(obj)
 #else
 typedef const char *__Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%.200s"

@@ -100,7 +100,7 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
         py_basicsize = PYOBJECT_GET_ATTR_STR(cached_type, "__basicsize__");
         if (unlikely(API_IS_NULL(py_basicsize))) goto bad;
         basicsize = PYOBJECT_LONG_AS_SSIZE(py_basicsize);
-        PYOBJECT_DEALLOC(py_basicsize);
+        PYOBJECT_CLOSEREF(py_basicsize);
         py_basicsize = API_DEFAULT_VALUE;
         if (unlikely(basicsize == (Py_ssize_t)-1) && PyErr_Occurred()) goto bad;
 #else
@@ -128,13 +128,13 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
     if (PYOBJECT_SET_ATTR_STR(abi_module, object_name, cached_type) < 0) goto bad;
 
 done:
-    PYOBJECT_DEALLOC(abi_module);
+    PYOBJECT_CLOSEREF(abi_module);
     // NOTE: always returns owned reference, or NULL on error
     assert(API_IS_NULL(cached_type) || PyType_Check(cached_type));
     return (PyTypeObject *) HPY_LEGACY_OBJECT_AS(cached_type);
 
 bad:
-    PYOBJECT_DEALLOC(cached_type);
+    PYOBJECT_CLOSEREF(cached_type);
     cached_type = API_NULL_VALUE;
     goto done;
 }
