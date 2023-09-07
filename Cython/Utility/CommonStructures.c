@@ -130,7 +130,7 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
 done:
     PYOBJECT_CLOSEREF(abi_module);
     // NOTE: always returns owned reference, or NULL on error
-    assert(API_IS_NULL(cached_type) || PyType_Check(cached_type));
+    assert(API_IS_NULL(cached_type) || TYPE_CHECK(cached_type));
     return (PyTypeObject *) HPY_LEGACY_OBJECT_AS(cached_type);
 
 bad:
