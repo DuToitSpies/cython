@@ -1661,6 +1661,7 @@ class GlobalState:
             w.putln("return __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_CALL %s);" % Naming.stringtab_cname)
             w.putln("#else")
             for py_string_args in py_strings:
+                c_cname, _, py_string = py_string_args
                 w.putln("HPyGlobal_Store(HPY_CONTEXT_CNAME, &%s, HPyUnicode_FromString(HPY_CONTEXT_CNAME, %s));" % (py_string.cname, c_cname))
             w.putln("#endif")
             w.putln("}")
