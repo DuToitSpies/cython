@@ -767,6 +767,7 @@ class __Pyx_FakeReference {
   #define TYPESPEC_TYPE HPyType_Spec
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) __Pyx_Type_FromSpec(HPY_CONTEXT_CNAME, m, &s, b)
   #define TYPESPEC_GET(s, field) s.field
+  #define TYPE_CHECK(o) HPy_TypeCheck(HPY_CONTEXT_CNAME, (o), HPY_CONTEXT_CNAME->h_TypeType)
 
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
@@ -846,6 +847,7 @@ class __Pyx_FakeReference {
   #define TYPESPEC_TYPE PyType_Spec
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) __Pyx_Type_FromSpec(m, s, b)
   #define TYPESPEC_GET(s, field) s->field
+  #define TYPE_CHECK(o) PyType_Check(o)
 
   #define API_NULL_VALUE NULL
   #define API_DEFAULT_VALUE 0
