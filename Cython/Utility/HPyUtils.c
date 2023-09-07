@@ -19,21 +19,28 @@ HPy_AsPyObjectArray(HPyContext *ctx, HPy *h_arr, HPy_ssize_t n)
     }
     return arr;
 }
-#endif
 
-#if CYTHON_USING_HPY
-HPy __Pyx_Type_FromSpec(HPyContext *ctx, HPy module, HPyType_Spec *spec, HPy base)
+HPy HPyType_FromModuleAndSpec(HPyContext *ctx, HPy module, HPyType_Spec *spec, HPy bases)
 {
     HPyType_SpecParam temp_params[] = {
-        { HPyType_SpecParam_Base, ctx->h_LongType },
+        { HPyType_SpecParam_BasesTuple, bases },
+        /* unfortunately, not yet supported by HPy */
+        /* { HPyType_SpecParam_Module, module }, */
         { (HPyType_SpecParam_Kind)0 }
     };
-    HPy type = HPyType_FromSpec(ctx, spec, temp_params);
-    return type;
-}
-#else
-static inline PyObject *__Pyx_Type_FromSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
-{
-    return PyType_FromModuleAndSpec(module, spec, bases);
+    HPy result;
+    if (!HPy_IsNull(bases)) {
+        result = HPyType_FromSpec(ctx, spec, temp_params);
+    } else {
+        /* we must not pass bases if it is HPy_NULL */
+        result = HPyType_FromSpec(ctx, spec, NULL);
+    }
+    /* TODO(fa): remove once HPy supports 'HPyType_SpecParam_Module' */
+    if (!HPy_IsNull(result) && !HPy_IsNull(module)) {
+        PyHeapTypeObject *ht = (PyHeapTypeObject *) HPy_AsPyObject(ctx, result);
+        ht->ht_module = HPy_AsPyObject(ctx, module);
+        Py_DECREF(ht);
+    }
+    return result;
 }
 #endif
