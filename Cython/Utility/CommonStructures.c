@@ -13,7 +13,7 @@ static PYOBJECT_TYPE __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_DEF) 
 #if !CYTHON_USE_TYPE_SPECS
 static PyTypeObject* __Pyx_FetchCommonType(PyTypeObject* type);
 #else
-static PyTypeObject* __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases);
+static PYTYPEOBJECT_TYPE __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases);
 #endif
 
 /////////////// FetchCommonType ///////////////
@@ -82,7 +82,7 @@ bad:
 }
 #else
 
-static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases) {
+static PYTYPEOBJECT_TYPE __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module, TYPESPEC_TYPE spec, PYOBJECT_TYPE bases) {
     PYOBJECT_TYPE abi_module;
     PYOBJECT_TYPE cached_type = API_NULL_VALUE;
     // get the final part of the object name (after the last dot)
@@ -90,7 +90,7 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
     object_name = object_name ? object_name+1 : TYPESPEC_GET(spec,name);
 
     abi_module = __Pyx_FetchSharedCythonABIModule(HPY_CONTEXT_ONLY_ARG_CALL);
-    if (API_IS_NULL(abi_module)) return NULL;
+    if (API_IS_NULL(abi_module)) return API_NULL_VALUE;
 
     cached_type = PYOBJECT_GET_ATTR_STR(abi_module, object_name);
     if (API_IS_NOT_NULL(cached_type)) {
@@ -102,7 +102,7 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
         basicsize = PYOBJECT_LONG_AS_SSIZE(py_basicsize);
         PYOBJECT_CLOSEREF(py_basicsize);
         py_basicsize = API_DEFAULT_VALUE;
-        if (unlikely(basicsize == (Py_ssize_t)-1) && PyErr_Occurred()) goto bad;
+        if (unlikely(basicsize == (API_SSIZE_T)-1) && PYERR_OCCURRED()) goto bad;
 #else
         basicsize = likely(PyType_Check(cached_type)) ? ((PyTypeObject*) cached_type)->tp_basicsize : -1;
 #endif
@@ -116,8 +116,8 @@ static PyTypeObject *__Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF PYO
         goto done;
     }
 
-    if (!PyErr_ExceptionMatches(PyExc_AttributeError)) goto bad;
-    PyErr_Clear();
+    if (!PYERR_EXCEPTIONMATCHES(API_EXC(AttributeError))) goto bad;
+    PYERR_CLEAR();
     // We pass the ABI module reference to avoid keeping the user module alive by foreign type usages.
     CYTHON_UNUSED_VAR(module);
     cached_type = __Pyx_PyType_FromModuleAndSpec(abi_module, spec, bases);
@@ -131,7 +131,7 @@ done:
     PYOBJECT_CLOSEREF(abi_module);
     // NOTE: always returns owned reference, or NULL on error
     assert(API_IS_NULL(cached_type) || TYPE_CHECK(cached_type));
-    return (PyTypeObject *) HPY_LEGACY_OBJECT_AS(cached_type);
+    return cached_type;
 
 bad:
     PYOBJECT_CLOSEREF(cached_type);

@@ -428,7 +428,7 @@
 #endif
 
 /* Whether to use METH_FASTCALL with a fake backported implementation of vectorcall */
-#define CYTHON_BACKPORT_VECTORCALL (CYTHON_METH_FASTCALL && PY_VERSION_HEX < 0x030800B1)
+#define CYTHON_BACKPORT_VECTORCALL (!CYTHON_USING_HPY && CYTHON_METH_FASTCALL && PY_VERSION_HEX < 0x030800B1)
 
 #if CYTHON_USE_PYLONG_INTERNALS
   /* These short defines from the PyLong header can easily conflict with other code */
@@ -681,12 +681,14 @@ class __Pyx_FakeReference {
   #define API_SSIZE_T HPy_ssize_t
 
   #define PYOBJECT_TYPE HPy
+  #define PYTYPEOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
   #define PYOBJECT_FIELD_STORE(owner, field, h) HPyField_Store(HPY_CONTEXT_CNAME, owner, &field, h)
   #define PYOBJECT_FIELD_LOAD(owner, field) HPyField_Load(HPY_CONTEXT_CNAME, owner, field)
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
+  #define PYOBJECT_GLOBAL_CLOSEREF(ref) HPy_Close(HPY_CONTEXT_CNAME, ref)
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
 
@@ -695,6 +697,10 @@ class __Pyx_FakeReference {
   #define PYOBJECT_CLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XCLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define REFNANNY_CLOSEREF(func, h) PYOBJECT_CLOSEREF(h)
+
+  #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
+  #define PYERR_CLEAR() HPyErr_Clear(HPY_CONTEXT_CNAME)
+  #define PYERR_EXCEPTIONMATCHES(exc) HPyErr_ExceptionMatches(HPY_CONTEXT_CNAME, (exc))
 
   #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
@@ -718,13 +724,19 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) HPy_IsNull(h)
   #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
-  #define API_NONE_VALUE HPY_CONTEXT_CNAME->h_None
   #define API_ASSIGN_NONE HPy_Dup(HPY_CONTEXT_CNAME, HPY_CONTEXT_CNAME->h_None)
-  #define API_TRUE HPY_CONTEXT_CNAME->h_True
-  #define API_FALSE HPY_CONTEXT_CNAME->h_False
   #define API_IS_TRUE(h) HPy_IsTrue(HPY_CONTEXT_CNAME, h)
   #define API_IS_FALSE(h) !HPy_IsTrue(HPY_CONTEXT_CNAME, h)
-  
+
+  /* constants */
+  #define API_NONE_VALUE HPY_CONTEXT_CNAME->h_None
+  #define API_TRUE HPY_CONTEXT_CNAME->h_True
+  #define API_FALSE HPY_CONTEXT_CNAME->h_False
+  #define API_EXC_ATTRIBUTEERROR HPY_CONTEXT_CNAME->h_AttributeError
+  #define API_EXC(name) (HPY_CONTEXT_CNAME->h_ ## name)
+
+  #define API_VECTORCALLFUNC HPyCallFunction
+
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
@@ -762,12 +774,14 @@ class __Pyx_FakeReference {
   #define API_SSIZE_T Py_ssize_t
 
   #define PYOBJECT_TYPE PyObject *
+  #define PYTYPEOBJECT_TYPE PyTypeObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
   #define PYOBJECT_FIELD_STORE(owner, field, h) field = h
   #define PYOBJECT_FIELD_LOAD(owner, field) field
   #define PYOBJECT_GLOBAL_TYPE PyObject *
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
+  #define PYOBJECT_GLOBAL_CLOSEREF(ref) /* nop */
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
   #define CAPI_NEEDS_DEREFERENCE &
 
@@ -776,6 +790,10 @@ class __Pyx_FakeReference {
   #define PYOBJECT_CLOSEREF(h) Py_DECREF(h)
   #define PYOBJECT_XCLOSEREF(h) Py_XDECREF(h)
   #define REFNANNY_CLOSEREF(func, h) func(h)
+
+  #define PYERR_OCCURRED() (!!PyErr_Occurred())
+  #define PYERR_CLEAR() PyErr_Clear()
+  #define PYERR_EXCEPTIONMATCHES(exc) PyErr_ExceptionMatches((exc))
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
@@ -798,12 +816,15 @@ class __Pyx_FakeReference {
   #define API_IS_NULL(h) !h //Both are here as otherwise we would get !!h for API_IS_NOT_NULL, which is hard to read - but it can be made so if necessary
   #define API_IS_NOT_NULL(h) h
   #define API_IS_EQUAL(a, b) a==b
-  #define API_NONE_VALUE Py_None
   #define API_ASSIGN_NONE Py_None
-  #define API_TRUE Py_True
-  #define API_FALSE Py_False
   #define API_IS_TRUE(h) PyObject_IsTrue(h)
   #define API_IS_FALSE(h) !PyObject_Not(h)
+
+  /* constants */
+  #define API_NONE_VALUE Py_None
+  #define API_TRUE Py_True
+  #define API_FALSE Py_False
+  #define API_EXC(name) (PyExc_ ## name)
 
   #define DICT_NEW() PyDict_New()
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
@@ -1070,6 +1091,9 @@ class __Pyx_FakeReference {
   #define __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET  PY_VECTORCALL_ARGUMENTS_OFFSET
   #define __Pyx_PyVectorcall_NARGS(n)  PyVectorcall_NARGS((size_t)(n))
 #elif CYTHON_BACKPORT_VECTORCALL
+#if CYTHON_USING_HPY
+#error "cannot use HPy when backporting vectorcall impl"
+#endif
   typedef PyObject *(*__pyx_vectorcallfunc)(PyObject *callable, PyObject *const *args,
                                             size_t nargsf, PyObject *kwnames);
   #define __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET  ((size_t)1 << (8 * sizeof(size_t) - 1))
