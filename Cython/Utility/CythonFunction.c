@@ -60,6 +60,7 @@ typedef struct {
 #else /* !CYTHON_USING_HPY */
     HPyDef *func;
 #endif /* !CYTHON_USING_HPY */
+    PYOBJECT_FIELD_TYPE func_self;
     PYOBJECT_FIELD_TYPE func_module;
     PYOBJECT_FIELD_TYPE func_dict;
     PYOBJECT_FIELD_TYPE func_name;
@@ -120,11 +121,15 @@ static CYTHON_INLINE void __Pyx_CyFunction_SetAnnotationsDict(HPY_CONTEXT_FIRST_
 
 static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE module);
 
+#if CYTHON_USING_HPY
+HPyDef_CALL_FUNCTION(__Pyx_CyFunction_hpycall_NOARGS)
+#else /* CYTHON_USING_HPY */
 #if CYTHON_METH_FASTCALL
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * __Pyx_CyFunction_Vectorcall_O(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
+#endif /* CYTHON_USING_HPY */
 #if CYTHON_BACKPORT_VECTORCALL
 #define __Pyx_CyFunction_func_vectorcall(f) (((__pyx_CyFunctionObject*)f)->func_vectorcall)
 #else
@@ -777,11 +782,13 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     Py_XINCREF(code);
 #else /* !CYTHON_USING_HPY */
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
+    assert(ml->kind == HPyDef_Kind_Meth);
     struct_op->func = ml;
 #endif /* !CYTHON_USING_HPY */
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
     struct_op->flags = flags;
+    PYOBJECT_FIELD_STORE(op, struct_op->func_self, op);
     PYOBJECT_FIELD_STORE(op, struct_op->func_module, module);
     PYOBJECT_FIELD_STORE(op, struct_op->func_closure, closure);
     PYOBJECT_FIELD_STORE(op, struct_op->func_dict, API_NULL_VALUE);
@@ -801,7 +808,18 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
 #endif
     PYOBJECT_FIELD_STORE(op, struct_op->func_annotations, API_NULL_VALUE );
     PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, API_NULL_VALUE );
-#if !CYTHON_USING_HPY
+#if CYTHON_USING_HPY
+    switch (ml->meth.signature) {
+    case HPyFunc_NOARGS:
+        HPy_SetCallFunction(HPY_CONTEXT_CNAME, op, &__Pyx_CyFunction_hpycall_NOARGS);
+        break;
+    default:
+        HPyErr_SetString(HPY_CONTEXT_CNAME, API_EXC(TypeError), "unknown signature");
+        return HPy_NULL;
+    }
+    return op;
+
+#else /* CYTHON_USING_HPY */
     Py_INCREF(op->func_globals);
 #if CYTHON_METH_FASTCALL
     switch (ml->ml_flags & (METH_VARARGS | METH_FASTCALL | METH_NOARGS | METH_O | METH_KEYWORDS | METH_METHOD)) {
@@ -829,8 +847,6 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     }
 #endif
     return (PyObject *) op;
-#else
-    return op;
 #endif
 }
 
@@ -1111,10 +1127,6 @@ static CYTHON_INLINE PyObject *__Pyx_CyFunction_Call(HPY_CONTEXT_FIRST_ARG_DEF P
 }
 
 static PYOBJECT_TYPE __Pyx_CyFunction_CallAsMethod(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE args, PYOBJECT_TYPE kw) {
-#if CYTHON_USING_HPY
-    return __Pyx_CyFunction_HPyCall_impl(HPY_CONTEXT_FIRST_ARG_CALL func, args, HPy_GetAttr_s(HPY_CONTEXT_FIRST_ARG_CALL args, "size"), kw);
-    return HPy_NULL;
-#endif
     PyObject *result;
     __pyx_CyFunctionObject *cyfunc = (__pyx_CyFunctionObject *) func;
 
@@ -1165,6 +1177,7 @@ static PYOBJECT_TYPE __Pyx_CyFunction_CallAsMethod(HPY_CONTEXT_FIRST_ARG_DEF PYO
     }
     return result;
 }
+#endif /* CYTHON_USING_HPY  */
 
 #if CYTHON_METH_FASTCALL
 // Check that kwnames is empty (if you want to allow keyword arguments,
@@ -1173,25 +1186,64 @@ static PYOBJECT_TYPE __Pyx_CyFunction_CallAsMethod(HPY_CONTEXT_FIRST_ARG_DEF PYO
 //  1: self = args[0]
 //  0: self = cyfunc->func.m_self
 // -1: error
-static CYTHON_INLINE int __Pyx_CyFunction_Vectorcall_CheckArgs(__pyx_CyFunctionObject *cyfunc, Py_ssize_t nargs, PyObject *kwnames)
+static CYTHON_INLINE int __Pyx_CyFunction_Vectorcall_CheckArgs(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject *cyfunc, ssize_t nargs, PYOBJECT_TYPE kwnames)
 {
     int ret = 0;
     if ((cyfunc->flags & __Pyx_CYFUNCTION_CCLASS) && !(cyfunc->flags & __Pyx_CYFUNCTION_STATICMETHOD)) {
         if (unlikely(nargs < 1)) {
             PyErr_Format(PyExc_TypeError, "%.200s() needs an argument",
-                         ((PyCFunctionObject*)cyfunc)->m_ml->ml_name);
+                         "");
+                         // ((PyCFunctionObject*)cyfunc)->m_ml->ml_name);
             return -1;
         }
         ret = 1;
     }
-    if (unlikely(kwnames) && unlikely(PyTuple_GET_SIZE(kwnames))) {
+    if (unlikely(API_IS_NOT_NULL(kwnames)) && unlikely(TUPLE_GET_SIZE(kwnames))) {
         PyErr_Format(PyExc_TypeError,
-                     "%.200s() takes no keyword arguments", ((PyCFunctionObject*)cyfunc)->m_ml->ml_name);
+                     "%.200s() takes no keyword arguments",
+                     "");
+                     // ((PyCFunctionObject*)cyfunc)->m_ml->ml_name);
         return -1;
     }
     return ret;
 }
 
+#if CYTHON_USING_HPY
+static HPy __Pyx_CyFunction_hpycall_NOARGS_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, const HPy *args, size_t nargs, HPy kwnames)
+{
+    __pyx_CyFunctionObject *cyfunc = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, func);
+    HPyDef *def = cyfunc->func;
+    assert(def->kind == HPyDef_Kind_Meth);
+    HPy result, self;
+    int self_needs_close = 0;
+    switch (__Pyx_CyFunction_Vectorcall_CheckArgs(HPY_CONTEXT_CNAME, cyfunc, nargs, kwnames)) {
+    case 1:
+        self = args[0];
+        args += 1;
+        nargs -= 1;
+        break;
+    case 0:
+        self = HPyField_Load(HPY_CONTEXT_CNAME, func, cyfunc->func_self);
+        self_needs_close = 1;
+        break;
+    default:
+        return HPy_NULL;
+    }
+
+    if (unlikely(nargs != 0)) {
+        HPyErr_Format(HPY_CONTEXT_CNAME, API_EXC(TypeError),
+            "%.200s() takes no arguments (%" CYTHON_FORMAT_SSIZE_T "d given)",
+            def->meth.name, nargs);
+        return HPy_NULL;
+    }
+    HPyFunc_noargs func_noargs = def->meth.impl;
+    result = func_noargs(HPY_CONTEXT_CNAME, self);
+    if (self_needs_close) {
+        HPy_Close(HPY_CONTEXT_CNAME, self);
+    }
+    return result;
+}
+#else /* CYTHON_USING_HPY */
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames)
 {
     __pyx_CyFunctionObject *cyfunc = (__pyx_CyFunctionObject *)func;
@@ -1223,7 +1275,9 @@ static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *c
     }
     return def->ml_meth(self, NULL);
 }
+#endif /* CYTHON_USING_HPY */
 
+#if !CYTHON_USING_HPY
 static PyObject * __Pyx_CyFunction_Vectorcall_O(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames)
 {
     __pyx_CyFunctionObject *cyfunc = (__pyx_CyFunctionObject *)func;
@@ -1309,26 +1363,14 @@ static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject 
     return ((__Pyx_PyCMethod)(void(*)(void))def->ml_meth)(self, cls, args, (size_t)nargs, kwnames);
 }
 #endif
-#endif
+#endif /* !CYTHON_USING_HPY */
 
 #if CYTHON_USING_HPY
 HPyDef_SLOT(__Pyx_CyFunction_call, HPy_tp_call)
-static HPy __Pyx_CyFunction_call_impl(HPY_CONTEXT_FIRST_ARG_DEF HPy callable, const HPy *args, size_t nargs, HPy kwnames)
+static HPy __Pyx_CyFunction_call_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, const HPy *args, size_t nargs, HPy kwnames)
 {
-    HPy result;
-    __pyx_CyFunctionObject *cyfunc = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_FIRST_ARG_CALL callable);
-
-#if CYTHON_METH_FASTCALL
-    // Prefer vectorcall if available. This is not the typical case, as
-    // CPython would normally use vectorcall directly instead of tp_call.
-     __pyx_vectorcallfunc vc = __Pyx_CyFunction_func_vectorcall(cyfunc);
-//#if CYTHON_ASSUME_SAFE_MACROS
-    return HPy_Call(HPY_CONTEXT_FIRST_ARG_CALL callable, args, (size_t)(sizeof(args)), kwnames);
-//#else
-//        // avoid unused function warning
-//        (void) &__Pyx_PyVectorcall_FastCallDict;
-//        return PyVectorcall_Call(func, args, kw);
-#endif
+    HPyErr_SetString(HPY_CONTEXT_CNAME, API_EXC(TypeError), "unsupported generic call");
+    return HPy_NULL;
 }
 #endif
 
