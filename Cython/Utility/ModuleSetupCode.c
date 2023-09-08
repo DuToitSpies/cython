@@ -807,12 +807,13 @@ class __Pyx_FakeReference {
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
 
-  #define PYMODULE_GETDICT_ATTR(mod) HPy_GetAttr_s(HPY_CONTEXT_CNAME, mod, "__dict__") 
+  #define PYMODULE_GETDICT_ATTR(mod) HPy_GetAttr_s(HPY_CONTEXT_CNAME, mod, "__dict__")
 
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
   #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_FROM_LONG(pos))
+  #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -896,12 +897,13 @@ class __Pyx_FakeReference {
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) PyObject_SetAttrString(o1, attr_name, o2)
 
-  #define PYMODULE_GETDICT_ATTR(mod) PyModule_GetDict(mod) 
+  #define PYMODULE_GETDICT_ATTR(mod) PyModule_GetDict(mod)
 
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
   #define TUPLE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
+  #define TUPLE_GET_SIZE(h) PyTuple_GET_SIZE(h)
   #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
