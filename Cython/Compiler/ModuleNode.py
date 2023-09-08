@@ -2871,7 +2871,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             code.putln('PyObject *%s;' % Naming.preimport_cname)
         for type_cname, used_name in Naming.used_types_and_macros:
             code.putln('#ifdef %s' % used_name)
-            code.putln('PyTypeObject *%s;' % type_cname)
+            code.putln('PYOBJECT_GLOBAL_TYPE %s;' % type_cname)
             code.putln('#endif')
 
     def generate_module_state_end(self, env, modules, globalstate):
