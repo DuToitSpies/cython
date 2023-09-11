@@ -1519,6 +1519,7 @@ static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE 
 #else
     CYTHON_UNUSED_VAR(module);
     __pyx_CyFunctionType = __Pyx_FetchCommonType(&__pyx_CyFunctionType_type);
+    int cyFunctionType_is_null = API_IS_NULL(__pyx_CyFunctionType);
 #endif
     if (unlikely(cyFunctionType_is_null)) {
         return -1;
