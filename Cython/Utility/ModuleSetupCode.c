@@ -754,6 +754,8 @@ class __Pyx_FakeReference {
   #define PYOBJECT_XCLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define REFNANNY_CLOSEREF(func, h) PYOBJECT_CLOSEREF(h)
 
+  #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
+
   #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
   #define PYERR_CLEAR() HPyErr_Clear(HPY_CONTEXT_CNAME)
   #define PYERR_EXCEPTIONMATCHES(exc) HPyErr_ExceptionMatches(HPY_CONTEXT_CNAME, (exc))
@@ -851,6 +853,8 @@ class __Pyx_FakeReference {
   #define PYERR_OCCURRED() (!!PyErr_Occurred())
   #define PYERR_CLEAR() PyErr_Clear()
   #define PYERR_EXCEPTIONMATCHES(exc) PyErr_ExceptionMatches((exc))
+
+  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(HPY_CONTEXT_CNAME, callable, args, kwnames)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)

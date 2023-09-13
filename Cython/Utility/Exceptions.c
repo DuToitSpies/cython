@@ -842,22 +842,24 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
 #endif
 
 #if CYTHON_COMPILING_IN_LIMITED_API
-static PyObject *__Pyx_PyCode_Replace_For_AddTraceback(PyObject *code, PyObject *scratch_dict,
-                                                       PyObject *firstlineno, PyObject *name) {
-    PyObject *replace = NULL;
-    if (unlikely(PyDict_SetItemString(scratch_dict, "co_firstlineno", firstlineno))) return NULL;
-    if (unlikely(PyDict_SetItemString(scratch_dict, "co_name", name))) return NULL;
+static PYOBJECT_TYPE __Pyx_PyCode_Replace_For_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE code, PYOBJECT_TYPE scratch_dict,
+                                                       PYOBJECT_TYPE firstlineno, PYOBJECT_TYPE name) {
+    PYOBJECT_TYPE replace = API_NULL_VALUE;
+    if (unlikely(DICT_SET_ITEM_STR(scratch_dict, "co_firstlineno", firstlineno))) return API_NULL_VALUE;
+    if (unlikely(DICT_SET_ITEM_STR(scratch_dict, "co_name", name))) return API_NULL_VALUE;
 
-    replace = PyObject_GetAttrString(code, "replace");
-    if (likely(replace)) {
-        PyObject *result;
-        result = PyObject_Call(replace, $empty_tuple, scratch_dict);
-        Py_DECREF(replace);
+    replace = PYOBJECT_GET_ATTR_STR(code, "replace");
+    if (likely(API_IS_NOT_NULL(replace))) {
+        PYOBJECT_TYPE result;
+        PYOBJECT_TYPE temp_empty_tuple = PYOBJECT_GLOBAL_LOAD($empty_tuple);
+        result = API_CALL_FUNC(replace, &temp_empty_tuple, 0, scratch_dict);
+        PYOBJECT_CLOSEREF(replace);
+        PYOBJECT_CLOSEREF(temp_empty_tuple);
         return result;
     }
     PyErr_Clear();
 
-    #if __PYX_LIMITED_VERSION_HEX < 0x030780000
+    #if __PYX_LIMITED_VERSION_HEX < 0x030780000 && !CYTHON_USING_HPY
     // If we're here, we're probably on Python <=3.7 which doesn't have code.replace.
     // In this we take a lazy interpreted route (without regard to performance
     // since it's fairly old and this is mostly just to get something working)
@@ -887,9 +889,16 @@ static PyObject *__Pyx_PyCode_Replace_For_AddTraceback(PyObject *code, PyObject 
 
 static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, int c_line,
                                int py_line, const char *filename) {
-    PyObject *code_object = NULL, *py_py_line = NULL, *py_funcname = NULL, *dict = NULL;
-    PyObject *replace = NULL, *getframe = NULL, *frame = NULL;
-    PyObject *exc_type, *exc_value, *exc_traceback;
+    PYOBJECT_TYPE code_object = API_NULL_VALUE;
+    PYOBJECT_TYPE py_py_line = API_NULL_VALUE;
+    PYOBJECT_TYPE py_funcname = API_NULL_VALUE;
+    PYOBJECT_TYPE dict = API_NULL_VALUE;
+    PYOBJECT_TYPE replace = API_NULL_VALUE;
+    PYOBJECT_TYPE getframe = API_NULL_VALUE;
+    PYOBJECT_TYPE frame = API_NULL_VALUE;
+    PYOBJECT_TYPE exc_type;
+    PYOBJECT_TYPE exc_value;
+    PYOBJECT_TYPE exc_traceback;
     int success = 0;
     if (c_line) {
         // Avoid "unused" warning as long as we don't use this.
@@ -903,52 +912,52 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
     // frame, and then customizing the details of the code to match.
     // We then run the code object and use the generated frame to set the traceback.
 
-    PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
+    //PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
 
-    code_object = Py_CompileString("_getframe()", filename, Py_eval_input);
-    if (unlikely(!code_object)) goto bad;
-    py_py_line = PyLong_FromLong(py_line);
-    if (unlikely(!py_py_line)) goto bad;
-    py_funcname = PyUnicode_FromString(funcname);
-    if (unlikely(!py_funcname)) goto bad;
-    dict = PyDict_New();
-    if (unlikely(!dict)) goto bad;
+    code_object = HPY_LEGACY_OBJECT_FROM(Py_CompileString("_getframe()", filename, Py_eval_input));
+    if (unlikely(API_IS_NULL(code_object))) goto bad;
+    py_py_line = PYOBJECT_FROM_LONG(py_line);
+    if (unlikely(API_IS_NULL(py_py_line))) goto bad;
+    py_funcname = PYOBJECT_FROM_STRING(funcname);
+    if (unlikely(API_IS_NULL(py_funcname))) goto bad;
+    dict = DICT_NEW();
+    if (unlikely(API_IS_NULL(dict))) goto bad;
     {
-        PyObject *old_code_object = code_object;
-        code_object = __Pyx_PyCode_Replace_For_AddTraceback(code_object, dict, py_py_line, py_funcname);
-        Py_DECREF(old_code_object);
+        PYOBJECT_TYPE old_code_object = code_object;
+        code_object = __Pyx_PyCode_Replace_For_AddTraceback(HPY_CONTEXT_FIRST_ARG_CALL code_object, dict, py_py_line, py_funcname);
+        PYOBJECT_CLOSEREF(old_code_object);
     }
-    if (unlikely(!code_object)) goto bad;
+    if (unlikely(API_IS_NULL(code_object))) goto bad;
 
     // Note that getframe is borrowed
-    getframe = PySys_GetObject("_getframe");
-    if (unlikely(!getframe)) goto bad;
+    getframe = HPY_LEGACY_OBJECT_FROM(PySys_GetObject("_getframe"));
+    if (unlikely(API_IS_NULL(getframe))) goto bad;
     // reuse dict as globals (nothing conflicts, and it saves an allocation)
-    if (unlikely(PyDict_SetItemString(dict, "_getframe", getframe))) goto bad;
+    if (unlikely(DICT_SET_ITEM_STR(dict, "_getframe", getframe))) goto bad;
 
-    frame = PyEval_EvalCode(code_object, dict, dict);
-    if (unlikely(!frame) || frame == Py_None) goto bad;
+    frame = HPY_LEGACY_OBJECT_FROM(PyEval_EvalCode(HPY_LEGACY_OBJECT_AS(code_object), HPY_LEGACY_OBJECT_AS(dict), HPY_LEGACY_OBJECT_AS(dict)));
+    if (unlikely(API_IS_NULL(frame)) || API_IS_EQUAL(frame, API_NONE_VALUE)) goto bad;
     success = 1;
 
   bad:
-    PyErr_Restore(exc_type, exc_value, exc_traceback);
-    Py_XDECREF(code_object);
-    Py_XDECREF(py_py_line);
-    Py_XDECREF(py_funcname);
-    Py_XDECREF(dict);
-    Py_XDECREF(replace);
+    //PyErr_Restore(exc_type, exc_value, exc_traceback);
+    PYOBJECT_XCLOSEREF(code_object);
+    PYOBJECT_XCLOSEREF(py_py_line);
+    PYOBJECT_XCLOSEREF(py_funcname);
+    PYOBJECT_XCLOSEREF(dict);
+    PYOBJECT_XCLOSEREF(replace);
 
-    if (success) {
-        // Unfortunately an easy way to check the type of frame isn't in the
-        // limited API. The check against None should cover the most
-        // likely wrong answer though.
-        PyTraceBack_Here(
-            // Python < 0x03090000 didn't expose PyFrameObject
-            // but they all expose struct _frame as an opaque type
-            (struct _frame*)frame);
-    }
+    //if (success) {
+    //    // Unfortunately an easy way to check the type of frame isn't in the
+    //    // limited API. The check against None should cover the most
+    //    // likely wrong answer though.
+    //    PyTraceBack_Here(
+    //        // Python < 0x03090000 didn't expose PyFrameObject
+    //        // but they all expose struct _frame as an opaque type
+    //        (struct _frame*)frame);
+    //}
 
-    Py_XDECREF(frame);
+    PYOBJECT_XCLOSEREF(frame);
 }
 #else
 static PyCodeObject* __Pyx_CreateCodeObjectForTraceback(

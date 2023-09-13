@@ -11,7 +11,7 @@
 #define __Pyx_CyFunction_GetClosure(f) \
     (((__pyx_CyFunctionObject *) (f))->func_closure)
 
-#if PY_VERSION_HEX < 0x030900B1 || CYTHON_COMPILING_IN_LIMITED_API
+#if PY_VERSION_HEX < 0x030900B1 || (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
   #define __Pyx_CyFunction_GetClassObj(f) \
       (((__pyx_CyFunctionObject *) (f))->func_classobj)
 #else
@@ -47,10 +47,10 @@ typedef struct {
 #if CYTHON_BACKPORT_VECTORCALL
     __pyx_vectorcallfunc func_vectorcall;
 #endif
-#if CYTHON_COMPILING_IN_LIMITED_API
+#if (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
     PyObject *func_weakreflist;
 #endif
-#if PY_VERSION_HEX < 0x030900B1 || CYTHON_COMPILING_IN_LIMITED_API
+#if PY_VERSION_HEX < 0x030900B1 || (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
     // No-args super() class cell
     PyObject *func_classobj;
 #endif
@@ -161,7 +161,7 @@ static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc)
 #endif
 
 static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(__pyx_CyFunctionObject* f, PyObject* classobj) {
-#if PY_VERSION_HEX < 0x030900B1 || CYTHON_COMPILING_IN_LIMITED_API
+#if PY_VERSION_HEX < 0x030900B1 || (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
     __Pyx_Py_XDECREF_SET(
         __Pyx_CyFunction_GetClassObj(f),
             ((classobj) ? __Pyx_NewRef(classobj) : NULL));
@@ -199,7 +199,7 @@ __Pyx_CyFunction_doc_set(HPyContext *HPY_CONTEXT_CNAME, __pyx_CyFunctionObject_F
     HPyField_Store(HPY_CONTEXT_CNAME, op, &struct_op->func_doc, value);
     return 0;
 }
-#else /* CYTHON_USING_HPY */
+#endif /* CYTHON_USING_HPY */
 static PYOBJECT_TYPE
 __Pyx_CyFunction_get_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *closure)
 {
@@ -245,7 +245,6 @@ __Pyx_CyFunction_set_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDe
 #endif
     return 0;
 }
-#endif /* CYTHON_USING_HPY */
 
 static PYOBJECT_TYPE
 __Pyx_CyFunction_get_name(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, void *context)
@@ -774,7 +773,7 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     Py_INCREF(qualname);
     op->func_qualname = qualname;
     op->func_doc = NULL;
-#if PY_VERSION_HEX < 0x030900B1 || CYTHON_COMPILING_IN_LIMITED_API
+#if PY_VERSION_HEX < 0x030900B1 || (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
     op->func_classobj = NULL;
 #else
     ((PyCMethodObject*)op)->mm_class = NULL;
@@ -1362,7 +1361,6 @@ static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject 
 
     return ((__Pyx_PyCMethod)(void(*)(void))def->ml_meth)(self, cls, args, (size_t)nargs, kwnames);
 }
-#endif
 #endif /* !CYTHON_USING_HPY */
 
 #if CYTHON_USING_HPY
