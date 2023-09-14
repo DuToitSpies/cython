@@ -398,11 +398,9 @@ __Pyx_CyFunction_get_code(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncD
     PYOBJECT_TYPE load_func_code_temp = PYOBJECT_FIELD_LOAD(op, struct_op->func_code);
     PYOBJECT_TYPE result = API_IS_NULL(load_func_code_temp) ? load_func_code_temp : API_ASSIGN_NONE;
     CYTHON_UNUSED_VAR(context);
-#if CYTHON_USING_HPY
     if (API_IS_NULL(load_func_code_temp)) {
-        PYOBJECT_CLOSEREF(load_func_code_temp);
+        PYOBJECT_GLOBAL_CLOSEREF(load_func_code_temp);
     }
-#endif
 #if !CYTHON_USING_HPY
     Py_INCREF(result);
 #endif
@@ -437,9 +435,7 @@ __Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_
         PYOBJECT_TYPE load_default_kwdict_temp = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
         if (unlikely(API_IS_NULL(load_default_kwdict_temp))) result = -1;
     }
-    #if CYTHON_USING_HPY
-    PYOBJECT_CLOSEREF(load_default_tuple_temp);
-    #endif
+    PYOBJECT_GLOBAL_CLOSEREF(load_default_tuple_temp);
     #endif
     PYOBJECT_CLOSEREF(res);
     return result;
@@ -597,9 +593,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
     if (is_coroutine) {
         PYOBJECT_TYPE load_marker_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("_is_coroutine"));
         PyObject *module, *fromlist, *marker = HPY_LEGACY_OBJECT_AS(load_marker_temp);
-#if CYTHON_USING_HPY
-        PYOBJECT_CLOSEREF(load_marker_temp);
-#endif
+        PYOBJECT_GLOBAL_CLOSEREF(load_marker_temp);
         fromlist = PyList_New(1);
         if (unlikely(!fromlist)) return API_NULL_VALUE;
         Py_INCREF(marker);
@@ -614,9 +608,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
 #endif
         PYOBJECT_TYPE load_asyncio_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("asyncio.coroutines"));
         module = PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(load_asyncio_temp), NULL, NULL, fromlist, 0);
-#if CYTHON_USING_HPY
-        PYOBJECT_CLOSEREF(load_asyncio_temp);
-#endif
+        PYOBJECT_GLOBAL_CLOSEREF(load_asyncio_temp);
         Py_DECREF(fromlist);
         if (unlikely(!module)) goto ignore;
         PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM(module), HPY_LEGACY_OBJECT_FROM(marker)));

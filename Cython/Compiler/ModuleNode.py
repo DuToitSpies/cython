@@ -3106,9 +3106,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("if (API_IS_EQUAL(temp_module_cname, %s)) return 0;" % (
             Naming.pymodinit_module_arg,
         ))
-        code.putln("#if CYTHON_USING_HPY")
-        code.putln("PYOBJECT_CLOSEREF(temp_module_cname);")
-        code.putln("#endif")
+        code.putln("PYOBJECT_GLOBAL_CLOSEREF(temp_module_cname);")
         code.putln('PyErr_SetString(PyExc_RuntimeError,'
                    ' "Module \'%s\' has already been imported. Re-initialisation is not supported.");' %
                    env.module_name.as_c_string_literal()[1:-1])
@@ -3185,10 +3183,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("PYOBJECT_TYPE temp_intern_main = PYOBJECT_GLOBAL_LOAD(%s);" % code.intern_identifier(EncodedString("__main__")))
         code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, temp_intern_name, temp_intern_main)' % 
             Naming.pymodinit_module_arg)
-        code.putln("#if CYTHON_USING_HPY")
-        code.putln("PYOBJECT_CLOSEREF(temp_intern_name);")
-        code.putln("PYOBJECT_CLOSEREF(temp_intern_main);")
-        code.putln("#endif")
+        code.putln("PYOBJECT_GLOBAL_CLOSEREF(temp_intern_name);")
+        code.putln("PYOBJECT_GLOBAL_CLOSEREF(temp_intern_main);")
         code.putln("}")
 
         # set up __file__ and __path__, then add the module to sys.modules

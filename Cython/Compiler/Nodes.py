@@ -1739,9 +1739,7 @@ class CEnumDefNode(StatNode):
                     temp,
                     code.error_goto(item.pos)))
                 code.put_decref_clear(temp, PyrexTypes.py_object_type)
-            code.putln("#if CYTHON_USING_HPY")
-            code.putln("PYOBJECT_CLOSEREF(%s);" % load_moddict_temp)
-            code.putln("#endif")
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_moddict_temp)
             code.funcstate.release_temp(load_moddict_temp)
             code.funcstate.release_temp(temp)
 

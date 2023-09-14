@@ -1404,9 +1404,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_
     PYOBJECT_TYPE load_moddict_temp = PYOBJECT_GLOBAL_LOAD($moddict_cname);
     result = PYOBJECT_GET_ITEM(load_moddict_temp, name);
     __PYX_UPDATE_DICT_CACHE(load_moddict_temp, result, *dict_cached_value, *dict_version)
-#if CYTHON_USING_HPY
-    PYOBJECT_CLOSEREF(load_moddict_temp);
-#endif
+    PYOBJECT_GLOBAL_CLOSEREF(load_moddict_temp);
     if (likely_object(result)) {
         return __Pyx_hNewRef(result);
     }
@@ -2740,9 +2738,7 @@ __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp)
 {
     PYOBJECT_TYPE load_name_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("__name__"));
     PYOBJECT_TYPE name = __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM((PyObject *)tp), load_name_temp);
-#if CYTHON_USING_HPY
-    PYOBJECT_CLOSEREF(load_name_temp);
-#endif
+    PYOBJECT_GLOBAL_CLOSEREF(load_name_temp);
     if (unlikely(API_IS_NULL(name)) || unlikely(!PyUnicode_Check(HPY_LEGACY_OBJECT_AS(name)))) {
         PyErr_Clear();
 #if !CYTHON_USING_HPY
