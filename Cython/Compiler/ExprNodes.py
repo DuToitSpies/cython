@@ -10024,11 +10024,11 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
                 constructor,
                 self.pymethdef_cname,
                 flags,
-                self.get_py_qualified_name(code),
+                load_py_qual_temp,
                 self.closure_result_code(),
-                self.get_py_mod_name(code),
-                Naming.moddict_cname,
-                code_object_result,
+                load_py_mod_temp,
+                load_moddict_temp,
+                load_code_obj_temp,
                 code.error_goto_if_null_object(self.result(), self.pos)))
         
         code.putln("PYOBJECT_CLOSEREF(%s);" % load_py_qual_temp)
@@ -10177,11 +10177,13 @@ class CodeObjectNode(ExprNode):
 
         code.putln("#if CYTHON_USING_HPY")
 
-        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_bytes_temp, Naming.empty_bytes))
-        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_tuple_temp, Naming.empty_tuple))
-        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_varnames_temp, self.varnames.result()))
-        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_filepath_temp, file_path_const))
-        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_funcname_temp, func_name))
+        #Type decls are temporary, still need to figure out how to get them to be declared automatically
+
+        code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_bytes_temp, Naming.empty_bytes)) 
+        code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_tuple_temp, Naming.empty_tuple))
+        code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_varnames_temp, self.varnames.result()))
+        code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_filepath_temp, file_path_const))
+        code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_funcname_temp, func_name))
 
         code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(%s), \
                    HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), \

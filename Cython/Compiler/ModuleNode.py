@@ -3102,10 +3102,13 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         # See issues listed here: https://docs.python.org/3/c-api/init.html#sub-interpreter-support
         code.putln("if (API_IS_NOT_NULL(%s)) {" % Naming.module_cname)
         # Hack: enforce single initialisation.
-        code.putln("if (API_IS_EQUAL(PYOBJECT_GLOBAL_LOAD(%s), %s)) return 0;" % (
-            Naming.module_cname,
+        code.putln("PYOBJECT_TYPE temp_module_cname = PYOBJECT_GLOBAL_LOAD(%s);" % Naming.module_cname)
+        code.putln("if (API_IS_EQUAL(temp_module_cname, %s)) return 0;" % (
             Naming.pymodinit_module_arg,
         ))
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("PYOBJECT_CLOSEREF(temp_module_cname);")
+        code.putln("#endif")
         code.putln('PyErr_SetString(PyExc_RuntimeError,'
                    ' "Module \'%s\' has already been imported. Re-initialisation is not supported.");' %
                    env.module_name.as_c_string_literal()[1:-1])
@@ -3178,10 +3181,14 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
 
         code.putln("if (%s) {" % self.is_main_module_flag_cname())
-        code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s))' % (
-            Naming.pymodinit_module_arg,
-            code.intern_identifier(EncodedString("__name__")),
-            code.intern_identifier(EncodedString("__main__"))))
+        code.putln("PYOBJECT_TYPE temp_intern_name = PYOBJECT_GLOBAL_LOAD(%s);" % code.intern_identifier(EncodedString("__name__")))
+        code.putln("PYOBJECT_TYPE temp_intern_main = PYOBJECT_GLOBAL_LOAD(%s);" % code.intern_identifier(EncodedString("__main__")))
+        code.put_error_if_neg(self.pos, 'PYOBJECT_SET_ATTR(%s, temp_intern_name, temp_intern_main)' % 
+            Naming.pymodinit_module_arg)
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("PYOBJECT_CLOSEREF(temp_intern_name);")
+        code.putln("PYOBJECT_CLOSEREF(temp_intern_main);")
+        code.putln("#endif")
         code.putln("}")
 
         # set up __file__ and __path__, then add the module to sys.modules
