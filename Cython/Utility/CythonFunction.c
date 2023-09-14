@@ -398,6 +398,11 @@ __Pyx_CyFunction_get_code(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncD
     PYOBJECT_TYPE load_func_code_temp = PYOBJECT_FIELD_LOAD(op, struct_op->func_code);
     PYOBJECT_TYPE result = API_IS_NULL(load_func_code_temp) ? load_func_code_temp : API_ASSIGN_NONE;
     CYTHON_UNUSED_VAR(context);
+#if CYTHON_USING_HPY
+    if (API_IS_NULL(load_func_code_temp)) {
+        PYOBJECT_CLOSEREF(load_func_code_temp);
+    }
+#endif
 #if !CYTHON_USING_HPY
     Py_INCREF(result);
 #endif
@@ -433,7 +438,7 @@ __Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_
         if (unlikely(API_IS_NULL(load_default_kwdict_temp))) result = -1;
     }
     #if CYTHON_USING_HPY
-    PYOBJECT_CLOSE(load_default_tuple_temp);
+    PYOBJECT_CLOSEREF(load_default_tuple_temp);
     #endif
     #endif
     PYOBJECT_CLOSEREF(res);
