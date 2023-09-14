@@ -2440,10 +2440,21 @@ class NameNode(AtomicExprNode):
                 code.putln('PyErr_Clear();')
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("GetModuleGlobalName", "ObjectHandling.c"))
+            load_cname_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_cname_temp, interned_cname))
             code.putln(
-                '__Pyx_GetModuleGlobalName(%s, PYOBJECT_GLOBAL_LOAD(%s));' % (
+                '__Pyx_GetModuleGlobalName(%s, %s);' % (
+                    self.result(),
+                    load_cname_temp))
+            code.putln("PYOBJECT_CLOSEREF(%s);" % load_cname_temp)
+            code.putln("#else")
+            code.putln(
+                '__Pyx_GetModuleGlobalName(%s, %s);' % (
                     self.result(),
                     interned_cname))
+            code.putln("#endif")
+            code.funcstate.release_temp(load_cname_temp)
             if not self.cf_is_null:
                 code.putln("}")
             code.putln(code.error_goto_if_null(self.result(), self.pos))
@@ -2469,11 +2480,23 @@ class NameNode(AtomicExprNode):
             if entry.scope.is_module_scope:
                 code.globalstate.use_utility_code(
                     UtilityCode.load_cached("GetModuleGlobalName", "ObjectHandling.c"))
+                load_cname_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                code.putln("#if CYTHON_USING_HPY")
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_cname_temp, interned_cname))
                 code.putln(
-                    '__Pyx_GetModuleGlobalName(%s, PYOBJECT_GLOBAL_LOAD(%s)); %s' % (
+                    '__Pyx_GetModuleGlobalName(%s, %s); %s' % (
+                        self.result(),
+                        load_cname_temp,
+                        code.error_goto_if_null_object(self.result(), self.pos)))
+                code.putln("PYOBJECT_CLOSEREF(%s);" % load_cname_temp)
+                code.putln("#else")
+                code.putln(
+                    '__Pyx_GetModuleGlobalName(%s, %s); %s' % (
                         self.result(),
                         interned_cname,
                         code.error_goto_if_null_object(self.result(), self.pos)))
+                code.putln("#endif")
+                code.funcstate.release_temp(load_cname_temp)
             else:
                 # FIXME: is_pyglobal is also used for class namespace
                 code.globalstate.use_utility_code(
@@ -2524,6 +2547,7 @@ class NameNode(AtomicExprNode):
             interned_cname = code.intern_identifier(self.entry.name)
             namespace = self.entry.scope.namespace_cname
             rhs_result = rhs.py_result()
+            load_result_temp = rhs_result
             if entry.is_member:
                 # if the entry is a member we have to cheat: SetAttr does not work
                 # on types, so we create a descriptor which is then added to tp_dict.
@@ -2533,7 +2557,13 @@ class NameNode(AtomicExprNode):
                 namespace = Naming.moddict_cname
                 interned_cname = interned_cname
                 if not rhs_result.startswith("__pyx_t_"):
-                    rhs_result = "PYOBJECT_GLOBAL_LOAD(" + rhs_result + ")" #temp fix for globals and non-globals being handled by the same code
+                    code.putln("#if CYTHON_USING_HPY")
+                    load_result_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_result_temp, rhs_result))
+                    rhs_result = rhs_result #temp fix for globals and non-globals being handled by the same code
+                    code.putln("PYOBJECT_CLOSEREF(%s);" % load_result_temp)
+                    code.funcstate.release_temp(load_result_temp)
+                    code.putln("#endif")
             elif entry.is_pyclass_attr:
                 # Special-case setting __new__
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
@@ -2541,13 +2571,31 @@ class NameNode(AtomicExprNode):
                 setter = '__Pyx_' + n
             else:
                 assert False, repr(entry)
+            code.putln("#if CYTHON_USING_HPY")
+            load_namespace_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            load_cname_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_namespace_temp, namespace))
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_cname_temp, interned_cname))
             code.put_error_if_neg(
                 self.pos,
-                '%s(PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), %s)' % (
+                '%s(%s, %s, %s)' % (
+                    setter,
+                    load_namespace_temp,
+                    load_cname_temp,
+                    load_result_temp))
+            code.putln("PYOBJECT_CLOSEREF(%s);" % load_namespace_temp)
+            code.putln("PYOBJECT_CLOSEREF(%s);" % load_cname_temp)
+            code.funcstate.release_temp(load_namespace_temp)
+            code.funcstate.release_temp(load_cname_temp)
+            code.putln("#else")
+            code.put_error_if_neg(
+                self.pos,
+                '%s(%s, %s, %s)' % (
                     setter,
                     namespace,
                     interned_cname,
                     rhs_result))
+            code.putln("#endif")
             if debug_disposal_code:
                 print("NameNode.generate_assignment_code:")
                 print("...generating disposal code for %s" % rhs)
@@ -10101,8 +10149,40 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
         else:
             flags = '0'
 
+        load_py_qual_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_py_mod_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_moddict_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_code_obj_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+
+        code.putln("#if CYTHON_USING_HPY")
+
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_py_qual_temp, self.get_py_qualified_name(code)))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_py_mod_temp, self.get_py_mod_name(code)))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_moddict_temp, Naming.moddict_cname))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_code_obj_temp, code_object_result))
+
         code.putln(
-            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, PYOBJECT_GLOBAL_LOAD(%s), %s, PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s), PYOBJECT_GLOBAL_LOAD(%s)); %s' % (
+            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, %s, %s, %s, %s, %s); %s' % (
+                self.result(),
+                constructor,
+                self.pymethdef_cname,
+                flags,
+                self.get_py_qualified_name(code),
+                self.closure_result_code(),
+                self.get_py_mod_name(code),
+                Naming.moddict_cname,
+                code_object_result,
+                code.error_goto_if_null_object(self.result(), self.pos)))
+        
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_py_qual_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_py_mod_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_moddict_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_code_obj_temp)
+        
+        code.putln("#else")
+
+        code.putln(
+            '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s, %s, %s, %s, %s, %s); %s' % (
                 self.result(),
                 constructor,
                 self.pymethdef_cname,
@@ -10115,6 +10195,12 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
                 code.error_goto_if_null_object(self.result(), self.pos)))
 
         self.generate_gotref(code)
+        code.putln("#endif")
+
+        code.funcstate.release_temp(load_py_qual_temp)
+        code.funcstate.release_temp(load_py_mod_temp)
+        code.funcstate.release_temp(load_moddict_temp)
+        code.funcstate.release_temp(load_code_obj_temp)
 
         if def_node.requires_classobj:
             assert code.pyclass_stack, "pyclass_stack is empty"
@@ -10226,11 +10312,53 @@ class CodeObjectNode(ExprNode):
         elif self.def_node.is_generator:
             flags.append('CO_GENERATOR')
 
-        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), \
-                   HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s)), %d, HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(%s))))); %s" % (
+        load_empty_bytes_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_empty_tuple_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_varnames_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_filepath_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_funcname_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+
+        code.putln("#if CYTHON_USING_HPY")
+
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_bytes_temp, Naming.empty_bytes))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_tuple_temp, Naming.empty_tuple))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_varnames_temp, self.varnames.result()))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_filepath_temp, file_path_const))
+        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_funcname_temp, func_name))
+
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, HPY_LEGACY_OBJECT_AS(%s), \
+                   HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), \
+                   HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), \
+                   HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), \
+                   HPY_LEGACY_OBJECT_AS(%s), %d, HPY_LEGACY_OBJECT_AS(%s)))); %s" % (
+            self.result_code,
+            len(func.args) - func.num_kwonly_args,  # argcount
+            func.num_posonly_args,     # posonlyargcount (Py3.8+ only)
+            func.num_kwonly_args,      # kwonlyargcount (Py3 only)
+            len(self.varnames.args),   # nlocals
+            '|'.join(flags) or '0',    # flags
+            load_empty_bytes_temp,     # code
+            load_empty_tuple_temp,     # consts
+            load_empty_tuple_temp,     # names (FIXME)
+            load_varnames_temp,        # varnames
+            load_empty_tuple_temp,     # freevars (FIXME)
+            load_empty_tuple_temp,     # cellvars (FIXME)
+            load_filepath_temp,        # filename
+            load_funcname_temp,        # name
+            self.pos[1],               # firstlineno
+            load_empty_bytes_temp,     # lnotab
+            code.error_goto_if_null_object(self.result_code, self.pos),
+            ))
+        
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_empty_bytes_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_empty_tuple_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_varnames_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_filepath_temp)
+        code.putln("PYOBJECT_CLOSEREF(%s);" % load_funcname_temp)
+        
+        code.putln("#else")
+
+        code.putln("%s = (PyObject*)__Pyx_PyCode_New(%d, %d, %d, %d, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d, %s); %s" % (
             self.result_code,
             len(func.args) - func.num_kwonly_args,  # argcount
             func.num_posonly_args,     # posonlyargcount (Py3.8+ only)
@@ -10249,6 +10377,14 @@ class CodeObjectNode(ExprNode):
             Naming.empty_bytes,        # lnotab
             code.error_goto_if_null_object(self.result_code, self.pos),
             ))
+
+        code.putln("#endif")
+
+        code.funcstate.release_temp(load_empty_bytes_temp)
+        code.funcstate.release_temp(load_empty_tuple_temp)
+        code.funcstate.release_temp(load_varnames_temp)
+        code.funcstate.release_temp(load_filepath_temp)
+        code.funcstate.release_temp(load_funcname_temp)
 
 
 class DefaultLiteralArgNode(ExprNode):
