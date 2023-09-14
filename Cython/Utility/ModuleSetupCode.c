@@ -742,6 +742,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_FIELD_STORE(owner, field, h) HPyField_Store(HPY_CONTEXT_CNAME, owner, &field, h)
   #define PYOBJECT_FIELD_LOAD(owner, field) HPyField_Load(HPY_CONTEXT_CNAME, owner, field)
   #define PYOBJECT_GLOBAL_TYPE HPyGlobal
+  #define PYTYPEOBJECT_GLOBAL_TYPE HPyGlobal
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define PYOBJECT_GLOBAL_CLOSEREF(ref) HPy_Close(HPY_CONTEXT_CNAME, ref)
@@ -838,6 +839,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_FIELD_STORE(owner, field, h) field = h
   #define PYOBJECT_FIELD_LOAD(owner, field) field
   #define PYOBJECT_GLOBAL_TYPE PyObject *
+  #define PYTYPEOBJECT_GLOBAL_TYPE PyTypeObject *
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
   #define PYOBJECT_GLOBAL_CLOSEREF(ref) /* nop */
