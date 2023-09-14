@@ -1728,6 +1728,8 @@ class CEnumDefNode(StatNode):
             return  # nothing to do here for C++ enums
         if self.visibility == 'public' or self.api:
             code.mark_pos(self.pos)
+            load_moddict_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_moddict_temp, Naming.moddict_cname))
             temp = code.funcstate.allocate_temp(PyrexTypes.py_object_type, manage_ref=True)
             for item in self.entry.enum_values:
                 code.putln("%s = PyInt_FromLong(%s); %s" % (
@@ -1735,12 +1737,16 @@ class CEnumDefNode(StatNode):
                     item.cname,
                     code.error_goto_if_null(temp, item.pos)))
                 code.put_gotref(temp, PyrexTypes.py_object_type)
-                code.putln('if (DICT_SET_ITEM_STR(PYOBJECT_GLOBAL_LOAD(%s), "%s", %s) < 0) %s' % (
+                code.putln('if (DICT_SET_ITEM_STR(load_moddict_temp, "%s", %s) < 0) %s' % (
                     Naming.moddict_cname,
                     item.name,
                     temp,
                     code.error_goto(item.pos)))
                 code.put_decref_clear(temp, PyrexTypes.py_object_type)
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln("PYOBJECT_CLOSEREF(%s);" % load_moddict_temp)
+            code.putln("#endif")
+            code.funcstate.release_temp(load_moddict_temp)
             code.funcstate.release_temp(temp)
 
 
