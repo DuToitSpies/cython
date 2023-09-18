@@ -3072,11 +3072,13 @@ class IteratorNode(ScopedExprNode):
                     self.sequence.py_result()))
 
         if is_builtin_sequence or self.may_be_a_sequence:
+            code.putln("#if !CYTHON_USING_HPY")
             code.putln("%s = %s; __Pyx_INCREF(%s);" % (
                 self.result(),
                 self.sequence.py_result(),
                 self.result(),
             ))
+            code.putln("#endif")
             self.counter_cname = code.funcstate.allocate_temp(
                 PyrexTypes.c_py_ssize_t_type, manage_ref=False)
             if self.reversed:
@@ -3091,9 +3093,15 @@ class IteratorNode(ScopedExprNode):
                 code.putln("--%s;" % self.counter_cname)  # len -> last item
             else:
                 init_value = '0'
+            code.putln("#if !CYTHON_USING_HPY")
             code.putln("%s = __Pyx_NewRef(%s);" % (
                 self.result(),
                 self.sequence.py_result()))
+            code.putln("#else")
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (
+                self.result(),
+                self.sequence.py_result()))
+            code.putln("#endif")
             code.putln("%s = 0;" % self.counter_cname)
 
         if not is_builtin_sequence:
@@ -3162,13 +3170,13 @@ class IteratorNode(ScopedExprNode):
                 ))
         code.putln("#else")
         code.putln(
-            "%s = __Pyx_PySequence_ITEM(%s, %s); %s%s; %s" % (
+            "%s = TUPLE_GET_ITEM(%s, %s); %s%s; %s" % (
                 result_name,
                 self.py_result(),
                 self.counter_cname,
                 self.counter_cname,
                 inc_dec,
-                code.error_goto_if_null(result_name, self.pos)))
+                code.error_goto_if_null_object(result_name, self.pos)))
         code.put_gotref(result_name, py_object_type)
         code.putln("#endif")
 
