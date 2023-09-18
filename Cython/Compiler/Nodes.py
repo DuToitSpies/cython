@@ -2275,6 +2275,8 @@ class FuncDefNode(StatNode, BlockNode):
                 err_val = default_retval
             if err_val is not None:
                 if err_val != Naming.retval_cname:
+                    if err_val == "NULL":
+                        err_val = "API_NULL_VALUE"
                     code.putln("%s = %s;" % (Naming.retval_cname, err_val))
             elif not return_type.is_void:
                 code.putln("__Pyx_pretend_to_initialize(&%s);" % Naming.retval_cname)
