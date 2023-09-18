@@ -1235,7 +1235,7 @@ class NoneNode(PyConstNode):
     #  The constant value None
 
     is_none = 1
-    value = "Py_None"
+    value = "API_NONE_VALUE"
 
     constant_result = None
 
@@ -12055,9 +12055,10 @@ class BinopNode(ExprNode):
                     self.operand2.pythran_result()))
         elif type1.is_pyobject or type2.is_pyobject:
             function = self.py_operation_function(code)
-            extra_args = ", Py_None" if self.operator == '**' else ""
+            extra_args = ", API_NONE_VALUE" if self.operator == '**' else ""
             op1_result = self.operand1.py_result() if type1.is_pyobject else self.operand1.result()
             op2_result = self.operand2.py_result() if type2.is_pyobject else self.operand2.result()
+            code.putln('#if !CYTHON_USING_HPY')
             code.putln(
                 "%s = %s(%s, %s%s); %s" % (
                     self.result(),
@@ -12067,6 +12068,20 @@ class BinopNode(ExprNode):
                     extra_args,
                     code.error_goto_if_null(self.result(), self.pos)))
             self.generate_gotref(code)
+            code.putln("#else")
+            function = self.hpy_operation_function(code)
+            extra_args = ", API_NONE_VALUE" if self.operator == '**' else ""
+            op1_result = self.operand1.py_result() if type1.is_pyobject else self.operand1.result()
+            op2_result = self.operand2.py_result() if type2.is_pyobject else self.operand2.result()
+            code.putln(
+                "%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s%s); %s" % (
+                    self.result(),
+                    function,
+                    op1_result,
+                    op2_result,
+                    extra_args,
+                    code.error_goto_if_null_object(self.result(), self.pos)))
+            code.putln("#endif")
         elif self.is_temp:
             # C++ overloaded operators with exception values are currently all
             # handled through temporaries.
@@ -12096,6 +12111,9 @@ class CBinopNode(BinopNode):
         return node
 
     def py_operation_function(self, code):
+        return ""
+
+    def hpy_operation_function(self, code):
         return ""
 
     def calculate_result_code(self):
@@ -12244,6 +12262,12 @@ class NumBinopNode(BinopNode):
         if self.inplace:
             function_name = function_name.replace('PyNumber_', 'PyNumber_InPlace')
         return function_name
+    
+    def hpy_operation_function(self, code):
+        function_name = self.hpy_functions[self.operator]
+        if self.inplace:
+            function_name = function_name.replace('PyNumber_', 'PyNumber_InPlace')
+        return function_name
 
     py_functions = {
         "|":        "PyNumber_Or",
@@ -12259,6 +12283,22 @@ class NumBinopNode(BinopNode):
         "//":       "PyNumber_FloorDivide",
         "%":        "PyNumber_Remainder",
         "**":       "PyNumber_Power",
+    }
+
+    hpy_functions = {
+        "|":        "HPy_Or",
+        "^":        "HPy_Xor",
+        "&":        "HPy_And",
+        "<<":       "HPy_Lshift",
+        ">>":       "HPy_Rshift",
+        "+":        "HPy_Add",
+        "-":        "HPy_Subtract",
+        "*":        "HPy_Multiply",
+        "@":        "HPy_MatrixMultiply",
+        "/":        "HPy_TrueDivide",
+        "//":       "HPy_FloorDivide",
+        "%":        "HPy_Remainder",
+        "**":       "HPy_Power",
     }
 
     overflow_op_names = {
