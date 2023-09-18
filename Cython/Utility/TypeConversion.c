@@ -670,12 +670,12 @@ static CYTHON_INLINE Py_UNICODE __Pyx_PyObject_AsPy_UNICODE(PyObject* x) {
 
 /////////////// CIntToPy.proto ///////////////
 
-static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value);
+static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF {{TYPE}} value);
 
 /////////////// CIntToPy ///////////////
 //@requires: GCCDiagnostics
 
-static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value) {
+static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF {{TYPE}} value) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -687,20 +687,20 @@ static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value) {
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
         if (sizeof({{TYPE}}) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
+            return PYOBJECT_FROM_LONG((long) value);
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromUnsignedLong((unsigned long) value));
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value));
 #endif
         }
     } else {
         if (sizeof({{TYPE}}) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
+            return PYOBJECT_FROM_LONG((long) value);
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLongLong((PY_LONG_LONG) value));
 #endif
         }
     }
@@ -712,32 +712,36 @@ static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value) {
                                      little, !is_unsigned);
 #else
         // call int.from_bytes()
-        PyObject *from_bytes, *result = NULL;
-        PyObject *py_bytes = NULL, *arg_tuple = NULL, *kwds = NULL, *order_str = NULL;
-        from_bytes = PyObject_GetAttrString((PyObject*)&PyLong_Type, "from_bytes");
-        if (!from_bytes) return NULL;
-        py_bytes = PyBytes_FromStringAndSize((char*)bytes, sizeof({{TYPE}}));
-        if (!py_bytes) goto limited_bad;
+        PYOBJECT_TYPE from_bytes;
+        PYOBJECT_TYPE result = API_NULL_VALUE;
+        PYOBJECT_TYPE py_bytes = API_NULL_VALUE; 
+        PYOBJECT_TYPE arg_tuple = API_NULL_VALUE; 
+        PYOBJECT_TYPE kwds = API_NULL_VALUE; 
+        PYOBJECT_TYPE order_str = API_NULL_VALUE;
+        from_bytes = PYOBJECT_GET_ATTR_STR(HPY_LEGACY_OBJECT_FROM((PyObject*)&PyLong_Type), "from_bytes");
+        if (API_IS_NULL(from_bytes)) return API_NULL_VALUE;
+        py_bytes = BYTES_FROM_STR_AND_SIZE((char*)bytes, sizeof({{TYPE}}));
+        if (API_IS_NULL(py_bytes)) goto limited_bad;
         // I'm deliberately not using PYIDENT here because this code path is very unlikely
         // to ever run so it seems a pessimization mostly.
-        order_str = PyUnicode_FromString(little ? "little" : "big");
-        if (!order_str) goto limited_bad;
-        arg_tuple = PyTuple_Pack(2, py_bytes, order_str);
-        if (!arg_tuple) goto limited_bad;
+        order_str = PYOBJECT_FROM_STRING(little ? "little" : "big");
+        if (API_IS_NULL(order_str)) goto limited_bad;
+        arg_tuple = TUPLE_PACK(2, py_bytes, order_str);
+        if (API_IS_NULL(arg_tuple)) goto limited_bad;
         if (!is_unsigned) {
             // default is signed=False
-            kwds = PyDict_New();
-            if (!kwds) goto limited_bad;
-            if (PyDict_SetItemString(kwds, "signed", __Pyx_NewRef(Py_True))) goto limited_bad;
+            kwds = DICT_NEW();
+            if (API_IS_NULL(kwds)) goto limited_bad;
+            if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(Py_True))) goto limited_bad;
         }
-        result = PyObject_Call(from_bytes, arg_tuple, kwds);
+        result = API_CALL_FUNC(from_bytes, &arg_tuple, 2, kwds);
 
         limited_bad:
-        Py_XDECREF(kwds);
-        Py_XDECREF(arg_tuple);
-        Py_XDECREF(order_str);
-        Py_XDECREF(py_bytes);
-        Py_XDECREF(from_bytes);
+        Py_XCLOSEREF(from_bytes);
+        Py_XCLOSEREF(py_bytes);
+        Py_XCLOSEREF(order_str);
+        Py_XCLOSEREF(arg_tuple);
+        Py_XCLOSEREF(kwds);
         return result;
 #endif
     }

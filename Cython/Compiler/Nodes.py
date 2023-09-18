@@ -4575,11 +4575,11 @@ class DefNodeWrapper(FuncDefNode):
         old_type = arg.hdr_type
         func = old_type.to_py_function
         if func:
-            code.putln("%s = %s(%s); %s" % (
+            code.putln("%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s); %s" % (
                 arg.entry.cname,
                 func,
                 arg.hdr_cname,
-                code.error_goto_if_null(arg.entry.cname, arg.pos)))
+                code.error_goto_if_null_object(arg.entry.cname, arg.pos)))
             code.put_var_gotref(arg.entry)
         else:
             error(arg.pos, "Cannot convert argument of type '%s' to Python object" % old_type)

@@ -1202,7 +1202,7 @@ class GlobalState:
         else:
             w = self.parts['cached_builtins']
             w.enter_cfunc_scope()
-            w.putln("static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {")
+            w.putln("static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(HPY_CONTEXT_ONLY_ARG_DEF) {")
 
         w = self.parts['cached_constants']
         w.enter_cfunc_scope()
@@ -1331,7 +1331,7 @@ class GlobalState:
             w.exit_cfunc_scope()
 
     def put_pyobject_decl(self, entry):
-        self['global_var'].putln("static PyObject *%s;" % entry.cname)
+        self['global_var'].putln("static PYOBJECT_GLOBAL_TYPE %s;" % entry.cname)
 
     # constant handling at code generation time
 
@@ -1516,7 +1516,7 @@ class GlobalState:
         interned_cname = self.get_interned_identifier(name).cname
         self.use_utility_code(
             UtilityCode.load_cached("GetBuiltinName", "ObjectHandling.c"))
-        w.putln('%s = __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL %s); if (!%s) %s' % (
+        w.putln('PYOBJECT_GLOBAL_STORE(%s, __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL PYOBJECT_GLOBAL_LOAD(%s))); if (API_IS_NULL(%s)) %s' % (
             cname,
             interned_cname,
             cname,

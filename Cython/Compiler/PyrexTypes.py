@@ -1760,7 +1760,7 @@ class CType(PyrexType):
                     func = func.replace("Object", result_type_name.title(), 1)
                 elif result_type_name == 'bytearray':
                     func = func.replace("Object", "ByteArray", 1)
-        return '%s = %s(%s)' % (
+        return '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s)' % (
             result_code,
             func,
             source_code or 'NULL')

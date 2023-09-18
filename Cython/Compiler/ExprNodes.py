@@ -2457,7 +2457,7 @@ class NameNode(AtomicExprNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("GetBuiltinName", "ObjectHandling.c"))
             code.putln(
-                '%s = __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL %s); %s' % (
+                '%s = __Pyx_GetBuiltinName(HPY_CONTEXT_FIRST_ARG_CALL PYOBJECT_GLOBAL_LOAD(%s)); %s' % (
                 self.result(),
                 interned_cname,
                 code.error_goto_if_null_object(self.result(), self.pos)))
@@ -14298,7 +14298,7 @@ class CoerceToPyTypeNode(CoercionNode):
                 self.arg.result(),
                 self.result(),
                 self.target_type),
-            code.error_goto_if_null(self.result(), self.pos)))
+            code.error_goto_if_null_object(self.result(), self.pos)))
 
         self.generate_gotref(code)
 

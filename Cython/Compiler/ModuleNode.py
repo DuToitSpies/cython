@@ -3192,7 +3192,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         if Options.cache_builtins:
             code.putln("/*--- Builtin init code ---*/")
-            code.put_error_if_neg(self.pos, "__Pyx_InitCachedBuiltins()")
+            code.put_error_if_neg(self.pos, "__Pyx_InitCachedBuiltins(HPY_CONTEXT_ONLY_ARG_CALL)")
 
         code.putln("/*--- Constants init code ---*/")
         code.put_error_if_neg(self.pos, "__Pyx_InitCachedConstants(HPY_CONTEXT_ONLY_ARG_CALL)")
