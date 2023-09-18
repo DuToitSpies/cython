@@ -1554,20 +1554,22 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 /////////////// PyObjectGetAttrStr.proto ///////////////
 
 #if CYTHON_USE_TYPE_SLOTS
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name);/*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name);/*proto*/
 #else
-#define __Pyx_PyObject_GetAttrStr(o,n) PYOBJECT_GET_ATTR(o,n) //Needed to turn this into a function macro to be able to pass the context properly
+#define __Pyx_PyObject_GetAttrStr(o,n) DICT_GET_ITEM(o,n) //Needed to turn this into a function macro to be able to pass the context properly
 #define __Pyx_PyObject_GetAttrStr_legacy(o,n) PyObject_GetAttr(o,n)  //Used for functions where the context isn't reachable yet
 #endif
 
 /////////////// PyObjectGetAttrStr ///////////////
 
 #if CYTHON_USE_TYPE_SLOTS
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name) {
+#if !CYTHON_USING_HPY
     PyTypeObject* tp = Py_TYPE(obj);
     if (likely(tp->tp_getattro))
         return tp->tp_getattro(obj, attr_name);
-    return PyObject_GetAttr(obj, attr_name);
+#endif
+    return DICT_GET_ITEM(obj, attr_name);
 }
 #endif
 

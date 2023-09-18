@@ -1081,13 +1081,13 @@ fallback:
 
 /////////////// PyIntCompare.proto ///////////////
 
-{{py: c_ret_type = 'PyObject*' if ret_type.is_pyobject else 'int'}}
-static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(PyObject *op1, PyObject *op2, long intval, long inplace); /*proto*/
+{{py: c_ret_type = 'PYOBJECT_TYPE' if ret_type.is_pyobject else 'int'}}
+static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1, PYOBJECT_TYPE op2, long intval, long inplace); /*proto*/
 
 /////////////// PyIntCompare ///////////////
 
 {{py: pyval, ival = ('op2', 'b') if order == 'CObj' else ('op1', 'a') }}
-{{py: c_ret_type = 'PyObject*' if ret_type.is_pyobject else 'int'}}
+{{py: c_ret_type = 'PYOBJECT_TYPE' if ret_type.is_pyobject else 'int'}}
 {{py: return_true = 'Py_RETURN_TRUE' if ret_type.is_pyobject else 'return 1'}}
 {{py: return_false = 'Py_RETURN_FALSE' if ret_type.is_pyobject else 'return 0'}}
 {{py: slot_name = op.lower() }}
@@ -1101,7 +1101,7 @@ return_compare = (
     )
 }}
 
-static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(PyObject *op1, PyObject *op2, long intval, long inplace) {
+static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1, PYOBJECT_TYPE op2, long intval, long inplace) {
     CYTHON_MAYBE_UNUSED_VAR(intval);
     CYTHON_UNUSED_VAR(inplace);
     if (op1 == op2) {
@@ -1157,9 +1157,9 @@ static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject els
 
 /////////////// PyIntBinop.proto ///////////////
 
-{{py: c_ret_type = 'PyObject*' if ret_type.is_pyobject else 'int'}}
+{{py: c_ret_type = 'PYOBJECT_TYPE' if ret_type.is_pyobject else 'int'}}
 #if !CYTHON_COMPILING_IN_PYPY
-static {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check); /*proto*/
+static {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1, PYOBJECT_TYPE op2, long intval, int inplace, int zerodivision_check); /*proto*/
 #else
 #define __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(op1, op2, intval, inplace, zerodivision_check) \
     {{if op in ('Eq', 'Ne')}}{{'' if ret_type.is_pyobject else '__Pyx_PyObject_IsTrueAndDecref'}}(PyObject_RichCompare(op1, op2, Py_{{op.upper()}}))
@@ -1172,7 +1172,7 @@ static {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op
 #if !CYTHON_COMPILING_IN_PYPY
 {{py: from Cython.Utility import pylong_join }}
 {{py: pyval, ival = ('op2', 'b') if order == 'CObj' else ('op1', 'a') }}
-{{py: c_ret_type = 'PyObject*' if ret_type.is_pyobject else 'int'}}
+{{py: c_ret_type = 'PYOBJECT_TYPE' if ret_type.is_pyobject else 'int'}}
 {{py: return_true = 'Py_RETURN_TRUE' if ret_type.is_pyobject else 'return 1'}}
 {{py: return_false = 'Py_RETURN_FALSE' if ret_type.is_pyobject else 'return 0'}}
 {{py: slot_name = {'TrueDivide': 'true_divide', 'FloorDivide': 'floor_divide'}.get(op, op.lower()) }}
@@ -1194,7 +1194,7 @@ def zerodiv_check(operand, optype='integer', _is_mod=op == 'Remainder', _needs_c
     ) if _needs_check else '')
 }}
 
-static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, int inplace, int zerodivision_check) {
+static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1, PYOBJECT_TYPE op2, long intval, int inplace, int zerodivision_check) {
     CYTHON_MAYBE_UNUSED_VAR(intval);
     CYTHON_MAYBE_UNUSED_VAR(inplace);
     CYTHON_UNUSED_VAR(zerodivision_check);
@@ -1221,7 +1221,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
             // Calling PyLong_CompactValue() requires the PyLong value to be compact, we only need the last digit.
             long last_digit = (long) __Pyx_PyLong_Digits({{pyval}})[0];
             long result = intval & (likely(__Pyx_PyLong_IsPos({{pyval}})) ? last_digit : (PyLong_MASK - last_digit + 1));
-            return PyLong_FromLong(result);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLong(result));
         }
         {{endif}}
         // special cases for 0: + - * % / // | ^ & >> <<
@@ -1282,7 +1282,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
                 default: {{return_false if op == 'Eq' else return_true}};
                 #endif
                 {{else}}
-                default: return PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2);
+                default: return HPY_LEGACY_OBJECT_FROM(PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2));
                 {{endif}}
             }
         }
@@ -1300,7 +1300,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
                 ll{{ival}} = {{ival}};
                 goto long_long;
                 #else
-                return PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2);
+                return HPY_LEGACY_OBJECT_FROM(PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2));
                 #endif
             {{elif c_op == '%'}}
                 // see CMath.c :: ModInt utility code
@@ -1309,7 +1309,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
             {{elif op == 'TrueDivide'}}
                 if ((8 * sizeof(long) <= 53 || likely(labs({{ival}}) <= ((PY_LONG_LONG)1 << 53)))
                         || __Pyx_PyLong_DigitCount({{pyval}}) <= 52 / PyLong_SHIFT) {
-                    return PyFloat_FromDouble((double)a / (double)b);
+                    return HPY_LEGACY_OBJECT_FROM(PyFloat_FromDouble((double)a / (double)b));
                 }
                 return PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2);
             {{elif op == 'FloorDivide'}}
@@ -1334,7 +1334,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
 #endif
                 {{endif}}
             {{endif}}
-            return PyLong_FromLong(x);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLong(x));
 
         {{if op != 'TrueDivide'}}
 #ifdef HAVE_LONG_LONG
@@ -1358,7 +1358,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
                 if (likely(lla == llx >> llb)) /* then execute 'return' below */
                 {{endif}}
             {{endif}}
-            return PyLong_FromLongLong(llx);
+            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLongLong(llx));
 #endif
         {{endif}}{{# if op != 'TrueDivide' #}}
         {{endif}}{{# if op in ('Eq', 'Ne') #}}
@@ -1379,7 +1379,7 @@ static {{c_ret_type}} {{cfunc_name}}(PyObject *op1, PyObject *op2, long intval, 
             double result;
             {{zerodiv_check('b', 'float')}}
             result = ((double)a) {{c_op}} (double)b;
-            return PyFloat_FromDouble(result);
+            return HPY_LEGACY_OBJECT_FROM(PyFloat_FromDouble(result));
         {{endif}}
     }
     {{endif}}
