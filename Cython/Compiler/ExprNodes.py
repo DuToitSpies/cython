@@ -2660,7 +2660,10 @@ class NameNode(AtomicExprNode):
                         if is_pythran_expr(self.type):
                             code.putln('new (&%s) decltype(%s){%s};' % (self.result(), self.result(), result))
                         elif result != self.result():
-                            code.putln('%s = %s;' % (self.result(), result))
+                            if hasattr(rhs, "is_global") and rhs.is_global:
+                                code.putln('%s = PYOBJECT_GLOBAL_LOAD(%s);' % (self.result(), result))
+                            else:
+                                code.putln('%s = %s;' % (self.result(), result))
                 if debug_disposal_code:
                     print("NameNode.generate_assignment_code:")
                     print("...generating post-assignment code for %s" % rhs)
@@ -6428,7 +6431,18 @@ class SimpleCallNode(CallNode):
         for actual_arg in self.args[len(formal_args):]:
             arg_list_code.append(actual_arg.move_result_rhs())
 
-        result = "%s(%s)" % (self.function.result(), ', '.join(arg_list_code))
+        arg_string = ""
+        for arg in arg_list_code:
+            if arg.startswith("__pyx_") and not arg.startswith("__pyx_t_") and not arg.startswith("__pyx_v_"):
+                arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
+
+            else:
+                arg_string = arg_string + "%s" % arg
+            arg_string = arg_string + ", "
+        arg_string = arg_string[0:-2]
+
+
+        result = "%s(HPY_CONTEXT_FIRST_ARG_CALL %s)" % (self.function.result(), arg_string)
         return result
 
     def is_c_result_required(self):
@@ -6510,6 +6524,7 @@ class SimpleCallNode(CallNode):
         elif func_type.is_cfunction:
             nogil = not code.funcstate.gil_owned
             if self.has_optional_args:
+                code.putln("//Has Optional Args")
                 actual_nargs = len(self.args)
                 expected_nargs = len(func_type.args) - func_type.optional_arg_count
                 self.opt_arg_struct = code.funcstate.allocate_temp(
@@ -6526,11 +6541,12 @@ class SimpleCallNode(CallNode):
                             actual_arg.result_as(formal_arg.type)))
             exc_checks = []
             if self.type.is_pyobject and self.is_temp:
-                exc_checks.append("!%s" % self.result())
+                exc_checks.append("API_IS_NULL(%s)" % self.result())
             elif self.type.is_memoryviewslice:
                 assert self.is_temp
                 exc_checks.append(self.type.error_condition(self.result()))
             elif func_type.exception_check != '+':
+                code.putln("//Exception Check is not +")
                 exc_val = func_type.exception_value
                 exc_check = func_type.exception_check
                 if exc_val is not None:
@@ -6549,7 +6565,8 @@ class SimpleCallNode(CallNode):
                     else:
                         exc_checks.append("PyErr_Occurred()")
             if self.is_temp or exc_checks:
-                rhs = self.c_call_code()
+                rhs = self.c_call_code(code)
+                code.putln("//aaa %s" % rhs)
                 if self.result():
                     lhs = "%s = " % self.result()
                     if self.is_temp and self.type.is_pyobject:
@@ -6640,7 +6657,7 @@ class PyMethodCallNode(CallNode):
         else:
             function = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
             self.function.make_owned_reference(code)
-            code.put("%s = %s; " % (function, self.function.py_result()))
+            code.put("%s = %s;" % (function, self.function.py_result()))
             self.function.generate_disposal_code(code)
             self.function.free_temps(code)
 

@@ -1366,9 +1366,9 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
     #endif
 
     {{if c_op in '+-*' or op in ('TrueDivide', 'Eq', 'Ne')}}
-    if (PyFloat_CheckExact({{pyval}})) {
+    if (PyFloat_CheckExact(HPY_LEGACY_OBJECT_AS({{pyval}}))) {
         const long {{'a' if order == 'CObj' else 'b'}} = intval;
-        double {{ival}} = __Pyx_PyFloat_AS_DOUBLE({{pyval}});
+        double {{ival}} = __Pyx_PyFloat_AS_DOUBLE(HPY_LEGACY_OBJECT_AS({{pyval}}));
         {{if op in ('Eq', 'Ne')}}
             if ((double)a {{c_op}} (double)b) {
                 {{return_true}};
@@ -1388,7 +1388,11 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
     return {{'' if ret_type.is_pyobject else '__Pyx_PyObject_IsTrueAndDecref'}}(
         PyObject_RichCompare(op1, op2, Py_{{op.upper()}}));
     {{else}}
-    return (inplace ? PyNumber_InPlace{{op}} : PyNumber_{{op}})(op1, op2);
+#if CYTHON_USING_HPY
+    return HPy_{{op}}(HPY_CONTEXT_CNAME, op1, op2);
+#else
+    return (inplace ? PyNumber_InPlace{{op}} : PyNumber_{{op}})(HPY_LEGACY_OBJECT_AS(op1), HPY_LEGACY_OBJECT_AS(op2));
+#endif
     {{endif}}
 }
 #endif
