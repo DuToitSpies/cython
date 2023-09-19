@@ -104,7 +104,9 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
                                       PYOBJECT_TYPE module, PYOBJECT_TYPE globals,
                                       PYOBJECT_TYPE code);
 
-static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(__pyx_CyFunctionObject* f, PyObject* classobj);
+static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(HPY_CONTEXT_FIRST_ARG_DEF 
+                                                        __pyx_CyFunctionObject_FuncDef f, 
+                                                        PYOBJECT_TYPE classobj);
 static CYTHON_INLINE void *__Pyx_CyFunction_InitDefaults(PyObject *m,
                                                          size_t size,
                                                          int pyobjects);
@@ -160,16 +162,33 @@ static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc)
 }
 #endif
 
-static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(__pyx_CyFunctionObject* f, PyObject* classobj) {
+#if CYTHON_COMPILING_IN_LIMITED_API
+static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc) {
+    if (__Pyx_CyFunction_Check(func)) {
+        return PyCFunction_GetFunction(((__pyx_CyFunctionObject*)func)->func) == (PyCFunction) cfunc;
+    } else if (PyCFunction_Check(func)) {
+        return PyCFunction_GetFunction(func) == (PyCFunction) cfunc;
+    }
+    return 0;
+}
+#else
+static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc) {
+    return __Pyx_CyOrPyCFunction_Check(func) && __Pyx_CyOrPyCFunction_GET_FUNCTION(func) == (PyCFunction) cfunc;
+}
+#endif
+
+static CYTHON_INLINE void __Pyx__CyFunction_SetClassObj(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef f, PYOBJECT_TYPE classobj) {
 #if PY_VERSION_HEX < 0x030900B1 || (CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY)
     __Pyx_Py_XDECREF_SET(
         __Pyx_CyFunction_GetClassObj(f),
             ((classobj) ? __Pyx_NewRef(classobj) : NULL));
 #else
+#if !CYTHON_USING_HPY  //Need to figure out how to port this behaviour in HPy
     __Pyx_Py_XDECREF_SET(
         // assigning to "mm_class", which is a "PyTypeObject*"
         ((PyCMethodObject *) (f))->mm_class,
         (PyTypeObject*)((classobj) ? __Pyx_NewRef(classobj) : NULL));
+#endif
 #endif
 }
 
