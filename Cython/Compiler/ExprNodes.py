@@ -6565,8 +6565,7 @@ class SimpleCallNode(CallNode):
                     else:
                         exc_checks.append("PyErr_Occurred()")
             if self.is_temp or exc_checks:
-                rhs = self.c_call_code(code)
-                code.putln("//aaa %s" % rhs)
+                rhs = self.c_call_code()
                 if self.result():
                     lhs = "%s = " % self.result()
                     if self.is_temp and self.type.is_pyobject:
