@@ -31,7 +31,7 @@ from . import Nodes
 from .Nodes import Node, SingleAssignmentNode
 from . import PyrexTypes
 from .PyrexTypes import py_object_type, typecast, error_type, \
-    unspecified_type, tuple_builder_type
+    unspecified_type, tuple_builder_type, list_builder_type
 from . import TypeSlots
 from .Builtin import (
     list_type, tuple_type, set_type, dict_type, type_type,
@@ -8382,29 +8382,20 @@ class SequenceNode(ExprNode):
         else:
             # build the tuple/list step by step, potentially multiplying it as we go
             if self.type is list_type:
-                create_func, set_item_func = 'PyList_New', '__Pyx_PyList_SET_ITEM'
+                builder_type = list_builder_type
+                create_func, set_item_func = 'LIST_CREATE_START', 'LIST_CREATE_ASSIGN'
+                build_func = 'LIST_CREATE_FINALISE'
             elif self.type is tuple_type:
                 builder_type = tuple_builder_type
                 create_func, set_item_func = 'TUPLE_CREATE_START', 'TUPLE_CREATE_ASSIGN'
                 build_func = 'TUPLE_CREATE_FINALISE'
             else:
                 raise InternalError("sequence packing for unexpected type %s" % self.type)
-            if self.type is tuple_type:
-                tmp_builder = code.funcstate.allocate_temp(tuple_builder_type, manage_ref=False)
+            tmp_builder = code.funcstate.allocate_temp(builder_type, manage_ref=False)
             arg_count = len(self.args)
-            if self.type is tuple_type:
-                code.putln("#if CYTHON_USING_HPY")
-                code.putln("%s(%s,%s,%s%s);" % (
-                    create_func, target, tmp_builder, arg_count, size_factor))
-                code.putln("#else")
-                code.putln("%s(%s,%s,%s%s); %s" % (
-                    create_func, target, tmp_builder, arg_count, size_factor,
-                    code.error_goto_if_null_object(target, self.pos)))
-                code.putln("#endif")
-            else:
-                code.putln("%s = %s(%s%s); %s" % (
-                    target, create_func, arg_count, size_factor,
-                    code.error_goto_if_null(target, self.pos)))
+            code.putln("%s(%s,%s,%s%s); %s" % (
+                create_func, target, tmp_builder, arg_count, size_factor,
+                code.error_goto_if_null_object(target, self.pos)))
             code.put_gotref(target, py_object_type)
 
             if c_mult:
@@ -8431,25 +8422,25 @@ class SequenceNode(ExprNode):
                 if c_mult or not arg.result_in_temp():
                     code.put_incref(arg.result(), arg.ctype())
                 arg.generate_giveref(code)
-                code.putln("#endif")
-                if self.type is tuple_type:
-                    code.putln("%s(%s, %s, %s, %s);" % ( #I had to remove the error checking condition, as HPyTuple/ListBuilder_Set doesn't have a return value
-                        set_item_func,
-                        target,
-                        tmp_builder,
-                        (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
-                        arg.py_result()))
+                tmp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                if hasattr(arg, "is_global") and arg.is_global:
+                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_arg, arg.py_result()))
                 else:
-                    code.putln("if (%s(%s, %s, %s)) %s;" % (
-                        set_item_func,
-                        target,
-                        (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
-                        arg.py_result(),
-                        code.error_goto(self.pos)))
+                    code.putln("%s = %s;" % (tmp_load_arg, arg.py_result()))
+                code.putln("#endif")
+                code.putln("%s(%s, %s, %s, %s);" % ( # %s;" % (
+                    set_item_func,
+                    target,
+                    tmp_builder,
+                    (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
+                    tmp_load_arg))#,
+                    #code.error_goto(self.pos)))
+                if arg in code.globalstate.const_cname_array:
+                    code.putln("PYOBJECT_CLOSEREF(%s);" % tmp_load_arg)
+                code.funcstate.release_temp(tmp_load_arg)
                 
-            if self.type is tuple_type:
-                code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
-                code.funcstate.release_temp(tmp_builder)
+            code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
+            code.funcstate.release_temp(tmp_builder)
 
             if c_mult:
                 code.putln('}')
