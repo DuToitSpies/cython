@@ -499,7 +499,7 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
     __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_CALL o, (API_SSIZE_T)i, v, is_list, wraparound, boundscheck) : \
     (is_list ? (PyErr_SetString(PyExc_IndexError, "list assignment index out of range"), -1) : \
-               __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, to_py_func(i), v)))
+               __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, to_py_func(HPY_CONTEXT_FIRST_ARG_CALL i), v)))
 
 static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j, PYOBJECT_TYPE v);
 static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_TYPE v,
