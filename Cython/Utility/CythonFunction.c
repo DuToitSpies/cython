@@ -452,11 +452,11 @@ __Pyx_CyFunction_init_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_
     op->defaults_kwdict = PyTuple_GET_ITEM(res, 1);
     Py_INCREF(op->defaults_kwdict);
     #else
-    PYOBJECT_FIELD_STORE(op, struct_op->defaults_tuple, TUPLE_GET_ITEM(res, 0));
+    PYOBJECT_FIELD_STORE(op, struct_op->defaults_tuple, SEQUENCE_GET_ITEM(res, 0));
     PYOBJECT_TYPE load_default_tuple_temp = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_tuple);
     if (unlikely(API_IS_NULL(load_default_tuple_temp))) result = -1;
     else {
-        PYOBJECT_FIELD_STORE(op, struct_op->defaults_kwdict, TUPLE_GET_ITEM(res, 1));
+        PYOBJECT_FIELD_STORE(op, struct_op->defaults_kwdict, SEQUENCE_GET_ITEM(res, 1));
         PYOBJECT_TYPE load_default_kwdict_temp = PYOBJECT_FIELD_LOAD(op, struct_op->defaults_kwdict);
         if (unlikely(API_IS_NULL(load_default_kwdict_temp))) result = -1;
     }
