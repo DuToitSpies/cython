@@ -526,7 +526,7 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
                __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, to_py_func(i), v)))
 
 static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j, PYOBJECT_TYPE v);
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_GLOBAL_TYPE v,
+static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_TYPE v,
                                                int is_list, int wraparound, int boundscheck);
 
 /////////////// SetItemInt ///////////////
@@ -539,7 +539,7 @@ static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, P
     return r;
 }
 
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_GLOBAL_TYPE v, int is_list,
+static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_TYPE v, int is_list,
                                                CYTHON_NCP_UNUSED int wraparound, CYTHON_NCP_UNUSED int boundscheck) {
 #if CYTHON_ASSUME_SAFE_MACROS && CYTHON_ASSUME_SAFE_SIZE && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
     if (is_list || PyList_CheckExact(o)) {
@@ -591,10 +591,7 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
 #endif
 #endif
     {
-        PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
-        int retval = SEQUENCE_SET_ITEM(o, i, tmp_load_v);
-        PYOBJECT_CLOSEREF(tmp_load_v);
-        return retval;
+        return SEQUENCE_SET_ITEM(o, i, v);
     }
 #endif
     PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
