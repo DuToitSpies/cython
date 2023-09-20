@@ -8400,9 +8400,8 @@ class SequenceNode(ExprNode):
                 raise InternalError("sequence packing for unexpected type %s" % self.type)
             tmp_builder = code.funcstate.allocate_temp(builder_type, manage_ref=False)
             arg_count = len(self.args)
-            code.putln("%s(%s,%s,%s%s); %s" % (
-                create_func, target, tmp_builder, arg_count, size_factor,
-                code.error_goto_if_null_object(target, self.pos)))
+            code.putln("%s(%s,%s,%s%s);" % (
+                create_func, target, tmp_builder, arg_count, size_factor))
             code.put_gotref(target, py_object_type)
 
             if c_mult:
