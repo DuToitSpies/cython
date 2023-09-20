@@ -4690,6 +4690,13 @@ class IndexNode(_IndexingBaseNode):
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
         code.funcstate.release_temp(temp_load_value)
 
+        if index_code in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
+        code.funcstate.release_temp(temp_load_index)
+        if value_code in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
+        code.funcstate.release_temp(temp_load_value)
+
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
                                  exception_check=None, exception_value=None):
         self.generate_subexpr_evaluation_code(code)
@@ -8282,12 +8289,12 @@ class SequenceNode(ExprNode):
                 if c_mult or not arg.result_in_temp():
                     code.put_incref(arg.result(), arg.ctype())
                 arg.generate_giveref(code)
+                code.putln("#endif")
                 tmp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
                 if hasattr(arg, "is_global") and arg.is_global:
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_arg, arg.py_result()))
                 else:
                     code.putln("%s = %s;" % (tmp_load_arg, arg.py_result()))
-                code.putln("#endif")
                 code.putln("%s(%s, %s, %s, %s);" % ( # %s;" % (
                     set_item_func,
                     target,
