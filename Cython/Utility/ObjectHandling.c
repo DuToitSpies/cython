@@ -497,25 +497,25 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
 
 #define __Pyx_SetItemInt(o, i, v, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
-    __Pyx_SetItemInt_Fast(o, (Py_ssize_t)i, v, is_list, wraparound, boundscheck) : \
+    __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_CALL o, (API_SSIZE_T)i, v, is_list, wraparound, boundscheck) : \
     (is_list ? (PyErr_SetString(PyExc_IndexError, "list assignment index out of range"), -1) : \
-               __Pyx_SetItemInt_Generic(o, to_py_func(i), v)))
+               __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, to_py_func(i), v)))
 
-static int __Pyx_SetItemInt_Generic(PyObject *o, PyObject *j, PyObject *v);
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PyObject *o, Py_ssize_t i, PyObject *v,
+static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j, PYOBJECT_TYPE v);
+static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_GLOBAL_TYPE v,
                                                int is_list, int wraparound, int boundscheck);
 
 /////////////// SetItemInt ///////////////
 
-static int __Pyx_SetItemInt_Generic(PyObject *o, PyObject *j, PyObject *v) {
+static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j, PYOBJECT_TYPE v) {
     int r;
-    if (unlikely(!j)) return -1;
-    r = PyObject_SetItem(o, j, v);
-    Py_DECREF(j);
+    if (unlikely(API_IS_NULL(j))) return -1;
+    r = PYOBJECT_SET_ITEM(o, j, v);
+    PYOBJECT_CLOSEREF(j);
     return r;
 }
 
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PYOBJECT_TYPE o, API_SSIZR_T i, PYOBJECT_TYPE v, int is_list,
+static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i, PYOBJECT_GLOBAL_TYPE v, int is_list,
                                                CYTHON_NCP_UNUSED int wraparound, CYTHON_NCP_UNUSED int boundscheck) {
 #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
     if (is_list || PyList_CheckExact(o)) {
@@ -555,14 +555,28 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PYOBJECT_TYPE o, API_SSIZR_T i, P
         }
     }
 #else
+#if CYTHON_COMPILING_IN_PYPY
+    if (is_list || (PySequence_Check(o) && !DICT_CHECK(o)))
+#else
+#if CYTHON_USING_HPY
+    if (is_list || TUPLE_CHECK(o) || LIST_CHECK(o))
+#else
     // PySequence_SetItem behaves differently to PyObject_SetItem for i<0
     // and possibly some other cases so can't generally be substituted
     if (is_list || !PyMapping_Check(o))
+#endif
+#endif
     {
-        return PySequence_SetItem(o, i, v);
+        PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
+        int retval = SEQUENCE_SET_ITEM(o, i, tmp_load_v);
+        PYOBJECT_CLOSEREF(tmp_load_v);
+        return retval;
     }
 #endif
-    return __Pyx_SetItemInt_Generic(o, PyInt_FromSsize_t(i), v);
+    PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
+    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, PYOBJECT_LONG_FROM_SSIZE(i), tmp_load_v);
+    PYOBJECT_CLOSEREF(tmp_load_v);
+    return retval;
 }
 
 

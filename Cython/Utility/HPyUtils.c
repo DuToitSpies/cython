@@ -119,12 +119,14 @@
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
 
   //Sequence Type
+  #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, pos)
+  #define SEQUENCE_SET_ITEM(h, pos, o) HPy_SetItem_i(HPY_CONTEXT_CNAME, h, pos, o)
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
   #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
   #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
-  #define TUPLE_CHECK(h) HPyTuple_Check(h)
+  #define TUPLE_CHECK(h) HPyTuple_Check(HPY_CONTEXT_CNAME, h)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -135,7 +137,7 @@
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
   #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_FROM_LONG(pos))
   #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
-  #define LIST_CHECK(h) HPyList_Check(h)
+  #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -288,6 +290,8 @@
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) PyDict_GetItemWithError(o, attr_name)
 
   //Sequence Type
+  #define SEQUENCE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
+  #define SEQUENCE_SET_ITEM(h, pos, o) PySequence_SetItem(h, pos, o)
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
