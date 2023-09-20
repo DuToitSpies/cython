@@ -515,7 +515,7 @@ static int __Pyx_SetItemInt_Generic(PyObject *o, PyObject *j, PyObject *v) {
     return r;
 }
 
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PyObject *o, Py_ssize_t i, PyObject *v, int is_list,
+static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PYOBJECT_TYPE o, API_SSIZR_T i, PYOBJECT_TYPE v, int is_list,
                                                CYTHON_NCP_UNUSED int wraparound, CYTHON_NCP_UNUSED int boundscheck) {
 #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
     if (is_list || PyList_CheckExact(o)) {

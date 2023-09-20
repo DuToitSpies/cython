@@ -1437,6 +1437,46 @@ class TupleBuilderType(PyrexType):
         ('object') is always true
         """
         return False
+    
+class ListBuilderType(PyrexType):
+    #
+    #  Class for a C tuple builder
+    #
+
+    name = "list_builder"
+    buffer_defaults = None
+    is_extern = False
+    is_subclassed = False
+    is_gc_simple = False
+    builtin_trashcan = False  # builtin type using trashcan
+
+    def __str__(self):
+        return "list builder"
+
+    def __repr__(self):
+        return "<ListBuilder>"
+
+    def default_coerced_ctype(self):
+        """The default C type that this Python type coerces to, or None."""
+        return None
+
+    def assignable_from(self, src_type):
+        # except for pointers, conversion will be attempted
+        return False
+
+    def declaration_code(self, entity_code,
+                         for_display = 0, dll_linkage = None, pyrex = 0):
+        return self.base_declaration_code("LIST_BUILDER_TYPE", entity_code)
+
+    def py_type_name(self):
+        return "object"
+
+    def __lt__(self, other):
+        """
+        Make sure we sort highest, as instance checking on py_type_name
+        ('object') is always true
+        """
+        return False
 
 class BuiltinObjectType(PyObjectType):
     #  objstruct_cname  string           Name of PyObject struct
@@ -4801,6 +4841,7 @@ unspecified_type = UnspecifiedType()
 
 py_object_type = PyObjectType()
 tuple_builder_type = TupleBuilderType()
+list_builder_type = ListBuilderType()
 
 c_void_type =        CVoidType()
 
