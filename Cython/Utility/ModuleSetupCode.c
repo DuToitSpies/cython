@@ -2005,6 +2005,7 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
   #define __Pyx_XGIVEREF(r)
 #endif /* CYTHON_REFNANNY */
 
+#if !CYTHON_USING_HPY
 #define __Pyx_Py_XDECREF_SET(r, v) do {                         \
         PyObject *tmp = (PyObject *) r;                         \
         r = v; Py_XDECREF(tmp);                                 \
@@ -2017,6 +2018,20 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
         PyObject *tmp = (PyObject *) r;                         \
         r = v; __Pyx_DECREF(tmp);                               \
     } while (0)
+#else
+#define __Pyx_Py_XDECREF_SET(r, v) do {                         \
+        /*PYOBJECT_XCLOSEREF(r);*/                                  \
+        r = v;                                                  \
+    } while (0)
+#define __Pyx_XDECREF_SET(r, v) do {                            \
+        /*PYOBJECT_XCLOSEREF(r);*/                                  \
+        r = v;                                                  \
+    } while (0)
+#define __Pyx_DECREF_SET(r, v) do {                             \
+        /*PYOBJECT_CLOSEREF(r);*/                                  \
+        r = v;                                                  \
+    } while (0)
+#endif
 
 #define __Pyx_CLEAR(r)    do { PyObject* tmp = ((PyObject*)(r)); r = NULL; __Pyx_DECREF(tmp);} while(0)
 #define __Pyx_XCLEAR(r)   do { if((r) != NULL) {PyObject* tmp = ((PyObject*)(r)); r = NULL; __Pyx_DECREF(tmp);}} while(0)
