@@ -1211,6 +1211,7 @@ class PyConstNode(AtomicExprNode):
     is_literal = 1
     type = py_object_type
     nogil_check = None
+    is_global = True
 
     def is_simple(self):
         return 1
@@ -1267,6 +1268,8 @@ class ConstNode(AtomicExprNode):
 
     is_literal = 1
     nogil_check = None
+    is_global = True
+
 
     def is_simple(self):
         return 1
@@ -1602,6 +1605,7 @@ class BytesNode(ConstNode):
     is_string_literal = True
     # start off as Python 'bytes' to support len() in O(1)
     type = bytes_type
+    is_global = True
 
     def calculate_constant_result(self):
         self.constant_result = self.value
@@ -1692,6 +1696,7 @@ class UnicodeNode(ConstNode):
     is_string_literal = True
     bytes_value = None
     type = unicode_type
+    is_global = True
 
     def calculate_constant_result(self):
         self.constant_result = self.value
@@ -9424,10 +9429,32 @@ class DictNode(ExprNode):
                             code.error_goto(item.pos)))
                         code.putln("} else {")
 
-                code.put_error_if_neg(self.pos, "PyDict_SetItem(%s, %s, %s)" % (
+                temp_load_key = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                code.putln("//%s" % item.key)
+                code.putln("//%s" % item.key.type)
+                if hasattr(item.key, "is_global") and item.key.is_global:
+                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_key, item.key.py_result()))
+                else:
+                    code.putln("%s = %s;" % (temp_load_key, item.key.py_result()))
+
+                temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                if hasattr(item.value, "is_global") and item.value.is_global:
+                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, item.value.py_result()))
+                else:
+                    code.putln("%s = %s;" % (temp_load_value, item.value.py_result()))
+                code.put_error_if_neg(self.pos, "DICT_SET_ITEM(%s, %s, %s)" % (
                     self.result(),
-                    item.key.py_result(),
-                    item.value.py_result()))
+                    temp_load_key,
+                    temp_load_value))
+
+                if hasattr(item.key, "is_global") and item.key.is_global:
+                    code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_key)
+                code.funcstate.release_temp(temp_load_key)
+                
+                if hasattr(item.value, "is_global") and item.value.is_global:
+                    code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
+                code.funcstate.release_temp(temp_load_value)
+
                 if self.reject_duplicates and keys_seen is None:
                     code.putln('}')
                 if self.exclude_null_values:
