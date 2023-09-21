@@ -7965,13 +7965,22 @@ class AttributeNode(ExprNode):
                 code.globalstate.use_utility_code(
                     UtilityCode.load_cached("PyObjectGetAttrStr", "ObjectHandling.c"))
                 lookup_func_name = '__Pyx_PyObject_GetAttrStr'
+            temp_load_attr = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            attr_str = code.intern_identifier(self.attribute)
+            if  attr_str.startswith("__pyx_int_") or attr_str.startswith("__pyx_k_") or attr_str.startswith("__pyx_n_s_"):
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_attr, attr_str))
+            else:
+                code.putln("%s = %s;" % (temp_load_attr, attr_str))
             code.putln(
                 '%s = %s(%s, %s); %s' % (
                     self.result(),
                     lookup_func_name,
                     self.obj.py_result(),
-                    code.intern_identifier(self.attribute),
-                    code.error_goto_if_null(self.result(), self.pos)))
+                    temp_load_attr,
+                    code.error_goto_if_null_object(self.result(), self.pos)))
+            if not attr_str.startswith("__pyx_t_"):
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s)" % temp_load_attr)
+            code.funcstate.release_temp(temp_load_attr)
             self.generate_gotref(code)
         elif self.type.is_memoryviewslice:
             if self.is_memslice_transpose:
