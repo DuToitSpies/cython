@@ -4626,7 +4626,11 @@ class IndexNode(_IndexingBaseNode):
         if self.type.is_pyobject:
             self.generate_gotref(code)
 
-    def generate_setitem_code(self, value_code, code):
+    def generate_setitem_code(self, value, code):
+        if self.type.is_pyobject:
+            value_code = value.py_result()
+        elif self.base.type is bytearray_type:
+            value_code = self._check_byte_value(code, value)
         if self.index.type.is_int:
             if self.base.type is bytearray_type:
                 code.globalstate.use_utility_code(
@@ -4640,7 +4644,7 @@ class IndexNode(_IndexingBaseNode):
         else:
             index_code = self.index.py_result()
             if self.base.type is dict_type:
-                function = "PyDict_SetItem"
+                function = "DICT_SET_ITEM"
             # It would seem that we could specialized lists/tuples, but that
             # shouldn't happen here.
             # Both PyList_SetItem() and PyTuple_SetItem() take a Py_ssize_t as
@@ -4649,25 +4653,44 @@ class IndexNode(_IndexingBaseNode):
             # and raise a TypeError when trying to set their entries
             # (PyTuple_SetItem() is for creating new tuples from scratch).
             else:
-                function = "PyObject_SetItem"
+                function = "PYOBJECT_SET_ITEM"
+        
+        temp_load_index = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+        if hasattr(self.index, "is_global") and self.index.is_global:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_index, index_code))
+        else:
+            code.putln("%s = %s;" % (temp_load_index, index_code))    
+        temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+        if hasattr(value, "is_global") and value.is_global:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, value_code))
+        else:
+            code.putln("%s = %s;" % (temp_load_value, value_code)) 
+
         code.putln(code.error_goto_if_neg(
             "%s(%s, %s, %s%s)" % (
                 function,
                 self.base.py_result(),
-                index_code,
-                value_code,
+                temp_load_index,
+                temp_load_value,
                 self.extra_index_params(code)),
             self.pos))
+
+        if hasattr(self.index, "is_global") and self.index.is_global:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
+        code.funcstate.release_temp(temp_load_index)
+        if hasattr(value, "is_global") and value.is_global:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
+        code.funcstate.release_temp(temp_load_value)
 
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
                                  exception_check=None, exception_value=None):
         self.generate_subexpr_evaluation_code(code)
 
         if self.type.is_pyobject:
-            self.generate_setitem_code(rhs.py_result(), code)
+            self.generate_setitem_code(rhs, code)
         elif self.base.type is bytearray_type:
             value_code = self._check_byte_value(code, rhs)
-            self.generate_setitem_code(value_code, code)
+            self.generate_setitem_code(rhs, code)
         elif self.base.type.is_cpp_class and self.exception_check and self.exception_check == '+':
             if overloaded_assignment and exception_check and self.exception_value != exception_value:
                 # Handle the case that both the index operator and the assignment
