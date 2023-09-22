@@ -2650,7 +2650,6 @@ class NameNode(AtomicExprNode):
                         if is_pythran_expr(self.type):
                             code.putln('new (&%s) decltype(%s){%s};' % (self.result(), self.result(), result))
                         elif result != self.result():
-                            code.putln("//%s" % rhs)
                             if hasattr(rhs, "is_global") and rhs.is_global and rhs.is_c_literal == False:
                                 code.putln('%s = PYOBJECT_GLOBAL_LOAD(%s);' % (self.result(), result))
                             else:
