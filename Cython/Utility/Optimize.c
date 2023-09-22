@@ -1221,7 +1221,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             // Calling PyLong_CompactValue() requires the PyLong value to be compact, we only need the last digit.
             long last_digit = (long) __Pyx_PyLong_Digits({{pyval}})[0];
             long result = intval & (likely(__Pyx_PyLong_IsPos({{pyval}})) ? last_digit : (PyLong_MASK - last_digit + 1));
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLong(result));
+            return PYOBJECT_FROM_LONG(result);
         }
         {{endif}}
         // special cases for 0: + - * % / // | ^ & >> <<
@@ -1309,7 +1309,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             {{elif op == 'TrueDivide'}}
                 if ((8 * sizeof(long) <= 53 || likely(labs({{ival}}) <= ((PY_LONG_LONG)1 << 53)))
                         || __Pyx_PyLong_DigitCount({{pyval}}) <= 52 / PyLong_SHIFT) {
-                    return HPY_LEGACY_OBJECT_FROM(PyFloat_FromDouble((double)a / (double)b));
+                    return PYOBJECT_FROM_DOUBLE((double)a / (double)b);
                 }
                 return PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2);
             {{elif op == 'FloorDivide'}}
@@ -1334,7 +1334,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
 #endif
                 {{endif}}
             {{endif}}
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLong(x));
+            return PYOBJECT_FROM_LONG(x);
 
         {{if op != 'TrueDivide'}}
 #ifdef HAVE_LONG_LONG
@@ -1358,7 +1358,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
                 if (likely(lla == llx >> llb)) /* then execute 'return' below */
                 {{endif}}
             {{endif}}
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLongLong(llx));
+            return PYOBJECT_FROM_LONGLONG(llx);
 #endif
         {{endif}}{{# if op != 'TrueDivide' #}}
         {{endif}}{{# if op in ('Eq', 'Ne') #}}
@@ -1366,7 +1366,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
     #endif
 
     {{if c_op in '+-*' or op in ('TrueDivide', 'Eq', 'Ne')}}
-    if (PyFloat_CheckExact(HPY_LEGACY_OBJECT_AS({{pyval}}))) {
+    if (FLOAT_CHECK_EXACT({{pyval}})) {
         const long {{'a' if order == 'CObj' else 'b'}} = intval;
         double {{ival}} = __Pyx_PyFloat_AS_DOUBLE(HPY_LEGACY_OBJECT_AS({{pyval}}));
         {{if op in ('Eq', 'Ne')}}
@@ -1379,14 +1379,14 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             double result;
             {{zerodiv_check('b', 'float')}}
             result = ((double)a) {{c_op}} (double)b;
-            return HPY_LEGACY_OBJECT_FROM(PyFloat_FromDouble(result));
+            return PYOBJECT_FROM_DOUBLE(result);
         {{endif}}
     }
     {{endif}}
 
     {{if op in ('Eq', 'Ne')}}
     return {{'' if ret_type.is_pyobject else '__Pyx_PyObject_IsTrueAndDecref'}}(
-        PyObject_RichCompare(op1, op2, Py_{{op.upper()}}));
+        API_RICH_COMPARE(op1, op2, Py_{{op.upper()}}));
     {{else}}
 #if CYTHON_USING_HPY
     return HPy_{{op}}(HPY_CONTEXT_CNAME, op1, op2);
