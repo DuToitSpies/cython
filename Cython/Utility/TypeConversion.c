@@ -126,7 +126,7 @@ static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject*);
 #if CYTHON_ASSUME_SAFE_MACROS
 #define __pyx_PyFloat_AsDouble(x) (PyFloat_CheckExact(x) ? PyFloat_AS_DOUBLE(x) : PyFloat_AsDouble(x))
 #else
-#define __pyx_PyFloat_AsDouble(x) PyFloat_AsDouble(x)
+#define __pyx_PyFloat_AsDouble(x) PYOBJECT_FLOAT_AS_DOUBLE(x)
 #endif
 #define __pyx_PyFloat_AsFloat(x) ((float) __pyx_PyFloat_AsDouble(x))
 
@@ -689,10 +689,10 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         if (sizeof({{TYPE}}) < sizeof(long)) {
             return PYOBJECT_FROM_LONG((long) value);
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned long)) {
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromUnsignedLong((unsigned long) value));
+            return PYOBJECT_FROM_UNSIGNED_LONG((unsigned long) value);
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned PY_LONG_LONG)) {
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value));
+            return PYOBJECT_FROM_UNSIGNED_LONGLONG((unsigned PY_LONG_LONG) value);
 #endif
         }
     } else {
@@ -700,7 +700,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
             return PYOBJECT_FROM_LONG((long) value);
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(PY_LONG_LONG)) {
-            return HPY_LEGACY_OBJECT_FROM(PyLong_FromLongLong((PY_LONG_LONG) value));
+            return PYOBJECT_FROM_LONGLONG((PY_LONG_LONG) value);
 #endif
         }
     }

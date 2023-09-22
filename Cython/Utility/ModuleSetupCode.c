@@ -706,10 +706,17 @@ class __Pyx_FakeReference {
   #define PYERR_EXCEPTIONMATCHES(exc) HPyErr_ExceptionMatches(HPY_CONTEXT_CNAME, (exc))
 
   #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_FROM_LONGLONG(i) HPyLong_FromLongLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_FROM_UNSIGNED_LONG(i) HPyLong_FromUnsignedLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_FROM_UNSIGNED_LONGLONG(i) HPyLong_FromUnsignedLongLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
   #define PYOBJECT_FROM_STRING(s) HPyUnicode_FromString(HPY_CONTEXT_CNAME, s) //not yet needed in C API version
 
   #define PYOBJECT_LONG_AS_SSIZE(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_INT_AS_LONG_NOERROR(l) HPyLong_AsLong(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_FLOAT_AS_DOUBLE(f) HPyFloat_AsDouble(HPY_CONTEXT_CNAME, f)
+
+  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
 
   #define HPY_LEGACY_OBJECT_FROM(o) HPy_FromPyObject(HPY_CONTEXT_CNAME, o)
   #define HPY_LEGACY_OBJECT_AS(o) HPy_AsPyObject(HPY_CONTEXT_CNAME, o)
@@ -739,6 +746,8 @@ class __Pyx_FakeReference {
   #define API_EXC(name) (HPY_CONTEXT_CNAME->h_ ## name)
 
   #define API_VECTORCALLFUNC HPyCallFunction
+
+  #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
 
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
@@ -803,9 +812,16 @@ class __Pyx_FakeReference {
   #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(HPY_CONTEXT_CNAME, callable, args, kwnames)
 
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
+  #define PYOBJECT_FROM_LONGLONG(i) PyLong_FromLongLong(i)
+  #define PYOBJECT_FROM_UNSIGNED_LONG(i) PyInt_FromUnsignedLong(i)
+  #define PYOBJECT_FROM_UNSIGNED_LONGLONG(i) PyLong_FromUnsignedLongLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
 
   #define PYOBJECT_LONG_AS_SSIZE(l) PyLong_AsSsize_t(l)
+  #define PYOBJECT_INT_AS_LONG_NOERROR(l) PyInt_AS_LONG(l)
+  #define PYOBJECT_FLOAT_AS_DOUBLE(f) PyFloat_AsDouble(f)
+
+  #define FLOAT_CHECK_EXACT(f) HPY_LEGACY_OBJECT_AS(f)
 
   #define HPY_LEGACY_OBJECT_FROM(o) o
   #define HPY_LEGACY_OBJECT_AS(o) o
@@ -832,6 +848,8 @@ class __Pyx_FakeReference {
   #define API_TRUE Py_True
   #define API_FALSE Py_False
   #define API_EXC(name) (PyExc_ ## name)
+
+  #define API_RICH_COMPARE(h1, h2, op) PyObject_RichCompare(h1, h2, op)
 
   #define DICT_NEW() PyDict_New()
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
