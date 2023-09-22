@@ -72,6 +72,8 @@
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
+  #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
+  #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -126,7 +128,6 @@
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
   #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
   #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
-  #define TUPLE_CHECK(h) HPyTuple_Check(HPY_CONTEXT_CNAME, h)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -136,8 +137,7 @@
   //List Type
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
   #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_FROM_LONG(pos))
-  #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
-  #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
+  #define LIST_APPEND(list, h) PyList_Append(list, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -243,6 +243,9 @@
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
   #define PYOBJECT_TYPE_CHECK(o, t) PyObject_TypeCheck(o, t)
+  #define LIST_CHECK(h) PyList_Check(h)
+  #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
+
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) PyInt_FromLong(i)
@@ -297,7 +300,6 @@
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
   #define TUPLE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
   #define TUPLE_GET_SIZE(h) PyTuple_GET_SIZE(h)
-  #define TUPLE_CHECK(h) PyTuple_Check(h)
   #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
@@ -307,8 +309,7 @@
   //List Type
   #define LIST_CREATE_EMPTY() PyList_New(0)
   #define LIST_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
-  #define LIST_GET_SIZE(h) PyList_GET_SIZE(h)
-  #define LIST_CHECK(h) PyList_Check(h)
+  #define LIST_APPEND(list, h) PyList_Append(list, h)
   #define LIST_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define LIST_CREATE_START(target, builder, size) target=PyList_New(size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyList_SET_ITEM(tuple, index, item)

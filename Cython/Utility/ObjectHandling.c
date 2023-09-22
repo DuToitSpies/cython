@@ -1551,7 +1551,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 /////////////// PyObjectGetAttrStr.proto ///////////////
 
 #if CYTHON_USE_TYPE_SLOTS
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name);/*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(PYOBJECT_TYPE obj, PYOBJECT_TYPE attr_name);/*proto*/
 #else
 #define __Pyx_PyObject_GetAttrStr(o,n) PYOBJECT_GET_ATTR(o,n) //Needed to turn this into a function macro to be able to pass the context properly
 #define __Pyx_PyObject_GetAttrStr_legacy(o,n) PyObject_GetAttr(o,n)  //Used for functions where the context isn't reachable yet
@@ -1616,7 +1616,7 @@ static int __Pyx_PyObject_GetMethod(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
     assert (*method == NULL);
 
     if (unlikely(tp->tp_getattro != PyObject_GenericGetAttr)) {
-        attr = __Pyx_PyObject_GetAttrStr(obj, name);
+        attr = PyObject_GetAttrString(obj, name); //Must be changed back to __Pyx_PyObject_GetAttrString when context is available
         goto try_unpack;
     }
     if (unlikely(tp->tp_dict == NULL) && unlikely(PyType_Ready(tp) < 0)) {
@@ -2119,7 +2119,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObj
     }
 
     if (nargs == 0) {
-        return __Pyx_PyObject_Call(func, $empty_tuple, kwargs);
+        return __Pyx_PyObject_Call(func, PyTuple_New(0), kwargs); //Must be changed back to $empty_tuple when context is available
     }
     #if PY_VERSION_HEX >= 0x03090000 && !CYTHON_COMPILING_IN_LIMITED_API
     return PyObject_VectorcallDict(func, args, (size_t)nargs, kwargs);

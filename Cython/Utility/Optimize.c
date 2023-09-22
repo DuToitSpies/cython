@@ -8,20 +8,20 @@
 
 /////////////// append.proto ///////////////
 
-static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x); /*proto*/
+static CYTHON_INLINE int __Pyx_PyObject_Append(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE x); /*proto*/
 
 /////////////// append ///////////////
 //@requires: ListAppend
 //@requires: ObjectHandling.c::PyObjectCallMethod1
 
-static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x) {
-    if (likely(PyList_CheckExact(L))) {
+static CYTHON_INLINE int __Pyx_PyObject_Append(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE x) {
+    if (likely(LIST_CHECK_EXACT(L))) {
         if (unlikely(__Pyx_PyList_Append(L, x) < 0)) return -1;
     } else {
-        PyObject* retval = __Pyx_PyObject_CallMethod1(L, PYIDENT("append"), x);
-        if (unlikely(!retval))
+        PYOBJECT_TYPE retval = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_CallMethod1(HPY_LEGACY_OBJECT_AS(L), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("append"))), HPY_LEGACY_OBJECT_AS(x)));
+        if (unlikely(API_IS_NULL(retval)))
             return -1;
-        Py_DECREF(retval);
+        PYOBJECT_CLOSEREF(retval);
     }
     return 0;
 }
@@ -48,7 +48,7 @@ static CYTHON_INLINE int __Pyx_PyList_Append(PyObject* list, PyObject* x) {
     return PyList_Append(list, x);
 }
 #else
-#define __Pyx_PyList_Append(L,x) PyList_Append(L,x)
+#define __Pyx_PyList_Append(L,x) LIST_APPEND(L,x)
 #endif
 
 /////////////// ListCompAppend.proto ///////////////
@@ -141,8 +141,8 @@ static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT
         __Pyx__PyObject_PopIndex(HPY_CONTEXT_CNAME, L, py_ix))
 #else
 
-static PyObject* __Pyx__PyObject_PopNewIndex(PyObject* L, PyObject* py_ix); /*proto*/
-static PyObject* __Pyx__PyObject_PopIndex(PyObject* L, PyObject* py_ix); /*proto*/
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
+static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
 
 #if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
 static PyObject* __Pyx__PyList_PopIndex(PyObject* L, PyObject* py_ix, Py_ssize_t ix); /*proto*/
