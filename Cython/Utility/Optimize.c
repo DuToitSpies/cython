@@ -92,7 +92,7 @@ static CYTHON_INLINE int __Pyx_PyList_Extend(PyObject* L, PyObject* v) {
 
 /////////////// pop.proto ///////////////
 
-static CYTHON_INLINE PyObject* __Pyx__PyObject_Pop(PyObject* L); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx__PyObject_Pop(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L); /*proto*/
 
 #if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
 static CYTHON_INLINE PyObject* __Pyx_PyList_Pop(PyObject* L); /*proto*/
@@ -100,18 +100,20 @@ static CYTHON_INLINE PyObject* __Pyx_PyList_Pop(PyObject* L); /*proto*/
     __Pyx_PyList_Pop(L) : __Pyx__PyObject_Pop(L))
 
 #else
-#define __Pyx_PyList_Pop(L)  __Pyx__PyObject_Pop(L)
-#define __Pyx_PyObject_Pop(L)  __Pyx__PyObject_Pop(L)
+#define __Pyx_PyList_Pop(L)  __Pyx__PyObject_Pop(HPY_CONTEXT_FIRST_ARG_CALL L)
+#define __Pyx_PyObject_Pop(L)  __Pyx__PyObject_Pop(HPY_CONTEXT_FIRST_ARG_CALL L)
 #endif
 
 /////////////// pop ///////////////
 //@requires: ObjectHandling.c::PyObjectCallMethod0
 
-static CYTHON_INLINE PyObject* __Pyx__PyObject_Pop(PyObject* L) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx__PyObject_Pop(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L) {
+#if !CYTHON_USING_HPY
     if (__Pyx_IS_TYPE(L, &PySet_Type)) {
         return PySet_Pop(L);
     }
-    return __Pyx_PyObject_CallMethod0(L, PYIDENT("pop"));
+#endif
+    return HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_CallMethod0(HPY_LEGACY_OBJECT_AS(L), HPY_LEGACY_OBJECT_AS(PYIDENT("pop"))));
 }
 
 #if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
@@ -141,7 +143,7 @@ static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT
         __Pyx__PyObject_PopIndex(HPY_CONTEXT_CNAME, L, py_ix))
 #else
 
-static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
 static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
 
 #if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
@@ -173,7 +175,11 @@ static PyObject* __Pyx__PyList_PopIndex(PyObject* L, PyObject* py_ix, Py_ssize_t
 /////////////// pop_index ///////////////
 //@requires: ObjectHandling.c::PyObjectCallMethod1
 
-static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
+#if CYTHON_USING_HPY
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPyContext *HPY_CONTEXT_CNAME, PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
+#else
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
+#endif
     PYOBJECT_TYPE r;
     if (unlikely(API_IS_NULL(py_ix))) return API_NULL_VALUE;
     r = __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_CALL L, py_ix);
