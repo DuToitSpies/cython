@@ -2604,7 +2604,12 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_AR
 
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func) {
     PYOBJECT_TYPE arg = API_NULL_VALUE;
+#if CYTHON_USING_HPY
+    arg = LIST_CREATE_EMPTY();
+    return API_CALL_FUNC(func, &arg, 0, API_NULL_VALUE);
+#else
     return __Pyx_PyObject_FastCall(func, (&arg)+1, 0 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
+#endif
 }
 
 
