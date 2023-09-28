@@ -1391,7 +1391,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
 #if CYTHON_USING_HPY
     return HPy_{{op}}(HPY_CONTEXT_CNAME, op1, op2);
 #else
-    return (inplace ? PyNumber_InPlace{{op}} : PyNumber_{{op}})(HPY_LEGACY_OBJECT_AS(op1), HPY_LEGACY_OBJECT_AS(op2));
+    return (inplace ? PyNumber_InPlace{{op}} : PyNumber_{{op}})(op1, op2);
 #endif
     {{endif}}
 }

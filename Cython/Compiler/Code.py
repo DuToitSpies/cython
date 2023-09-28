@@ -1187,6 +1187,8 @@ class GlobalState:
         self.cached_cmethods = {}
         self.initialised_constants = set()
 
+        self.const_cname_array = []
+
         writer.set_global_state(self)
         self.rootwriter = writer
 
@@ -1419,18 +1421,21 @@ class GlobalState:
         cname = self.new_string_const_cname(byte_string)
         c = StringConst(cname, text, byte_string)
         self.string_const_index[byte_string] = c
+        self.const_cname_array.append(cname)
         return c
 
     def new_num_const(self, value, py_type, value_code=None):
         cname = self.new_num_const_cname(value, py_type)
         c = NumConst(cname, value, py_type, value_code)
         self.num_const_index[(value, py_type)] = c
+        self.const_cname_array.append(cname)
         return c
 
     def new_py_const(self, type, prefix=''):
         cname = self.new_const_cname(prefix)
         c = PyObjectConst(cname, type)
         self.py_constants.append(c)
+        self.const_cname_array.append(cname)
         return c
 
     def new_string_const_cname(self, bytes_value):

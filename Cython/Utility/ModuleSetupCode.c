@@ -757,6 +757,9 @@ class __Pyx_FakeReference {
 
   #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
 
+  #define API_INT_TYPE HPY_CONTEXT_CNAME->h_LongType
+  #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
+
   #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
   #define PYERR_CLEAR() HPyErr_Clear(HPY_CONTEXT_CNAME)
   #define PYERR_EXCEPTIONMATCHES(exc) HPyErr_ExceptionMatches(HPY_CONTEXT_CNAME, (exc))
@@ -784,6 +787,7 @@ class __Pyx_FakeReference {
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) HPyType_FromModuleAndSpec(HPY_CONTEXT_CNAME, m, &s, b)
   #define TYPESPEC_GET(s, field) s.field
   #define TYPE_CHECK(o) HPy_TypeCheck(HPY_CONTEXT_CNAME, (o), HPY_CONTEXT_CNAME->h_TypeType)
+  #define TYPE_AS_PYOBJECT(t) t
 
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
@@ -814,7 +818,7 @@ class __Pyx_FakeReference {
 
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
-  #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
@@ -867,6 +871,9 @@ class __Pyx_FakeReference {
 
   #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(HPY_CONTEXT_CNAME, callable, args, kwnames)
 
+  #define API_INT_TYPE PyInt_Type
+  #define API_LONG_TYPE PyLong_Type
+
   #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_FROM_LONGLONG(i) PyLong_FromLongLong(i)
   #define PYOBJECT_FROM_UNSIGNED_LONG(i) PyInt_FromUnsignedLong(i)
@@ -889,6 +896,7 @@ class __Pyx_FakeReference {
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) PyType_FromModuleAndSpec(m, s, b)
   #define TYPESPEC_GET(s, field) s->field
   #define TYPE_CHECK(o) PyType_Check(o)
+  #define TYPE_AS_PYOBJECT(t) (PyObject*)& ## t
 
   #define API_NULL_VALUE NULL
   #define API_DEFAULT_VALUE 0

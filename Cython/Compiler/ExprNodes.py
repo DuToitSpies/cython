@@ -2548,6 +2548,7 @@ class NameNode(AtomicExprNode):
             namespace = self.entry.scope.namespace_cname
             rhs_result = rhs.py_result()
             load_result_temp = rhs_result
+            b = False
             if entry.is_member:
                 # if the entry is a member we have to cheat: SetAttr does not work
                 # on types, so we create a descriptor which is then added to tp_dict.
@@ -2556,13 +2557,11 @@ class NameNode(AtomicExprNode):
                 setter = 'DICT_SET_ITEM'
                 namespace = Naming.moddict_cname
                 interned_cname = interned_cname
-                if not rhs_result.startswith("__pyx_t_"):
+                if rhs_result in code.globalstate.const_cname_array:
+                    b = True
                     code.putln("#if CYTHON_USING_HPY")
                     load_result_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_result_temp, rhs_result))
-                    rhs_result = rhs_result #temp fix for globals and non-globals being handled by the same code
-                    code.putln("PYOBJECT_CLOSEREF(%s);" % load_result_temp)
-                    code.funcstate.release_temp(load_result_temp)
                     code.putln("#endif")
             elif entry.is_pyclass_attr:
                 # Special-case setting __new__
@@ -2587,6 +2586,9 @@ class NameNode(AtomicExprNode):
             code.putln("PYOBJECT_CLOSEREF(%s);" % load_cname_temp)
             code.funcstate.release_temp(load_namespace_temp)
             code.funcstate.release_temp(load_cname_temp)
+            if rhs_result in code.globalstate.const_cname_array and b:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_result_temp)
+                code.funcstate.release_temp(load_result_temp)
             code.putln("#else")
             code.put_error_if_neg(
                 self.pos,
@@ -2660,7 +2662,7 @@ class NameNode(AtomicExprNode):
                         if is_pythran_expr(self.type):
                             code.putln('new (&%s) decltype(%s){%s};' % (self.result(), self.result(), result))
                         elif result != self.result():
-                            if hasattr(rhs, "is_global") and rhs.is_global and rhs.is_c_literal == False:
+                            if result in code.globalstate.const_cname_array:
                                 code.putln('%s = PYOBJECT_GLOBAL_LOAD(%s);' % (self.result(), result))
                             else:
                                 code.putln('%s = %s;' % (self.result(), result))
