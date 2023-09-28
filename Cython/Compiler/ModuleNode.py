@@ -810,7 +810,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             self._put_setup_code(code, "CppInitCode")
         else:
             self._put_setup_code(code, "CInitCode")
-        code.put(UtilityCode.load_as_string("HPyInitCode", "HPyUtils.c")[1])
+        self._put_setup_code(code, "HPyInitCode")
         code.put(UtilityCode.load_as_string("HPyHelperFuncs", "HPyUtils.c")[1])
         self._put_setup_code(code, "PythonCompatibility")
         self._put_setup_code(code, "MathInitCode")
