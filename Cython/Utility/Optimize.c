@@ -1221,7 +1221,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             // Calling PyLong_CompactValue() requires the PyLong value to be compact, we only need the last digit.
             long last_digit = (long) __Pyx_PyLong_Digits({{pyval}})[0];
             long result = intval & (likely(__Pyx_PyLong_IsPos({{pyval}})) ? last_digit : (PyLong_MASK - last_digit + 1));
-            return PYOBJECT_FROM_LONG(result);
+            return PYOBJECT_LONG_FROM_LONG(result);
         }
         {{endif}}
         // special cases for 0: + - * % / // | ^ & >> <<
@@ -1334,7 +1334,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
 #endif
                 {{endif}}
             {{endif}}
-            return PYOBJECT_FROM_LONG(x);
+            return PYOBJECT_LONG_FROM_LONG(x);
 
         {{if op != 'TrueDivide'}}
 #ifdef HAVE_LONG_LONG
@@ -1358,7 +1358,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
                 if (likely(lla == llx >> llb)) /* then execute 'return' below */
                 {{endif}}
             {{endif}}
-            return PYOBJECT_FROM_LONGLONG(llx);
+            return PYOBJECT_LONG_FROM_LONGLONG(llx);
 #endif
         {{endif}}{{# if op != 'TrueDivide' #}}
         {{endif}}{{# if op in ('Eq', 'Ne') #}}

@@ -916,7 +916,7 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
 
     code_object = HPY_LEGACY_OBJECT_FROM(Py_CompileString("_getframe()", filename, Py_eval_input));
     if (unlikely(API_IS_NULL(code_object))) goto bad;
-    py_py_line = PYOBJECT_FROM_LONG(py_line);
+    py_py_line = PYOBJECT_LONG_FROM_LONG(py_line);
     if (unlikely(API_IS_NULL(py_py_line))) goto bad;
     py_funcname = PYOBJECT_FROM_STRING(funcname);
     if (unlikely(API_IS_NULL(py_funcname))) goto bad;
