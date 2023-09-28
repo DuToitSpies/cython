@@ -1698,9 +1698,9 @@ class GlobalState:
             elif Utils.long_literal(value):
                 function = 'HPY_LEGACY_OBJECT_FROM(PyInt_FromString((char *)"%s", 0, 0))'
             elif len(value.lstrip('-')) > 4:
-                function = "PYOBJECT_FROM_LONG(%sL)"
+                function = "PYOBJECT_INT_FROM_LONG(%sL)"
             else:
-                function = "PYOBJECT_FROM_LONG(%s)"
+                function = "PYOBJECT_INT_FROM_LONG(%s)"
             init_constants.putln('PYOBJECT_GLOBAL_STORE(%s, %s); %s' % (
                 cname, function % value_code,
                 init_constants.error_goto_if_null_object(cname, self.module_pos)))

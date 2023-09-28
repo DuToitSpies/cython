@@ -708,8 +708,9 @@ class __Pyx_FakeReference {
   #define PYERR_CLEAR() HPyErr_Clear(HPY_CONTEXT_CNAME)
   #define PYERR_EXCEPTIONMATCHES(exc) HPyErr_ExceptionMatches(HPY_CONTEXT_CNAME, (exc))
 
-  #define PYOBJECT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
-  #define PYOBJECT_FROM_LONGLONG(i) HPyLong_FromLongLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_LONG_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_LONG_FROM_LONGLONG(i) HPyLong_FromLongLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_UNSIGNED_LONG(i) HPyLong_FromUnsignedLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_UNSIGNED_LONGLONG(i) HPyLong_FromUnsignedLongLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
@@ -772,7 +773,7 @@ class __Pyx_FakeReference {
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
-  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_FROM_LONG(pos))
+  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
   #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
@@ -818,8 +819,9 @@ class __Pyx_FakeReference {
   #define API_INT_TYPE PyInt_Type
   #define API_LONG_TYPE PyLong_Type
 
-  #define PYOBJECT_FROM_LONG(i) PyInt_FromLong(i)
-  #define PYOBJECT_FROM_LONGLONG(i) PyLong_FromLongLong(i)
+  #define PYOBJECT_INT_FROM_LONG(i) PyInt_FromLong(i)
+  #define PYOBJECT_LONG_FROM_LONG(i) PyLong_FromLong(i)
+  #define PYOBJECT_LONG_FROM_LONGLONG(i) PyLong_FromLongLong(i)
   #define PYOBJECT_FROM_UNSIGNED_LONG(i) PyInt_FromUnsignedLong(i)
   #define PYOBJECT_FROM_UNSIGNED_LONGLONG(i) PyLong_FromUnsignedLongLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
