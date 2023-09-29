@@ -1692,7 +1692,7 @@ class GlobalState:
             self.parts['globals_table'].putln("globals_array[%d] = &%s;" % (self.globals_counter, cname))
             self.globals_counter += 1
             if py_type == 'float':
-                function = 'PYOBJECT_FROM_DOUBLE(%s)'
+                function = 'PYOBJECT_FLOAT_FROM_DOUBLE(%s)'
             elif py_type == 'long':
                 function = 'HPY_LEGACY_OBJECT_FROM(PyLong_FromString((char *)"%s", 0, 0))'
             elif Utils.long_literal(value):

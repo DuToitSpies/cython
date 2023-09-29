@@ -918,7 +918,7 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
     if (unlikely(API_IS_NULL(code_object))) goto bad;
     py_py_line = PYOBJECT_LONG_FROM_LONG(py_line);
     if (unlikely(API_IS_NULL(py_py_line))) goto bad;
-    py_funcname = PYOBJECT_FROM_STRING(funcname);
+    py_funcname = PYOBJECT_UNICODE_FROM_STRING(funcname);
     if (unlikely(API_IS_NULL(py_funcname))) goto bad;
     dict = DICT_NEW();
     if (unlikely(API_IS_NULL(dict))) goto bad;
