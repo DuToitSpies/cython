@@ -1044,8 +1044,7 @@ __Pyx_CyFunction_repr_impl(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_Func
 {
     __pyx_CyFunctionObject *struct_op = op;
     PyObject *qualname_field = struct_op->func_qualname;
-#endif
-    return UNICODE_FROM_FORMAT("<cyfunction %U at %R>",
+    return PYOBJECT_UNICODE_FROM_FORMAT("<cyfunction %U at %R>",
                                 qualname_field, op);
 }
 #endif /* CYTHON_USING_HPY  */

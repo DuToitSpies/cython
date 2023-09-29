@@ -469,7 +469,7 @@ static CYTHON_INLINE PyObject* __Pyx__PyNumber_Float(PyObject* obj) {
 #if CYTHON_USE_PYLONG_INTERNALS
 no_error:
 #endif
-    return PYOBJECT_FROM_DOUBLE(val);
+    return PYOBJECT_FLOAT_FROM_DOUBLE(val);
 }
 
 /////////////// GCCDiagnostics.proto ///////////////
@@ -697,10 +697,10 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         if (sizeof({{TYPE}}) < sizeof(long)) {
             return PYOBJECT_INT_FROM_LONG((long) value);
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned long)) {
-            return PYOBJECT_FROM_UNSIGNED_LONG((unsigned long) value);
+            return PYOBJECT_INT_FROM_UNSIGNED_LONG((unsigned long) value);
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PYOBJECT_FROM_UNSIGNED_LONGLONG((unsigned PY_LONG_LONG) value);
+            return PYOBJECT_LONG_FROM_UNSIGNED_LONGLONG((unsigned PY_LONG_LONG) value);
 #endif
         }
     } else {
@@ -733,7 +733,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         // I'm deliberately not using PYIDENT here because this code path is very unlikely
         // to ever run so it seems a pessimization mostly.
 #if CYTHON_USING_HPY
-        order_str = PYOBJECT_FROM_STRING(little ? "little" : "big");
+        order_str = PYOBJECT_UNICODE_FROM_STRING(little ? "little" : "big");
         if (API_IS_NULL(order_str)) goto limited_bad;
         arg_tuple = TUPLE_PACK(2, py_bytes, order_str);
         if (API_IS_NULL(arg_tuple)) goto limited_bad;

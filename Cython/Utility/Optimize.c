@@ -1309,7 +1309,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             {{elif op == 'TrueDivide'}}
                 if ((8 * sizeof(long) <= 53 || likely(labs({{ival}}) <= ((PY_LONG_LONG)1 << 53)))
                         || __Pyx_PyLong_DigitCount({{pyval}}) <= 52 / PyLong_SHIFT) {
-                    return PYOBJECT_FROM_DOUBLE((double)a / (double)b);
+                    return PYOBJECT_FLOAT_FROM_DOUBLE((double)a / (double)b);
                 }
                 return PyLong_Type.tp_as_number->nb_{{slot_name}}(op1, op2);
             {{elif op == 'FloorDivide'}}
@@ -1379,7 +1379,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
             double result;
             {{zerodiv_check('b', 'float')}}
             result = ((double)a) {{c_op}} (double)b;
-            return PYOBJECT_FROM_DOUBLE(result);
+            return PYOBJECT_FLOAT_FROM_DOUBLE(result);
         {{endif}}
     }
     {{endif}}

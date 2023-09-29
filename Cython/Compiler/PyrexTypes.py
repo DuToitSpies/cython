@@ -2414,7 +2414,7 @@ class CPtrdiffTType(CIntType):
 class CFloatType(CNumericType):
 
     is_float = 1
-    to_py_function = "PYOBJECT_FROM_DOUBLE"
+    to_py_function = "PYOBJECT_FLOAT_FROM_DOUBLE"
     from_py_function = "__Pyx_PyFloat_AsDouble"
 
     exception_value = -1
