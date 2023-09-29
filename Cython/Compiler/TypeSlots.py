@@ -79,8 +79,8 @@ class Signature:
     type_to_format_map = {type_: format_ for format_, type_ in format_map.items()}
 
     error_value_map = {
-        'O': "NULL",
-        'T': "NULL",
+        'O': "API_NULL_VALUE",
+        'T': "API_NULL_VALUE",
         'i': "-1",
         'b': "-1",
         'l': "-1",

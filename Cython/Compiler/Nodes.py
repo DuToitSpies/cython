@@ -3769,7 +3769,7 @@ class DefNodeWrapper(FuncDefNode):
             varargs_args = "PYOBJECT_TYPE %s, PYOBJECT_TYPE %s" % (
                     Naming.args_cname, Naming.kwds_cname)
             if sig.use_fastcall:
-                fastcall_args = "PYOBJECT_TYPE const *%s, API_SSIZE_T %s, PYOBJECT_TYPE %s" % (
+                fastcall_args = "PYOBJECT_TYPE const *%s, size_t %s, PYOBJECT_TYPE %s" % (
                         Naming.args_cname, Naming.nargs_cname, Naming.kwds_cname)
                 arg_code_list.append(
                     "\n#if CYTHON_METH_FASTCALL\n%s\n#else\n%s\n#endif\n" % (
@@ -3933,7 +3933,7 @@ class DefNodeWrapper(FuncDefNode):
                     code.put_var_xdecref(arg.entry)
             code.put_add_traceback(self.target.entry.qualified_name)
             code.put_finish_refcount_context()
-            code.putln("return %s;" % self.error_value())
+            code.putln("return %s;//returns error value" % self.error_value())
         if code.label_used(end_label):
             code.put_label(end_label)
 
@@ -4068,11 +4068,24 @@ class DefNodeWrapper(FuncDefNode):
         code.putln('{')
         all_args = tuple(positional_args) + tuple(kw_only_args)
         non_posonly_args = [arg for arg in all_args if not arg.pos_only]
-        non_pos_args_id = ','.join(
-            ['&%s' % code.intern_identifier(arg.entry.name) for arg in non_posonly_args] + ['0'])
-        code.putln("PyObject **%s[] = {%s};" % (
+        non_pos_args_id = ""
+        loaded_args_arr = []
+        for arg in non_posonly_args:
+            arg_str = code.intern_identifier(arg.entry.name)
+            if not arg_str.startswith("__pyx_t_"):
+                temp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                loaded_args_arr.append(temp_load_arg)
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_arg, arg_str))
+                non_pos_args_id = non_pos_args_id + "&%s, " % temp_load_arg
+            else:
+                non_pos_args_id = non_pos_args_id + "&%s, " % arg_str
+        non_pos_args_id = non_pos_args_id + '0'
+        code.putln("PyObject **%s[] = {%s};////////" % (
             Naming.pykwdlist_cname,
             non_pos_args_id))
+        
+        for arg in loaded_args_arr:
+            code.funcstate.release_temp(arg)
 
         # Before being converted and assigned to the target variables,
         # borrowed references to all unpacked argument values are
@@ -4100,7 +4113,7 @@ class DefNodeWrapper(FuncDefNode):
             kw_unpacking_condition = "likely(%s)" % kw_unpacking_condition
 
         # --- optimised code when we receive keyword arguments
-        code.putln("if (%s) {" % kw_unpacking_condition)
+        code.putln("if (API_IS_NOT_NULL(%s)) {" % kw_unpacking_condition)
 
         if accept_kwd_args:
             self.generate_keyword_unpacking_code(
@@ -4276,7 +4289,7 @@ class DefNodeWrapper(FuncDefNode):
         # the 'values' array collects references to arguments
         # before doing any type coercion etc.. Whether they are borrowed or not
         # depends on the compilation options.
-        decl_code.putln("PyObject* values[%d] = {%s};" % (
+        decl_code.putln("PYOBJECT_TYPE values[%d] = {%s};" % (
             max_args, ','.join('0'*max_args)))
 
         if self.target.defaults_struct:
@@ -4393,8 +4406,18 @@ class DefNodeWrapper(FuncDefNode):
                     code.putln('else if (unlikely(PyErr_Occurred())) %s' % code.error_goto(self.pos))
                     code.putln('}')
                 else:
-                    code.putln('if (likely((values[%d] = __Pyx_GetKwValue_%s(%s, %s, %s)) != 0)) {' % (
-                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, pystring_cname))
+                    temp_load_pystr = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                    if pystring_cname.startswith("__pyx_t") or pystring_cname.startswith("__pyx_v"):
+                        pystr_is_global = False
+                        code.putln("%s = %s;" % (temp_load_pystr, pystring_cname))
+                    else:
+                        pystr_is_global = True
+                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_pystr, pystring_cname))
+                    code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
+                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, temp_load_pystr))
+                    if pystr_is_global:
+                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_pystr) #This should also be closed in the other else statements, but as they are errors it doesn't matter too much
+                    code.funcstate.release_temp(temp_load_pystr)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
                     code.putln('kw_args--;')
                     code.putln('}')
@@ -4476,7 +4499,7 @@ class DefNodeWrapper(FuncDefNode):
             values_array = 'values'
         code.globalstate.use_utility_code(
             UtilityCode.load_cached("ParseKeywords", "FunctionArguments.c"))
-        code.putln('if (unlikely(__Pyx_ParseOptionalKeywords(%s, %s, %s, %s, %s, %s, %s) < 0)) %s' % (
+        code.putln('if (unlikely(__Pyx_ParseOptionalKeywords(HPY_LEGACY_OBJECT_AS(%s), %s, %s, %s, %s, %s, %s) < 0)) %s' % (
             Naming.kwds_cname,
             Naming.kwvalues_cname,
             Naming.pykwdlist_cname,

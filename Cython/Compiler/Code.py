@@ -2156,10 +2156,10 @@ class CCodeWriter:
             entry.type.is_global = False
             self.put(entry.type.declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
-        if entry.init is not None:
-            self.put_safe(" = %s" % entry.type.literal_code(entry.init))
-        elif entry.type.is_pyobject:
+        if entry.type.is_pyobject:
             self.put(" = API_NULL_VALUE")
+        elif entry.init is not None:
+            self.put_safe(" = %s" % entry.type.literal_code(entry.init))
         self.putln(";")
         self.funcstate.scope.use_entry_utility_code(entry)
 
