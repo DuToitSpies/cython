@@ -4557,7 +4557,7 @@ class IndexNode(_IndexingBaseNode):
         utility_code = None
         error_value = None
         if self.type.is_pyobject:
-            error_value = 'NULL'
+            error_value = 'API_NULL_VALUE'
             if self.index.type.is_int:
                 if self.base.type is list_type:
                     function = "__Pyx_GetItemInt_List"
@@ -4609,7 +4609,7 @@ class IndexNode(_IndexingBaseNode):
                 self.result() if self.type.is_pyobject else None,
                 self.exception_value, self.in_nogil_context)
         else:
-            error_check = '!%s' if error_value == 'NULL' else '%%s == %s' % error_value
+            error_check = 'API_IS_NULL(%s)' if error_value == 'NULL' else '%%s == %s' % error_value
             code.putln(
                 "%s = %s(%s, %s%s); %s" % (
                     self.result(),
@@ -6518,12 +6518,18 @@ class SimpleCallNode(CallNode):
             arg_code = self.arg_tuple.py_result()
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCall", "ObjectHandling.c"))
+            func_result = self.function.py_result()
+            if func_result.startswith("__pyx_") and not func_result.startswith("__pyx_t_") and not func_result.startswith("__pyx_v_"):
+                func_result = "PYOBJECT_GLOBAL_LOAD(" + func_result + ")"
+            load_arg_code = arg_code
+            if load_arg_code.startswith("__pyx_") and not load_arg_code.startswith("__pyx_t_") and not load_arg_code.startswith("__pyx_v_"):
+                load_arg_code = "PYOBJECT_GLOBAL_LOAD(" + load_arg_code + ")"
             code.putln(
-                "%s = __Pyx_PyObject_Call(%s, %s, NULL); %s" % (
+                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), NULL)); %s" % (
                     self.result(),
-                    self.function.py_result(),
-                    arg_code,
-                    code.error_goto_if_null(self.result(), self.pos)))
+                    func_result,
+                    load_arg_code,
+                    code.error_goto_if_null_object(self.result(), self.pos)))
             self.generate_gotref(code)
         elif func_type.is_cfunction:
             nogil = not code.funcstate.gil_owned

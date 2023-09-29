@@ -475,9 +475,9 @@ bad:
 #define __Pyx_KwargsAsDict_VARARGS(kw, kwvalues) PyDict_Copy(kw)
 #if CYTHON_METH_FASTCALL
     #define __Pyx_Arg_FASTCALL(args, i) args[i]
-    #define __Pyx_NumKwargs_FASTCALL(kwds) PyTuple_GET_SIZE(kwds)
+    #define __Pyx_NumKwargs_FASTCALL(kwds) TUPLE_GET_SIZE(kwds)
     #define __Pyx_KwValues_FASTCALL(args, nargs) ((args) + (nargs))
-    static CYTHON_INLINE PyObject * __Pyx_GetKwValue_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues, PyObject *s);
+    static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetKwValue_FASTCALL(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kwnames, PYOBJECT_TYPE const *kwvalues, PYOBJECT_TYPE s);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030d0000
     CYTHON_UNUSED static PyObject *__Pyx_KwargsAsDict_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues);/*proto*/
   #else
@@ -514,26 +514,26 @@ bad:
 // kwnames: tuple with names of keyword arguments
 // kwvalues: C array with values of keyword arguments
 // s: str with the keyword name to look for
-static CYTHON_INLINE PyObject * __Pyx_GetKwValue_FASTCALL(PyObject *kwnames, PyObject *const *kwvalues, PyObject *s)
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetKwValue_FASTCALL(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kwnames, PYOBJECT_TYPE const *kwvalues, PYOBJECT_TYPE s)
 {
     // Search the kwnames array for s and return the corresponding value.
     // We do two loops: a first one to compare pointers (which will find a
     // match if the name in kwnames is interned, given that s is interned
     // by Cython). A second loop compares the actual strings.
-    Py_ssize_t i, n = PyTuple_GET_SIZE(kwnames);
+    API_SSIZE_T i, n = TUPLE_GET_SIZE(kwnames);
     for (i = 0; i < n; i++)
     {
-        if (s == PyTuple_GET_ITEM(kwnames, i)) return kwvalues[i];
+        if (API_IS_EQUAL(s, TUPLE_GET_ITEM(kwnames, i))) return kwvalues[i];
     }
     for (i = 0; i < n; i++)
     {
-        int eq = __Pyx_PyUnicode_Equals(s, PyTuple_GET_ITEM(kwnames, i), Py_EQ);
+        int eq = __Pyx_PyUnicode_Equals(HPY_LEGACY_OBJECT_AS(s), HPY_LEGACY_OBJECT_AS(TUPLE_GET_ITEM(kwnames, i)), Py_EQ);
         if (unlikely(eq != 0)) {
-            if (unlikely(eq < 0)) return NULL;  /* error */
+            if (unlikely(eq < 0)) return API_NULL_VALUE;  /* error */
             return kwvalues[i];
         }
     }
-    return NULL;  /* not found (no exception set) */
+    return API_NULL_VALUE;  /* not found (no exception set) */
 }
 
 #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030d0000
