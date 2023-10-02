@@ -6393,7 +6393,7 @@ class SimpleCallNode(CallNode):
     def calculate_result_code(self):
         return self.c_call_code()
 
-    def c_call_code(self):
+    def c_call_code(self, code=False):
         func_type = self.function_type()
         if self.type is PyrexTypes.error_type or not func_type.is_cfunction:
             return "<error>"
@@ -6422,9 +6422,11 @@ class SimpleCallNode(CallNode):
 
         arg_string = ""
         for arg in arg_list_code:
-            if arg.startswith("__pyx_") and not arg.startswith("__pyx_t_") and not arg.startswith("__pyx_v_"):
-                arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
-
+            if code:
+                if arg in code.globalstate.const_cname_array:
+                    arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
+                else:
+                    arg_string = arg_string + "%s" % arg
             else:
                 arg_string = arg_string + "%s" % arg
             arg_string = arg_string + ", "
@@ -6552,7 +6554,7 @@ class SimpleCallNode(CallNode):
                     else:
                         exc_checks.append("PyErr_Occurred()")
             if self.is_temp or exc_checks:
-                rhs = self.c_call_code()
+                rhs = self.c_call_code(code=code)
                 if self.result():
                     lhs = "%s = " % self.result()
                     if self.is_temp and self.type.is_pyobject:
