@@ -125,6 +125,7 @@ static int __pyx_CyFunction_init(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_GLOBAL_TYPE 
 
 #if CYTHON_USING_HPY
 HPyDef_CALL_FUNCTION(__Pyx_CyFunction_hpycall_NOARGS)
+HPyDef_CALL_FUNCTION(__Pyx_CyFunction_hpycall_KEYWORDS)
 #else /* CYTHON_USING_HPY */
 #if CYTHON_METH_FASTCALL
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
@@ -856,6 +857,9 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     case HPyFunc_NOARGS:
         HPy_SetCallFunction(HPY_CONTEXT_CNAME, op, &__Pyx_CyFunction_hpycall_NOARGS);
         break;
+    case HPyFunc_KEYWORDS:
+        HPy_SetCallFunction(HPY_CONTEXT_CNAME, op, &__Pyx_CyFunction_hpycall_KEYWORDS);
+        break;
     default:
         HPyErr_SetString(HPY_CONTEXT_CNAME, API_EXC(TypeError), "unknown signature");
         return HPy_NULL;
@@ -1285,6 +1289,37 @@ static HPy __Pyx_CyFunction_hpycall_NOARGS_impl(HPyContext *HPY_CONTEXT_CNAME, H
     }
     return result;
 }
+
+static HPy __Pyx_CyFunction_hpycall_KEYWORDS_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, const HPy *args, size_t nargs, HPy kwnames)
+{
+    __pyx_CyFunctionObject *cyfunc = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, func);
+    HPyDef *def = cyfunc->func;
+    assert(def->kind == HPyDef_Kind_Meth);
+    HPy result, self;
+    int self_needs_close = 0;
+
+    switch (__Pyx_CyFunction_Vectorcall_CheckArgs(HPY_CONTEXT_CNAME, cyfunc, nargs, kwnames)) {
+    case 1:
+        self = args[0];
+        args += 1;
+        nargs -= 1;
+        break;
+    case 0:
+        self = HPyField_Load(HPY_CONTEXT_CNAME, func, cyfunc->func_self);
+        self_needs_close = 1;
+        break;
+    default:
+        return HPy_NULL;
+    }
+
+    HPyFunc_keywords func_keywords = def->meth.impl;
+    result = func_keywords(HPY_CONTEXT_CNAME, self, args, nargs, kwnames);
+    if (self_needs_close) {
+        HPy_Close(HPY_CONTEXT_CNAME, self);
+    }
+    return result;
+}
+
 #else /* CYTHON_USING_HPY */
 static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames)
 {
@@ -1317,9 +1352,7 @@ static PyObject * __Pyx_CyFunction_Vectorcall_NOARGS(PyObject *func, PyObject *c
     }
     return def->ml_meth(self, NULL);
 }
-#endif /* CYTHON_USING_HPY */
 
-#if !CYTHON_USING_HPY
 static PyObject * __Pyx_CyFunction_Vectorcall_O(PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames)
 {
     __pyx_CyFunctionObject *cyfunc = (__pyx_CyFunctionObject *)func;
