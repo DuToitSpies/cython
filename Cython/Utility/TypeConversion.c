@@ -759,11 +759,11 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
 #endif
 
         limited_bad:
-        Py_XCLOSEREF(from_bytes);
-        Py_XCLOSEREF(py_bytes);
-        Py_XCLOSEREF(order_str);
-        Py_XCLOSEREF(arg_tuple);
-        Py_XCLOSEREF(kwds);
+        PYOBJECT_XCLOSEREF(from_bytes);
+        PYOBJECT_XCLOSEREF(py_bytes);
+        PYOBJECT_XCLOSEREF(order_str);
+        PYOBJECT_XCLOSEREF(arg_tuple);
+        PYOBJECT_XCLOSEREF(kwds);
         return result;
 #endif
     }
