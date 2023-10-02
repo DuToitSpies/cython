@@ -822,7 +822,7 @@ class __Pyx_FakeReference {
   #define PYOBJECT_INT_FROM_LONG(i) PyInt_FromLong(i)
   #define PYOBJECT_LONG_FROM_LONG(i) PyLong_FromLong(i)
   #define PYOBJECT_LONG_FROM_LONGLONG(i) PyLong_FromLongLong(i)
-  #define PYOBJECT_FROM_UNSIGNED_LONG(i) PyInt_FromUnsignedLong(i)
+  #define PYOBJECT_FROM_UNSIGNED_LONG(i) PyLong_FromUnsignedLong(i)
   #define PYOBJECT_FROM_UNSIGNED_LONGLONG(i) PyLong_FromUnsignedLongLong(i)
   #define PYOBJECT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
 
