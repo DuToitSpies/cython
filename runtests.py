@@ -244,6 +244,8 @@ def update_linetrace_extension(ext):
     return ext
 
 def update_hpy_extension(ext):
+    if getattr(ext, 'is_cython_hpy_ext', False):
+        return
     ext.define_macros.append(('HPY', 1))
     import hpy.devel
     # This should be set up by using the setuptools entrypoint
@@ -255,12 +257,12 @@ def update_hpy_extension(ext):
     hpy_ext.hpydevel = hpy.devel.HPyDevel()
     dist = get_distutils_distro()
     if not hasattr(dist, 'hpy_abi'):
-        # can be 'cpython' or 'universal'
-        # for now, always use 'cpython'
+        # can be 'cpython', 'hybrid', or 'universal'
         dist.hpy_abi = HPY_ABI
         dist.hpy_use_static_libs = False
     hpy_ext.distribution = dist
     hpy_ext._finalize_hpy_ext(ext)
+    ext.is_cython_hpy_ext = True
     return ext
 
 def update_numpy_extension(ext, set_api17_macro=True):
@@ -460,6 +462,7 @@ COMPILER = None
 COMPILER_HAS_INT128 = False
 OPENMP_C_COMPILER_FLAGS = get_openmp_compiler_flags('c')
 OPENMP_CPP_COMPILER_FLAGS = get_openmp_compiler_flags('cpp')
+PYTHON_API = None
 HPY_ABI = None
 
 # Return this from the EXT_EXTRAS matcher callback to exclude the extension
@@ -1314,6 +1317,9 @@ class CythonCompileTestCase(unittest.TestCase):
             # the "traceback" tag
             if 'traceback' not in self.tags['tag']:
                 extension.define_macros.append(("CYTHON_CLINE_IN_TRACEBACK", 1))
+
+            if PYTHON_API == 'hpy':
+                update_hpy_extension(extension)
 
             # Allow tests to be incrementally enabled with Py_LIMITED_API set.
             # This is intended to be temporary while limited API support
@@ -2451,8 +2457,10 @@ def main():
                       help="do not capture stdout, stderr in srctree tests. Makes pdb.set_trace interactive")
     parser.add_option("--limited-api", dest="limited_api", default=False, action="store_true",
                       help="Compiles Cython using CPython's LIMITED_API")
-    parser.add_option("--hpy-abi", dest="hpy_abi", default="cpython", action="store",
-                      help="Select the HPy ABI to use when running tests.")
+    parser.add_option("--hpy-abi", dest="hpy_abi", default=None, action="store",
+                      help="Select the HPy ABI to use when compiling and running tests.")
+    parser.add_option("--api", dest="api", default="capi", action="store",
+                      help="Select the API to use when compiling and running tests.")
 
     options, cmd_args = parser.parse_args(args)
 
@@ -2806,9 +2814,22 @@ def runtests(options, cmd_args, coverage=None):
     if options.compiler:
         COMPILER = options.compiler
 
+    global PYTHON_API
     global HPY_ABI
-    HPY_ABI = options.hpy_abi
+    if options.hpy_abi is not None:
+        HPY_ABI = options.hpy_abi
+    else:
+        HPY_ABI = 'cpython'
     sys.stderr.write("HPy ABI: '%s'\n" % HPY_ABI)
+
+    if options.api not in ('capi', 'hpy'):
+        sys.stderr.write("Unknown API requested: '%s'" % PYTHON_API)
+        sys.exit(1)
+    elif options.hpy_abi is not None and options.api != 'hpy':
+        PYTHON_API = 'hpy'
+    else:
+        PYTHON_API = options.api
+    sys.stderr.write("Using API: '%s'\n" % PYTHON_API)
 
     selected_backends = [ name.strip() for name in options.backends.split(',') if name.strip() ]
     backends = []
