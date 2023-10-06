@@ -1446,17 +1446,17 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_
 
 //////////////////// GetAttr.proto ////////////////////
 
-static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *, PyObject *); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(PYOBJECT_TYPE, PYOBJECT_TYPE); /*proto*/
 
 //////////////////// GetAttr ////////////////////
 //@requires: PyObjectGetAttrStr
 
-static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *o, PyObject *n) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(PYOBJECT_TYPE o, PYOBJECT_TYPE n) {
 #if CYTHON_USE_TYPE_SLOTS
     if (likely(PyUnicode_Check(n)))
         return __Pyx_PyObject_GetAttrStr(o, n);
 #endif
-    return PyObject_GetAttr(o, n);
+    return PYOBJECT_GET_ATTR(o, n);
 }
 
 

@@ -6874,15 +6874,15 @@ class ReturnStatNode(StatNode):
                     value.py_result()))
                 value.generate_disposal_code(code)
             else:
-                value.make_owned_reference(code)
-                if not hasattr(value, "is_global") or not value.is_global:
-                    code.putln("%s = %s;" % (
-                        Naming.retval_cname,
-                        value.result_as(self.return_type)))
-                else:
+                if (hasattr(value, "entry") and hasattr(value.entry, "cname") and value.entry.cname in code.globalstate.const_cname_array) or (hasattr(value, "result_code") and value.result_code in code.globalstate.const_cname_array):
+                    value.make_owned_reference(code)
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (
-                        Naming.retval_cname,
-                        value.result_as(self.return_type)))
+                    Naming.retval_cname,
+                    value.result_as(self.return_type)))
+                else:
+                    code.putln("%s = %s;" % (
+                    Naming.retval_cname,
+                    value.result_as(self.return_type)))
                 value.generate_post_assignment_code(code)
             value.free_temps(code)
         else:
