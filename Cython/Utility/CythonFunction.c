@@ -201,7 +201,12 @@ __Pyx_CyFunction_doc_get(HPyContext *HPY_CONTEXT_CNAME, __pyx_CyFunctionObject_F
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     HPy h_doc = HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_doc);
     if (HPy_IsNull(h_doc)) {
+        h_doc = HPyUnicode_FromString(HPY_CONTEXT_CNAME, struct_op->func->meth.doc);
+    }
+    if (HPy_IsNull(h_doc)) {
         return HPy_Dup(HPY_CONTEXT_CNAME, HPY_CONTEXT_CNAME->h_None);
+    } else {
+        HPyField_Store(HPY_CONTEXT_CNAME, op, &struct_op->func_doc, h_doc);
     }
     return h_doc;
 }
@@ -243,7 +248,7 @@ __Pyx_CyFunction_get_doc(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDe
     return op->func_doc;
 #else
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
-    return PYOBJECT_FIELD_LOAD(op, struct_op->func_doc);
+    return HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_doc);
 #endif
 }
 
@@ -822,6 +827,8 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     assert(ml->kind == HPyDef_Kind_Meth);
     struct_op->func = ml;
+    PYOBJECT_FIELD_STORE(op, struct_op->func_qualname, qualname);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_doc, HPyUnicode_FromString(HPY_CONTEXT_CNAME, ml->meth.doc));
 #endif /* !CYTHON_USING_HPY */
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
@@ -831,8 +838,6 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     PYOBJECT_FIELD_STORE(op, struct_op->func_closure, closure);
     PYOBJECT_FIELD_STORE(op, struct_op->func_dict, API_NULL_VALUE);
     PYOBJECT_FIELD_STORE(op, struct_op->func_name, API_NULL_VALUE);
-    PYOBJECT_FIELD_STORE(op, struct_op->func_qualname, qualname);
-    PYOBJECT_FIELD_STORE(op, struct_op->func_doc, API_NULL_VALUE);
     PYOBJECT_FIELD_STORE(op, struct_op->func_globals, globals);
     PYOBJECT_FIELD_STORE(op, struct_op->func_code,code);
     // Dynamic Default args
@@ -1447,7 +1452,7 @@ static PyType_Slot __pyx_CyFunctionType_slots[] = {
     {Py_tp_methods, (void *)__pyx_CyFunction_methods},
     {Py_tp_members, (void *)__pyx_CyFunction_members},
     {Py_tp_getset, (void *)__pyx_CyFunction_getsets},
-    {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
+{Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
     {0, 0},
 };
 

@@ -2048,16 +2048,19 @@ static CYTHON_INLINE int __Pyx_Is_Little_Endian(void)
     } while (0)
 #else
 #define __Pyx_Py_XDECREF_SET(r, v) do {                         \
-        /*PYOBJECT_XCLOSEREF(r);*/                                  \
+        HPy tmp = r;                                            \
         r = v;                                                  \
+        PYOBJECT_XCLOSEREF(tmp);                                \
     } while (0)
 #define __Pyx_XDECREF_SET(r, v) do {                            \
-        /*PYOBJECT_XCLOSEREF(r);*/                                  \
+        HPy tmp = r;                                            \
         r = v;                                                  \
+        PYOBJECT_XCLOSEREF(tmp);                                \
     } while (0)
 #define __Pyx_DECREF_SET(r, v) do {                             \
-        /*PYOBJECT_CLOSEREF(r);*/                                  \
+        HPy tmp = r;                                            \
         r = v;                                                  \
+        PYOBJECT_XCLOSEREF(tmp);                                \
     } while (0)
 #endif
 
