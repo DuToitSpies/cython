@@ -6870,7 +6870,7 @@ class ReturnStatNode(StatNode):
                     Naming.retval_cname,
                     value.result_as(self.return_type)))
                 else:
-                    code.putln("%s = %s;" % (
+                    code.putln("%s = PYOBJECT_NEWREF(%s);" % (
                     Naming.retval_cname,
                     value.result_as(self.return_type)))
                 value.generate_post_assignment_code(code)
