@@ -10346,16 +10346,16 @@ class CodeObjectNode(ExprNode):
         elif self.def_node.is_generator:
             flags.append('CO_GENERATOR')
 
-        load_empty_bytes_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-        load_empty_tuple_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-        load_varnames_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-        load_filepath_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-        load_funcname_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
+        load_empty_bytes_temp = code.funcstate.allocate_temp(py_object_type, True)
+        load_empty_tuple_temp = code.funcstate.allocate_temp(py_object_type, True)
+        load_varnames_temp = code.funcstate.allocate_temp(py_object_type, True)
+        load_filepath_temp = code.funcstate.allocate_temp(py_object_type, True)
+        load_funcname_temp = code.funcstate.allocate_temp(py_object_type, True)
 
         code.putln("#if CYTHON_USING_HPY")
 
         #Type decls are temporary, still need to figure out how to get them to be declared automatically
-
+        code.putln("{")
         code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_bytes_temp, Naming.empty_bytes)) 
         code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_empty_tuple_temp, Naming.empty_tuple))
         code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_varnames_temp, self.varnames.result()))
@@ -10391,6 +10391,8 @@ class CodeObjectNode(ExprNode):
         code.putln("PYOBJECT_CLOSEREF(%s);" % load_varnames_temp)
         code.putln("PYOBJECT_CLOSEREF(%s);" % load_filepath_temp)
         code.putln("PYOBJECT_CLOSEREF(%s);" % load_funcname_temp)
+
+        code.putln("}")
         
         code.putln("#else")
 
