@@ -1430,11 +1430,12 @@ static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {
     // {Py_tp_getset, (void *)__pyx_CyFunction_getsets},
     &__Pyx_CyFunction_doc,
     // {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
+    &__pyx_CyFunction_descr_get,
     NULL
 };
 
 static PyType_Slot __pyx_CyFunctionType_legacy_slots[] = {
-    {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
+    // {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
     {0, 0},
 };
 

@@ -2633,6 +2633,24 @@ static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UIN
 
 /////////////// PyMethodNew.proto ///////////////
 
+#if CYTHON_USING_HPY
+HPyDef_SLOT(__pyx_CyFunction_descr_get, HPy_tp_descr_get)
+static HPy __pyx_CyFunction_descr_get_impl(HPyContext *ctx, HPy func, HPy self, HPy typ) {
+    HPy typesModule=HPy_NULL, methodType=HPy_NULL, result=HPy_NULL;
+    CYTHON_UNUSED_VAR(typ);
+    if (HPy_IsNull(self))
+        return HPy_Dup(ctx, func);
+    typesModule = HPyImport_ImportModule(ctx, "types");
+    if (HPy_IsNull(typesModule)) return HPy_NULL;
+    methodType = HPy_GetAttr_s(ctx, typesModule, "MethodType");
+    HPy_Close(ctx, typesModule);
+    if (HPy_IsNull(methodType)) return HPy_NULL;
+    HPy args[] = { func, self };
+    result = HPy_Call(ctx, methodType, args, 2, HPy_NULL);
+    HPy_Close(ctx, methodType);
+    return result;
+}
+#else
 #if CYTHON_COMPILING_IN_LIMITED_API
 static PyObject *__Pyx_PyMethod_New(PyObject *func, PyObject *self, PyObject *typ) {
     PyObject *typesModule=NULL, *methodType=NULL, *result=NULL;
@@ -2657,6 +2675,7 @@ static PyObject *__Pyx_PyMethod_New(PyObject *func, PyObject *self, PyObject *ty
         return __Pyx_NewRef(func);
     return PyMethod_New(func, self);
 }
+#endif
 #endif
 
 ///////////// PyMethodNew2Arg.proto /////////////
