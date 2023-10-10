@@ -2534,8 +2534,7 @@ static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UIN
 /////////////// PyMethodNew.proto ///////////////
 
 #if CYTHON_USING_HPY
-HPyDef_SLOT(__pyx_CyFunction_descr_get, HPy_tp_descr_get)
-static HPy __pyx_CyFunction_descr_get_impl(HPyContext *ctx, HPy func, HPy self, HPy typ) {
+static HPy __Pyx_PyMethod_New(HPyContext *ctx, HPy func, HPy self, HPy typ) {
     HPy typesModule=HPy_NULL, methodType=HPy_NULL, result=HPy_NULL;
     CYTHON_UNUSED_VAR(typ);
     if (HPy_IsNull(self))
