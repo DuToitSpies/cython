@@ -58,7 +58,6 @@ typedef struct {
     __pyx_vectorcallfunc func_vectorcall;
 #endif
 #else /* !CYTHON_USING_HPY */
-    PyObject_HEAD
     HPyDef *func;
 #endif /* !CYTHON_USING_HPY */
     PYOBJECT_FIELD_TYPE func_self;
@@ -87,7 +86,7 @@ typedef struct {
 } __pyx_CyFunctionObject;
 
 #if CYTHON_USING_HPY
-HPyType_LEGACY_HELPERS(__pyx_CyFunctionObject)
+HPyType_HELPERS(__pyx_CyFunctionObject)
 #endif
 
 #undef __Pyx_CyOrPyCFunction_Check
@@ -1419,6 +1418,11 @@ static HPy __Pyx_CyFunction_call_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, c
 #if CYTHON_USE_TYPE_SPECS
 #if CYTHON_USING_HPY
 
+HPyDef_SLOT(__pyx_CyFunction_descr_get, HPy_tp_descr_get)
+static HPy __pyx_CyFunction_descr_get_impl(HPyContext *ctx, HPy func, HPy self, HPy typ) {
+    __Pyx_PyMethod_New(ctx, func, self, typ);
+}
+
 static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {
     &__Pyx_CyFunction_repr,
     &__Pyx_CyFunction_call,
@@ -1434,18 +1438,12 @@ static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {
     NULL
 };
 
-static PyType_Slot __pyx_CyFunctionType_legacy_slots[] = {
-    // {Py_tp_descr_get, (void *)__Pyx_PyMethod_New},
-    {0, 0},
-};
-
 static HPyType_Spec __pyx_CyFunctionType_spec = {
     __PYX_TYPE_MODULE_PREFIX "cython_function_or_method",
     .basicsize = sizeof(__pyx_CyFunctionObject),
     .itemsize = 0,
     .flags = HPy_TPFLAGS_DEFAULT | HPy_TPFLAGS_HAVE_GC | HPy_TPFLAGS_BASETYPE, /*tp_flags*/
     .builtin_shape = SHAPE(__pyx_CyFunctionObject),
-    .legacy_slots = __pyx_CyFunctionType_legacy_slots,
     .defines = __pyx_CyFunctionType_HPyDefines
 };
 #else /* CYTHON_USING_HPY */
