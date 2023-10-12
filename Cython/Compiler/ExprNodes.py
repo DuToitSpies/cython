@@ -10354,7 +10354,7 @@ class InnerFunctionNode(PyCFunctionNode):
     def closure_result_code(self):
         if self.needs_closure_code:
             return "((PyObject*)%s)" % Naming.cur_scope_cname
-        return "NULL"
+        return "API_NULL_VALUE"
 
 
 class CodeObjectNode(ExprNode):
@@ -14435,7 +14435,7 @@ class NoneCheckNode(CoercionNode):
 
     def put_nonecheck(self, code):
         code.putln(
-            "if (unlikely(%s == Py_None)) {" % self.condition())
+            "if (unlikely(API_IS_EQUAL(%s, API_NONE_VALUE))) {" % self.condition())
 
         if self.in_nogil_context:
             code.put_ensure_gil()

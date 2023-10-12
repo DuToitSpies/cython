@@ -1452,7 +1452,7 @@ class BuiltinObjectType(PyObjectType):
     vtabptr_cname = None
     typedef_flag = True
     is_external = True
-    decl_type = 'PyObject'
+    decl_type = 'PYOBJECT_TYPE'
 
     def __init__(self, name, cname, objstruct_cname=None):
         self.name = name
@@ -1556,17 +1556,17 @@ class BuiltinObjectType(PyObjectType):
             base_code = self.name
         else:
             base_code = public_decl(self.decl_type, dll_linkage)
-            entity_code = "*%s" % entity_code
+            entity_code = "%s" % entity_code
         return self.base_declaration_code(base_code, entity_code)
 
     def as_pyobject(self, cname):
-        if self.decl_type == 'PyObject':
+        if self.decl_type == 'PYOBJECT_TYPE':
             return cname
         else:
-            return "(PyObject *)" + cname
+            return "(PYOBJECT_TYPE)" + cname
 
     def cast_code(self, expr_code, to_object_struct = False):
-        return "((%s*)%s)" % (
+        return "((%s)%s)" % (
             to_object_struct and self.objstruct_cname or self.decl_type,  # self.objstruct_cname may be None
             expr_code)
 

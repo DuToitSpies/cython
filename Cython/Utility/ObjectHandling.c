@@ -2839,7 +2839,7 @@ static CYTHON_INLINE PyObject* __Pyx_PySequence_Multiply(PyObject *seq, Py_ssize
 #if CYTHON_COMPILING_IN_LIMITED_API
 typedef PYOBJECT_TYPE __Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%U"
-static __Pyx_TypeName __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp); /*proto*/
+static __Pyx_TypeName __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp); /*proto*/
 #define __Pyx_DECREF_TypeName(obj) PYOBJECT_XCLOSEREF(obj)
 #else
 typedef const char *__Pyx_TypeName;
@@ -2854,10 +2854,10 @@ typedef const char *__Pyx_TypeName;
 
 #if CYTHON_COMPILING_IN_LIMITED_API
 static __Pyx_TypeName
-__Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PyTypeObject* tp)
+__Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp)
 {
     PYOBJECT_TYPE load_name_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("__name__"));
-    PYOBJECT_TYPE name = __Pyx_PyObject_GetAttrStr(HPY_LEGACY_OBJECT_FROM((PyObject *)tp), load_name_temp);
+    PYOBJECT_TYPE name = __Pyx_PyObject_GetAttrStr(tp, load_name_temp);
     PYOBJECT_GLOBAL_CLOSEREF(load_name_temp);
     if (unlikely(API_IS_NULL(name)) || unlikely(!PyUnicode_Check(HPY_LEGACY_OBJECT_AS(name)))) {
         PyErr_Clear();

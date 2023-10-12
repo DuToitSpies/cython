@@ -2322,7 +2322,7 @@ class CCodeWriter:
 
     def put_init_to_py_none(self, cname, type, nanny=True):
         from .PyrexTypes import py_object_type, typecast
-        py_none = typecast(type, py_object_type, "Py_None")
+        py_none = typecast(type, py_object_type, "API_NONE_VALUE")
         if nanny:
             self.putln("%s = __Pyx_hNewRef(API_NONE_VALUE);" % (cname))
         else:

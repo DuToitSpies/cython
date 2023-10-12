@@ -4,26 +4,26 @@
 // Exact is 0 (False), 1 (True) or 2 (True and from annotation)
 // The latter gives a small amount of extra error diagnostics
 #define __Pyx_ArgTypeTest(obj, type, none_allowed, name, exact) \
-    ((likely(__Pyx_IS_TYPE(obj, type) | (none_allowed && (obj == Py_None)))) ? 1 : \
+    ((likely(__Pyx_IS_TYPE(obj, type) | (none_allowed && (API_IS_EQUAL(obj, API_NONE_VALUE))))) ? 1 : \
         __Pyx__ArgTypeTest(obj, type, name, exact))
 
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact); /*proto*/
+static int __Pyx__ArgTypeTest(PYOBJECT_TYPE obj, PYTYPEOBJECT_TYPE type, const char *name, int exact); /*proto*/
 
 //////////////////// ArgTypeTest ////////////////////
 //@substitute: naming
 
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
+static int __Pyx__ArgTypeTest(PYOBJECT_TYPE obj, PYTYPEOBJECT_TYPE type, const char *name, int exact)
 {
     __Pyx_TypeName type_name;
     __Pyx_TypeName obj_type_name;
-    PyObject *extra_info = $empty_unicode;
+    PYOBJECT_TYPE extra_info = PYOBJECT_GLOBAL_LOAD($empty_unicode);
     int from_annotation_subclass = 0;
     if (unlikely(!type)) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
         return 0;
     }
     else if (!exact) {
-        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
+        if (likely(__Pyx_TypeCheck(HPY_LEGACY_OBJECT_AS(obj), HPY_LEGACY_OBJECT_AS(type)))) return 1;
     } else if (exact == 2) {
         // type from annotation
         if (__Pyx_TypeCheck(obj, type)) {
@@ -32,7 +32,7 @@ static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *nam
         }
     }
     type_name = __Pyx_PyType_GetName(type);
-    obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    obj_type_name = __Pyx_PyType_GetName(GET_TYPE(obj));
     PyErr_Format(PyExc_TypeError,
         "Argument '%.200s' has incorrect type (expected " __Pyx_FMT_TYPENAME
         ", got " __Pyx_FMT_TYPENAME ")"
