@@ -2,26 +2,26 @@
 
 
 #define __Pyx_ArgTypeTest(obj, type, none_allowed, name, exact) \
-    ((likely(__Pyx_IS_TYPE(obj, type) | (none_allowed && (obj == Py_None)))) ? 1 : \
+    ((likely(__Pyx_IS_TYPE(obj, type) | (none_allowed && (API_IS_EQUAL(obj, API_NONE_VALUE))))) ? 1 : \
         __Pyx__ArgTypeTest(obj, type, name, exact))
 
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact); /*proto*/
+static int __Pyx__ArgTypeTest(PYOBJECT_TYPE obj, PYTYPEOBJECT_TYPE type, const char *name, int exact); /*proto*/
 
 //////////////////// ArgTypeTest ////////////////////
 
-static int __Pyx__ArgTypeTest(PyObject *obj, PyTypeObject *type, const char *name, int exact)
+static int __Pyx__ArgTypeTest(PYOBJECT_TYPE obj, PYTYPEOBJECT_TYPE type, const char *name, int exact)
 {
     __Pyx_TypeName type_name;
     __Pyx_TypeName obj_type_name;
-    if (unlikely(!type)) {
+    if (unlikely(API_IS_NULL(type))) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
         return 0;
     }
     else if (!exact) {
-        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
+        if (likely(__Pyx_TypeCheck(HPY_LEGACY_OBJECT_AS(obj), HPY_LEGACY_OBJECT_AS(type)))) return 1;
     }
     type_name = __Pyx_PyType_GetName(type);
-    obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    obj_type_name = __Pyx_PyType_GetName(GET_TYPE(obj));
     PyErr_Format(PyExc_TypeError,
         "Argument '%.200s' has incorrect type (expected " __Pyx_FMT_TYPENAME
         ", got " __Pyx_FMT_TYPENAME ")", name, type_name, obj_type_name);

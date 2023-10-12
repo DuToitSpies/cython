@@ -133,6 +133,7 @@
   #define TYPESPEC_GET(s, field) s.field
   #define TYPE_CHECK(o) HPy_TypeCheck(HPY_CONTEXT_CNAME, (o), HPY_CONTEXT_CNAME->h_TypeType)
   #define TYPE_AS_PYOBJECT(t) t
+  #define GET_TYPE(o) HPy_Type(HPY_CONTEXT_CNAME, o)
 
 
   //Error & Exception Macros
@@ -280,6 +281,7 @@
   #define TYPESPEC_GET(s, field) s->field
   #define TYPE_CHECK(o) PyType_Check(o)
   #define TYPE_AS_PYOBJECT(t) (PyObject*)&##t
+  #define GET_TYPE(o) Py_TYPE(o)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() (!!PyErr_Occurred())

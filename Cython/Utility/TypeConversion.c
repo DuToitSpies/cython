@@ -317,7 +317,7 @@ static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject* x) {
 }
 
 static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_DEF PyObject* result, const char* type_name) {
-    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL Py_TYPE(result));
+    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(HPY_LEGACY_OBJECT_FROM(result)));
     if (PyLong_Check(result)) {
         // CPython issue #17576: warn if 'result' not of exact type int.
         if (PyErr_WarnFormat(PyExc_DeprecationWarning, 1,

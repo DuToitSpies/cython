@@ -673,8 +673,13 @@ class __Pyx_FakeReference {
 #define CYTHON_FORMAT_SSIZE_T "z"
 
 // TODO: remove this block
+#if CYTHON_USING_HPY
+  #define __Pyx_BUILTIN_MODULE_NAME "HPY_CONTEXT_CNAME->h_Builtins"
+  #define __Pyx_DefaultClassType HPyType_Type
+#else
 #define __Pyx_BUILTIN_MODULE_NAME "builtins"
 #define __Pyx_DefaultClassType PyType_Type
+#endif
 
 #if CYTHON_COMPILING_IN_LIMITED_API
     // Note that the limited API doesn't know about PyCodeObject, so the type of this

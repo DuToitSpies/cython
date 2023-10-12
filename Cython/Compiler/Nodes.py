@@ -2091,7 +2091,7 @@ class FuncDefNode(StatNode, BlockNode):
             # Scope unconditionally DECREFed on return.
             code.putln("%s = __Pyx_NewRef(%s);" % (
                 Naming.cur_scope_cname,
-                lenv.scope_class.type.cast_code("Py_None")))
+                lenv.scope_class.type.cast_code("API_NONE_VALUE")))
             code.putln(code.error_goto(self.pos))
             code.putln("} else {")
             code.put_gotref(Naming.cur_scope_cname, lenv.scope_class.type)
@@ -3836,7 +3836,7 @@ class DefNodeWrapper(FuncDefNode):
         for arg in self.args:
             if arg.is_generic:
                 if arg.needs_conversion:
-                    code.putln("PyObject *%s = 0;" % arg.hdr_cname)
+                    code.putln("PYOBJECT_TYPE %s = API_DEFAULT_VALUE;" % arg.hdr_cname)
                 else:
                     code.put_var_declaration(arg.entry)
         for entry in env.var_entries:
@@ -4782,7 +4782,7 @@ class GeneratorBodyDefNode(DefNode):
         self.generate_function_header(code)
         closure_init_code = code.insertion_point()
         # ----- Local variables
-        code.putln("PyObject *%s = NULL;" % Naming.retval_cname)
+        code.putln("PYOBJECT_TYPE %s = API_NULL_VALUE;" % Naming.retval_cname)
         tempvardecl_code = code.insertion_point()
         code.put_declare_refcount_context()
         code.put_setup_refcount_context(self.entry.name or self.entry.qualified_name)
@@ -4896,10 +4896,10 @@ class GeneratorBodyDefNode(DefNode):
             resume_code.putln("case %d: goto %s;" % (i, label))
         resume_code.putln("default: /* CPython raises the right error here */")
         if profile or linetrace:
-            resume_code.put_trace_return("Py_None",
+            resume_code.put_trace_return("API_NONE_VALUE",
                                          nogil=not code.funcstate.gil_owned)
         resume_code.put_finish_refcount_context()
-        resume_code.putln("return NULL;")
+        resume_code.putln("return API_NULL_VALUE;")
         resume_code.putln("}")
 
         code.exit_cfunc_scope()
@@ -4947,9 +4947,9 @@ class OverrideCheckNode(StatNode):
 
         # Check to see if we are an extension type
         if self.py_func.is_module_scope:
-            self_arg = "((PyObject *)%s)" % Naming.module_cname
+            self_arg = "((PYOBJECT_TYPE)%s)" % Naming.module_cname
         else:
-            self_arg = "((PyObject *)%s)" % self.args[0].cname
+            self_arg = "((PYOBJECT_TYPE)%s)" % self.args[0].cname
         code.putln("/* Check if called by wrapper */")
         code.putln("if (unlikely(%s)) ;" % Naming.skip_dispatch_cname)
         code.putln("/* Check if overridden in Python */")
@@ -6904,7 +6904,7 @@ class ReturnStatNode(StatNode):
                         code.globalstate.use_utility_code(
                             UtilityCode.load_cached("StopAsyncIteration", "Coroutine.c"))
                         code.put("PyErr_SetNone(__Pyx_PyExc_StopAsyncIteration); ")
-                    code.putln("%s = NULL;" % Naming.retval_cname)
+                    code.putln("%s = API_NULL_VALUE;" % Naming.retval_cname)
                 else:
                     code.put_init_to_py_none(Naming.retval_cname, self.return_type)
             elif self.return_type.is_returncode:

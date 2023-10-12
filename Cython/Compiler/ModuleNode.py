@@ -448,7 +448,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
     def generate_cclass_header_code(self, type, h_code):
         h_code.putln("%s %s %s;" % (
             Naming.extern_c_macro,
-            PyrexTypes.public_decl("PyTypeObject", "DL_IMPORT"),
+            PyrexTypes.public_decl("PYTYPEOBJECT_TYPE", "DL_IMPORT"),
             type.typeobj_cname))
 
     def generate_cclass_include_code(self, type, i_code):
@@ -1224,12 +1224,12 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             if entry.visibility == 'extern' and not entry.in_cinclude:
                 code.putln("%s %s %s;" % (
                     Naming.extern_c_macro,
-                    PyrexTypes.public_decl("PyTypeObject", "DL_IMPORT"),
+                    PyrexTypes.public_decl("PYTYPEOBJECT_TYPE", "DL_IMPORT"),
                     name))
             elif entry.visibility == 'public':
                 code.putln("%s %s %s;" % (
                     Naming.extern_c_macro,
-                    PyrexTypes.public_decl("PyTypeObject", "DL_EXPORT"),
+                    PyrexTypes.public_decl("PYTYPEOBJECT_TYPE", "DL_EXPORT"),
                     name))
             # ??? Do we really need the rest of this? ???
             #else:
@@ -1673,7 +1673,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if needs_error_cleanup:
             code.putln("bad:")
             code.put_decref_clear("o", py_object_type, nanny=False)
-            code.putln("return NULL;")
+            code.putln("return API_NULL_VALUE;")
         code.putln(
             "}")
 
@@ -3237,7 +3237,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
         if profile or linetrace:
             code.funcstate.can_trace = False
-            code.put_trace_return("Py_None", nogil=not code.funcstate.gil_owned)
+            code.put_trace_return("API_NONE_VALUE", nogil=not code.funcstate.gil_owned)
 
         code.putln()
         code.putln("/*--- Wrapped vars code ---*/")
