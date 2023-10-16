@@ -2866,7 +2866,7 @@ class OptimizeBuiltinCalls(Visitor.NodeRefCleanupMixin,
         if len(pos_args) != 1:
             return node
         node = ExprNodes.PythonCapiCallNode(
-            node.pos, "Py_TYPE", self.Pyx_Type_func_type,
+            node.pos, "GET_TYPE", self.Pyx_Type_func_type,
             args = pos_args,
             is_temp = False)
         return ExprNodes.CastNode(node, PyrexTypes.py_object_type)

@@ -4617,7 +4617,17 @@ class IndexNode(_IndexingBaseNode):
                 self.result() if self.type.is_pyobject else None,
                 self.exception_value, self.in_nogil_context)
         else:
-            error_check = 'API_IS_NULL(%s)' if error_value == 'NULL' else '%%s == %s' % error_value
+            error_check = '!%s' if error_value == 'NULL' else 'API_IS_EQUAL(%%s, %s)' % error_value
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln(
+                "%s = %s(HPY_CONTEXT_CNAME, %s, %s%s); %s" % (
+                    self.result(),
+                    function,
+                    self.base.py_result(),
+                    index_code,
+                    self.extra_index_params(code),
+                    code.error_goto_if(error_check % self.result(), self.pos)))
+            code.putln("#else")
             code.putln(
                 "%s = %s(%s, %s%s); %s" % (
                     self.result(),
@@ -4626,6 +4636,7 @@ class IndexNode(_IndexingBaseNode):
                     index_code,
                     self.extra_index_params(code),
                     code.error_goto_if(error_check % self.result(), self.pos)))
+            code.putln("#endif")
         if self.type.is_pyobject:
             self.generate_gotref(code)
 
@@ -8244,13 +8255,12 @@ class SequenceNode(ExprNode):
                 arg.generate_giveref(code)
                 code.putln("#endif")
                 if self.type is tuple_type:
-                    code.putln("if (%s(%s, %s, %s, %s)) %s;" % (
+                    code.putln("%s(%s, %s, %s, %s);" % (
                         set_item_func,
                         target,
                         tmp_builder,
                         (offset and i) and ('%s + %s' % (offset, i)) or (offset or i),
-                        arg.py_result(),
-                        code.error_goto(self.pos)))
+                        arg.py_result()))
                 else:
                     code.putln("if (%s(%s, %s, %s)) %s;" % (
                         set_item_func,
@@ -13571,7 +13581,7 @@ class CmpNode:
     def generate_operation_code(self, code, result_code,
             operand1, op, operand2):
         if self.type.is_pyobject:
-            error_clause = code.error_goto_if_null
+            error_clause = code.error_goto_if_null_object
             got_ref = "__Pyx_XGOTREF(%s); " % result_code
             if self.special_bool_cmp_function:
                 code.globalstate.use_utility_code(
@@ -13611,9 +13621,9 @@ class CmpNode:
         elif operand1.type.is_pyobject and op not in ('is', 'is_not'):
             assert op not in ('in', 'not_in'), op
             assert self.type.is_pyobject or self.type is PyrexTypes.c_bint_type
-            code.putln("%s = PyObject_RichCompare%s(%s, %s, %s); %s%s" % (
+            code.putln("%s = API_RICH_COMPARE%s(%s, %s, %s); %s%s" % (
                     result_code,
-                    "" if self.type.is_pyobject else "Bool",
+                    "" if self.type.is_pyobject else "_BOOL",
                     operand1.py_result(),
                     operand2.py_result(),
                     richcmp_constants[op],
@@ -13641,12 +13651,19 @@ class CmpNode:
                 common_type = type1
             code1 = operand1.result_as(common_type)
             code2 = operand2.result_as(common_type)
-            statement = "%s = %s(%s %s %s);" % (
-                result_code,
-                coerce_result,
-                code1,
-                self.c_operator(op),
-                code2)
+            op_value = self.c_operator(op)
+            if op_value == "==" and operand1.type == py_object_type and operand2.type == py_object_type:
+                statement = "%s = API_IS_EQUAL(%s, %s);" % (
+                    result_code,
+                    code1,
+                    code2)
+            else:
+                statement = "%s = %s(%s %s %s);" % (
+                    result_code,
+                    coerce_result,
+                    code1,
+                    self.c_operator(op),
+                    code2)
             if self.is_cpp_comparison() and self.exception_check == '+':
                 translate_cpp_exception(
                     code,
