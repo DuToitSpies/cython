@@ -2455,6 +2455,16 @@ class FuncDefNode(StatNode, BlockNode):
                 # 2 is used to indicate that the type is from the annotation
                 # and provide a little extra info on failure.
                 exact = 2 if arg.type_from_annotation else 1
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln(
+                'if (unlikely(!__Pyx_ArgTypeTest(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)%s), %d, %s, %s))) %s' % (
+                    arg.entry.cname,
+                    typeptr_cname,
+                    arg.accept_none,
+                    arg.name_cstring,
+                    exact,
+                    code.error_goto(arg.pos)))
+            code.putln("#else")
             code.putln(
                 'if (unlikely(!__Pyx_ArgTypeTest(%s, %s, %d, %s, %s))) %s' % (
                     arg_code,
@@ -2463,6 +2473,7 @@ class FuncDefNode(StatNode, BlockNode):
                     arg.name_cstring,
                     exact,
                     code.error_goto(arg.pos)))
+            code.putln("#endif")
         else:
             error(arg.pos, "Cannot test type of extern C class without type object name specification")
 
@@ -4135,7 +4146,7 @@ class DefNodeWrapper(FuncDefNode):
             # the kw-args dict passed is non-empty (which it will be, since kw_unpacking_condition is true)
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("ParseKeywords", "FunctionArguments.c"))
-            code.putln('if (likely(__Pyx_ParseOptionalKeywords(%s, %s, %s, %s, %s, %s, %s) < 0)) %s' % (
+            code.putln('if (likely(__Pyx_ParseOptionalKeywords(HPY_LEGACY_OBJECT_AS(%s), %s, %s, %s, %s, %s, %s) < 0)) %s' % (
                 Naming.kwds_cname,
                 Naming.kwvalues_cname,
                 Naming.pykwdlist_cname,
@@ -4250,6 +4261,7 @@ class DefNodeWrapper(FuncDefNode):
                 if arg.default:
                     # C-typed default arguments must be handled here
                     code.putln('if (%s) {' % item)
+                item = "HPY_LEGACY_OBJECT_AS(%s)" % item
                 code.putln(arg.type.from_py_call_code(
                     item, arg.entry.cname, arg.pos, code))
                 if arg.default:
@@ -4300,7 +4312,7 @@ class DefNodeWrapper(FuncDefNode):
         # before doing any type coercion etc.. Whether they are borrowed or not
         # depends on the compilation options.
         decl_code.putln("PYOBJECT_TYPE values[%d] = {%s};" % (
-            max_args, ','.join('0'*max_args)))
+            max_args, ','.join(['API_DEFAULT_VALUE']*max_args)))
 
         if self.target.defaults_struct:
             code.putln('%s *%s = __Pyx_CyFunction_Defaults(%s, %s);' % (
@@ -4416,16 +4428,16 @@ class DefNodeWrapper(FuncDefNode):
                     code.putln('else if (unlikely(PyErr_Occurred())) %s' % code.error_goto(self.pos))
                     code.putln('}')
                 else:
-                    temp_load_pystr = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+                    tmp_load_pystr = code.funcstate.allocate_temp(py_object_type, False)
                     if pystring_cname in code.globalstate.const_cname_array:
-                        code.putln("%s = %s;" % (temp_load_pystr, pystring_cname))
+                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_pystr, pystring_cname))
                     else:
-                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_pystr, pystring_cname))
+                        code.putln("%s = %s;" % (tmp_load_pystr, pystring_cname))
                     code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
-                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, temp_load_pystr))
+                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr))
                     if pystring_cname in code.globalstate.const_cname_array:
-                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_pystr) #This should also be closed in the other else statements, but as they are errors it doesn't matter too much
-                    code.funcstate.release_temp(temp_load_pystr)
+                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_pystr)
+                    code.funcstate.release_temp(tmp_load_pystr)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
                     code.putln('kw_args--;')
                     code.putln('}')
@@ -6896,15 +6908,21 @@ class ReturnStatNode(StatNode):
                     value.py_result()))
                 value.generate_disposal_code(code)
             else:
+                value.make_owned_reference(code)
                 if (hasattr(value, "entry") and hasattr(value.entry, "cname") and value.entry.cname in code.globalstate.const_cname_array) or (hasattr(value, "result_code") and value.result_code in code.globalstate.const_cname_array):
-                    value.make_owned_reference(code)
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (
                     Naming.retval_cname,
                     value.result_as(self.return_type)))
                 else:
+                    code.putln("#if CYTHON_USING_HPY")
                     code.putln("%s = PYOBJECT_NEWREF(%s);" % (
                     Naming.retval_cname,
                     value.result_as(self.return_type)))
+                    code.putln("#else")
+                    code.putln("%s = %s;" % (
+                    Naming.retval_cname,
+                    value.result_as(self.return_type)))
+                    code.putln("#endif")
                 value.generate_post_assignment_code(code)
             value.free_temps(code)
         else:

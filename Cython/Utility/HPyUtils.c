@@ -53,6 +53,7 @@
   //General Methods
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
   #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
+  #define API_RICH_COMPARE_BOOL(h1, h2, op) HPy_RichCompareBool(HPY_CONTEXT_CNAME, h1, h2, op)
 
   //API Call Macros
   #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
@@ -63,8 +64,11 @@
   #define API_SSIZE_T HPy_ssize_t
 
   //Type Checks
-  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
+  #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
+  #define FLOAT_CHECK_EXACT(f) HPyNumber_Check(HPY_CONTEXT_CNAME, f)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
+  #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
+  #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -80,6 +84,7 @@
 
   //Long Type - To
   #define PYOBJECT_LONG_AS_SSIZE(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) HPyLong_AsUnsignedLong(HPY_CONTEXT_CNAME, l)
 
   //Float Type - From
   #define PYOBJECT_FLOAT_FROM_DOUBLE(f) HPyFloat_FromDouble(HPY_CONTEXT_CNAME, f)
@@ -104,6 +109,7 @@
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) HPy_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
 
   //Sequence Type
 
@@ -134,7 +140,7 @@
   #define TYPE_CHECK(o) HPy_TypeCheck(HPY_CONTEXT_CNAME, (o), HPY_CONTEXT_CNAME->h_TypeType)
   #define TYPE_AS_PYOBJECT(t) t
   #define GET_TYPE(o) HPy_Type(HPY_CONTEXT_CNAME, o)
-
+  #define OBJ_IS_TYPE(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
@@ -200,6 +206,7 @@
   //General Methods
   #define API_IS_EQUAL(a, b) a==b
   #define API_RICH_COMPARE(h1, h2, op) PyObject_RichCompare(h1, h2, op)
+  #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 
   //API Call Macros
   #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(HPY_CONTEXT_CNAME, callable, args, kwnames)
@@ -210,9 +217,11 @@
   #define API_SSIZE_T Py_ssize_t
 
   //Number Type Checks
+  #define LONG_CHECK(l) PyLong_Check(l)
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
   #define DICT_CHECK(o) PyDict_Check(o)
-
+  #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
+  #define TUPLE_CHECK(o) PyTuple_Check(o)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) PyInt_FromLong(i)
@@ -228,6 +237,7 @@
 
   //Long Type - To
   #define PYOBJECT_LONG_AS_SSIZE(l) PyLong_AsSsize_t(l)
+  #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) PyLong_AsUnsignedLong(l)
 
   //Float Type - From
   #define PYOBJECT_FLOAT_FROM_DOUBLE(f) PyFloat_FromDouble(f)
@@ -252,12 +262,13 @@
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
+  #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) PyDict_GetItemWithError(o, attr_name)
 
   //Sequence Type
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
-  #define TUPLE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
+  #define TUPLE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
   #define TUPLE_GET_SIZE(h) PyTuple_GET_SIZE(h)
   #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
@@ -268,7 +279,7 @@
   //List Type
 
   //PyObject/HPy Handle Type
-  #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) PyObject_SetItem(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR(o, attr_name) PyObject_GetAttr(o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
@@ -282,6 +293,7 @@
   #define TYPE_CHECK(o) PyType_Check(o)
   #define TYPE_AS_PYOBJECT(t) (PyObject*)&##t
   #define GET_TYPE(o) Py_TYPE(o)
+  #define OBJ_IS_TYPE(o, t) Py_IS_TYPE(o, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() (!!PyErr_Occurred())

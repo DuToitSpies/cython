@@ -1412,6 +1412,7 @@ class GlobalState:
             c_string = self.get_string_const(text)
         py_string = c_string.get_py_string_const(
             text.encoding, identifier, is_str, py3str_cstring)
+        self.const_cname_array.append(py_string.cname)
         return py_string
 
     def get_interned_identifier(self, text):
@@ -1421,21 +1422,21 @@ class GlobalState:
         cname = self.new_string_const_cname(byte_string)
         c = StringConst(cname, text, byte_string)
         self.string_const_index[byte_string] = c
-        self.const_cname_array.append(cname)
+        self.const_cname_array.append(c.cname)
         return c
 
     def new_num_const(self, value, py_type, value_code=None):
         cname = self.new_num_const_cname(value, py_type)
         c = NumConst(cname, value, py_type, value_code)
         self.num_const_index[(value, py_type)] = c
-        self.const_cname_array.append(cname)
+        self.const_cname_array.append(c.cname)
         return c
 
     def new_py_const(self, type, prefix=''):
         cname = self.new_const_cname(prefix)
         c = PyObjectConst(cname, type)
         self.py_constants.append(c)
-        self.const_cname_array.append(cname)
+        self.const_cname_array.append(c.cname)
         return c
 
     def new_string_const_cname(self, bytes_value):

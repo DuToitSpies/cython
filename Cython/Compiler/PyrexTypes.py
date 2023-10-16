@@ -352,7 +352,7 @@ class PyrexType(BaseType):
                              from_py_function=None, error_condition=None, extra_args=None,
                              special_none_cvalue=None):
         args = ', ' + ', '.join('%s' % arg for arg in extra_args) if extra_args else ''
-        convert_call = "%s(%s%s)" % (
+        convert_call = "%s(HPY_CONTEXT_FIRST_ARG_CALL %s%s)" % (
             from_py_function or self.from_py_function,
             source_code,
             args,
@@ -1556,7 +1556,7 @@ class BuiltinObjectType(PyObjectType):
             base_code = self.name
         else:
             base_code = public_decl(self.decl_type, dll_linkage)
-            entity_code = "%s" % entity_code
+            entity_code = "CAPI_IS_POINTER %s" % entity_code
         return self.base_declaration_code(base_code, entity_code)
 
     def as_pyobject(self, cname):
@@ -1566,7 +1566,7 @@ class BuiltinObjectType(PyObjectType):
             return "(PYOBJECT_TYPE)" + cname
 
     def cast_code(self, expr_code, to_object_struct = False):
-        return "((%s)%s)" % (
+        return "((%s CAPI_IS_POINTER)%s)" % (
             to_object_struct and self.objstruct_cname or self.decl_type,  # self.objstruct_cname may be None
             expr_code)
 

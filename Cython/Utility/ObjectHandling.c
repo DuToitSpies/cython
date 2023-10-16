@@ -352,52 +352,65 @@ static PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject *key) {
 /////////////// DictGetItem.proto ///////////////
 
 #if !CYTHON_COMPILING_IN_PYPY
-static PyObject *__Pyx_PyDict_GetItem(PyObject *d, PyObject* key);/*proto*/
+static PYOBJECT_TYPE __Pyx_PyDict_GetItem(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d, PYOBJECT_TYPE key);/*proto*/
 
+#if CYTHON_USING_HPY
+#define __Pyx_PyObject_Dict_GetItem(HPY_CONTEXT_CNAME, obj, name) \
+    (likely(DICT_CHECK_EXACT(obj)) ? \
+     __Pyx_PyDict_GetItem(HPY_CONTEXT_CNAME, obj, name) : PYOBJECT_GET_ITEM(obj, name))
+#else
 #define __Pyx_PyObject_Dict_GetItem(obj, name) \
-    (likely(PyDict_CheckExact(obj)) ? \
-     __Pyx_PyDict_GetItem(obj, name) : PyObject_GetItem(obj, name))
+    (likely(DICT_CHECK_EXACT(obj)) ? \
+     __Pyx_PyDict_GetItem(obj, name) : PYOBJECT_GET_ITEM(obj, name))
+#endif
 
 #else
-#define __Pyx_PyDict_GetItem(d, key) PyObject_GetItem(d, key)
-#define __Pyx_PyObject_Dict_GetItem(obj, name)  PyObject_GetItem(obj, name)
+#define __Pyx_PyDict_GetItem(HPY_CONTEXT_FIRST_ARG_CALL d, key) PYOBJECT_GET_ITEM(d, key)
+#define __Pyx_PyObject_Dict_GetItem(HPY_CONTEXT_FIRST_ARG_CALL obj, name)  PYOBJECT_GET_ITEM(obj, name)
 #endif
 
 /////////////// DictGetItem ///////////////
 
 #if !CYTHON_COMPILING_IN_PYPY
-static PyObject *__Pyx_PyDict_GetItem(PyObject *d, PyObject* key) {
-    PyObject *value;
-    value = PyDict_GetItemWithError(d, key);
-    if (unlikely(!value)) {
+static PYOBJECT_TYPE __Pyx_PyDict_GetItem(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d, PYOBJECT_TYPE key) {
+    PYOBJECT_TYPE value;
+    value = DICT_GET_ITEM_WITH_ERROR(d, key);
+    if (unlikely(API_IS_NULL(value))) {
         if (!PyErr_Occurred()) {
-            if (unlikely(PyTuple_Check(key))) {
+            if (unlikely(TUPLE_CHECK(key))) {
                 // CPython interprets tuples as separate arguments => must wrap them in another tuple.
-                PyObject* args = PyTuple_Pack(1, key);
-                if (likely(args)) {
-                    PyErr_SetObject(PyExc_KeyError, args);
-                    Py_DECREF(args);
+                PYOBJECT_TYPE args = TUPLE_PACK(1, key);
+                if (likely(API_IS_NOT_NULL(args))) {
+                    PyErr_SetObject(PyExc_KeyError, HPY_LEGACY_OBJECT_AS(args));
+                    PYOBJECT_CLOSEREF(args);
                 }
             } else {
                 // Avoid tuple packing if possible.
-                PyErr_SetObject(PyExc_KeyError, key);
+                PyErr_SetObject(PyExc_KeyError, HPY_LEGACY_OBJECT_AS(key));
             }
         }
-        return NULL;
+        return API_NULL_VALUE;
     }
-    Py_INCREF(value);
-    return value;
+    return PYOBJECT_NEWREF(value);
 }
 #endif
 
 /////////////// GetItemInt.proto ///////////////
 //@substitute: tempita
 
+#if CYTHON_USING_HPY
+#define __Pyx_GetItemInt(HPY_CONTEXT_CNAME, o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
+    HPY_LEGACY_OBJECT_FROM(__Pyx_GetItemInt_Fast(HPY_LEGACY_OBJECT_AS(o), (Py_ssize_t)i, is_list, wraparound, boundscheck)) : \
+    (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), HPy_NULL) : \
+               HPY_LEGACY_OBJECT_FROM(__Pyx_GetItemInt_Generic(HPY_LEGACY_OBJECT_AS(o), HPY_LEGACY_OBJECT_AS(to_py_func(HPY_CONTEXT_CNAME, i))))))
+#else
 #define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
     __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) : \
     (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) : \
                __Pyx_GetItemInt_Generic(o, to_py_func(i))))
+#endif
 
 {{for type in ['List', 'Tuple']}}
 #define __Pyx_GetItemInt_{{type}}(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
@@ -1569,7 +1582,13 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
     if (likely(tp->tp_getattro))
         return tp->tp_getattro(obj, attr_name);
 #endif
-    return DICT_GET_ITEM(obj, attr_name);
+    PYOBJECT_TYPE item = DICT_GET_ITEM(obj, attr_name);
+#if CYTHON_USING_HPY
+    if (HPy_Is(item, HPy_NULL)) {
+        HPyErr_Clear(HPY_CONTEXT_CNAME);
+    }
+#endif
+    return item;
 }
 #endif
 
