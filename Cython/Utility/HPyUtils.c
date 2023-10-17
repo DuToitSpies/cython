@@ -105,11 +105,11 @@
 
   //Dict Type
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
-  #define DICT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define DICT_GET_ITEM(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
-  #define DICT_GET_ITEM_STR(o, attr_name) HPy_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
+  #define DICT_GET_ITEM_STR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
-  #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
 
   //Sequence Type
 
@@ -355,4 +355,23 @@ HPy HPyType_FromModuleAndSpec(HPyContext *ctx, HPy module, HPyType_Spec *spec, H
     }
     return result;
 }
+
+static CYTHON_INLINE HPy HPyDict_GetItem(HPyContext *ctx, HPy mp, HPy key)
+{
+    HPy res = HPy_GetItem(ctx, mp, key);
+    if (HPy_IsNull(res)) {
+        HPyErr_Clear(ctx);
+    }
+    return res;
+}
+
+static CYTHON_INLINE HPy HPyDict_GetItem_s(HPyContext *ctx, HPy mp, const char *key)
+{
+    HPy res = HPy_GetItem_s(ctx, mp, key);
+    if (HPy_IsNull(res)) {
+        HPyErr_Clear(ctx);
+    }
+    return res;
+}
+
 #endif
