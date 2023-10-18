@@ -4560,7 +4560,7 @@ class IndexNode(_IndexingBaseNode):
         utility_code = None
         error_value = None
         if self.type.is_pyobject:
-            error_value = 'API_NULL_VALUE'
+            error_value = 'NULL'
             if self.index.type.is_int:
                 if self.base.type is list_type:
                     function = "__Pyx_GetItemInt_List"
@@ -6506,17 +6506,28 @@ class SimpleCallNode(CallNode):
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCall", "ObjectHandling.c"))
             func_result = self.function.py_result()
-            if func_result.startswith("__pyx_") and not func_result.startswith("__pyx_t_") and not func_result.startswith("__pyx_v_"):
-                func_result = "PYOBJECT_GLOBAL_LOAD(" + func_result + ")"
-            load_arg_code = arg_code
-            if load_arg_code.startswith("__pyx_") and not load_arg_code.startswith("__pyx_t_") and not load_arg_code.startswith("__pyx_v_"):
-                load_arg_code = "PYOBJECT_GLOBAL_LOAD(" + load_arg_code + ")"
+            tmp_func_result = code.funcstate.allocate_temp(py_object_type, False)
+            if func_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_func_result, func_result))
+            else:
+                code.putln("%s = %s;" % (tmp_func_result, func_result))
+            tmp_arg_code = code.funcstate.allocate_temp(py_object_type, False)
+            if arg_code in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_arg_code, arg_code))
+            else:
+                code.putln("%s = %s;" % (tmp_arg_code, arg_code))
             code.putln(
                 "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), NULL)); %s" % (
                     self.result(),
-                    func_result,
-                    load_arg_code,
+                    tmp_func_result,
+                    tmp_arg_code,
                     code.error_goto_if_null_object(self.result(), self.pos)))
+            if func_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_func_result)
+            if arg_code in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_arg_code)
+            code.funcstate.release_temp(tmp_func_result)
+            code.funcstate.release_temp(tmp_arg_code)
             self.generate_gotref(code)
         elif func_type.is_cfunction:
             nogil = not code.funcstate.gil_owned

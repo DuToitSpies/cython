@@ -3933,7 +3933,7 @@ class DefNodeWrapper(FuncDefNode):
                     code.put_var_xdecref(arg.entry)
             code.put_add_traceback(self.target.entry.qualified_name)
             code.put_finish_refcount_context()
-            code.putln("return %s;//returns error value" % self.error_value())
+            code.putln("return %s;" % self.error_value())
         if code.label_used(end_label):
             code.put_label(end_label)
 
@@ -4080,11 +4080,12 @@ class DefNodeWrapper(FuncDefNode):
             else:
                 non_pos_args_id = non_pos_args_id + "&%s, " % arg_str
         non_pos_args_id = non_pos_args_id + '0'
-        code.putln("PyObject **%s[] = {%s};////////" % (
+        code.putln("PyObject **%s[] = {%s};" % (
             Naming.pykwdlist_cname,
             non_pos_args_id))
         
         for arg in loaded_args_arr:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % arg)
             code.funcstate.release_temp(arg)
 
         # Before being converted and assigned to the target variables,
@@ -4407,15 +4408,13 @@ class DefNodeWrapper(FuncDefNode):
                     code.putln('}')
                 else:
                     temp_load_pystr = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-                    if pystring_cname.startswith("__pyx_t") or pystring_cname.startswith("__pyx_v"):
-                        pystr_is_global = False
+                    if pystring_cname in code.globalstate.const_cname_array:
                         code.putln("%s = %s;" % (temp_load_pystr, pystring_cname))
                     else:
-                        pystr_is_global = True
                         code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_pystr, pystring_cname))
                     code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
                         i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, temp_load_pystr))
-                    if pystr_is_global:
+                    if pystring_cname in code.globalstate.const_cname_array:
                         code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_pystr) #This should also be closed in the other else statements, but as they are errors it doesn't matter too much
                     code.funcstate.release_temp(temp_load_pystr)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
