@@ -2507,7 +2507,7 @@ class OptimizeBuiltinCalls(Visitor.NodeRefCleanupMixin,
             ])
 
     def _handle_simple_function_dict(self, node, function, pos_args):
-        """Replace dict(some_dict) by PyDict_Copy(some_dict).
+        """Replace dict(some_dict) by DICT_COPY(some_dict).
         """
         if len(pos_args) != 1:
             return node
@@ -2515,7 +2515,7 @@ class OptimizeBuiltinCalls(Visitor.NodeRefCleanupMixin,
         if arg.type is Builtin.dict_type:
             arg = arg.as_none_safe_node("'NoneType' is not iterable")
             return ExprNodes.PythonCapiCallNode(
-                node.pos, "PyDict_Copy", self.PyDict_Copy_func_type,
+                node.pos, "DICT_COPY", self.PyDict_Copy_func_type,
                 args = [arg],
                 is_temp = node.is_temp
                 )

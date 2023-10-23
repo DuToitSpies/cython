@@ -4562,7 +4562,7 @@ class IndexNode(_IndexingBaseNode):
         utility_code = None
         error_value = None
         if self.type.is_pyobject:
-            error_value = 'NULL'
+            error_value = 'API_NULL_VALUE'
             if self.index.type.is_int:
                 if self.base.type is list_type:
                     function = "__Pyx_GetItemInt_List"
@@ -4614,7 +4614,7 @@ class IndexNode(_IndexingBaseNode):
                 self.result() if self.type.is_pyobject else None,
                 self.exception_value, self.in_nogil_context)
         else:
-            error_check = '!%s' if error_value == 'NULL' else 'API_IS_EQUAL(%%s, %s)' % error_value
+            error_check = 'API_IS_NULL(%s)' if error_value == 'API_NULL_VALUE' else 'API_IS_EQUAL(%%s, %s)' % error_value
             code.putln("#if CYTHON_USING_HPY")
             code.putln(
                 "%s = %s(HPY_CONTEXT_CNAME, %s, %s%s); %s" % (
@@ -6472,20 +6472,22 @@ class SimpleCallNode(CallNode):
         for actual_arg in self.args[len(formal_args):]:
             arg_list_code.append(actual_arg.move_result_rhs())
 
-        arg_string = ""
-        for arg in arg_list_code:
-            if code:
-                if arg in code.globalstate.const_cname_array:
-                    arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
+        if len(arg_list_code) > 0:
+            arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
+            for arg in arg_list_code:
+                if code:
+                    if arg in code.globalstate.const_cname_array:
+                        arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
+                    else:
+                        arg_string = arg_string + "%s" % arg
                 else:
                     arg_string = arg_string + "%s" % arg
-            else:
-                arg_string = arg_string + "%s" % arg
-            arg_string = arg_string + ", "
-        arg_string = arg_string[0:-2]
+                arg_string = arg_string + ", "
+            arg_string = arg_string[0:-2]
+        else:
+            arg_string = "HPY_CONTEXT_ONLY_ARG_CALL"
 
-
-        result = "%s(HPY_CONTEXT_FIRST_ARG_CALL %s)" % (self.function.result(), arg_string)
+        result = "%s(%s)" % (self.function.result(), arg_string)
         return result
 
     def is_c_result_required(self):
@@ -6569,7 +6571,7 @@ class SimpleCallNode(CallNode):
             else:
                 code.putln("%s = %s;" % (tmp_arg_code, arg_code))
             code.putln(
-                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), NULL)); %s" % (
+                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(%s, %s, API_NULL_VALUE)); %s" % (
                     self.result(),
                     tmp_func_result,
                     tmp_arg_code,
@@ -7281,13 +7283,22 @@ class GeneralCallNode(CallNode):
             kwargs = 'NULL'
         code.globalstate.use_utility_code(UtilityCode.load_cached(
             "PyObjectCall", "ObjectHandling.c"))
+        pos_args_cname = self.positional_args.py_result()
+        tmp_pos_args = code.funcstate.allocate_temp(py_object_type, False)
+        if pos_args_cname in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_pos_args, pos_args_cname))
+        else:
+            code.putln("%s = %s;" % (tmp_pos_args, pos_args_cname))
         code.putln(
-            "%s = __Pyx_PyObject_Call(%s, %s, %s); %s" % (
+            "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(%s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s))); %s" % (
                 self.result(),
                 self.function.py_result(),
-                self.positional_args.py_result(),
+                tmp_pos_args,
                 kwargs,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
+        if pos_args_cname in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_pos_args)
+        code.funcstate.release_temp(tmp_pos_args)
         self.generate_gotref(code)
 
 
@@ -7430,7 +7441,7 @@ class MergedDictNode(ExprNode):
                 code.putln("} else")
                 code.putln("#endif")
                 code.putln("{")
-            code.putln("%s = PyDict_Copy(%s); %s" % (
+            code.putln("%s = DICT_COPY(%s); %s" % (
                 self.result(),
                 item.py_result(),
                 code.error_goto_if_null(self.result(), item.pos)))
@@ -7479,7 +7490,7 @@ class MergedDictNode(ExprNode):
                 if self.reject_duplicates:
                     # merge mapping into kwdict one by one as we need to check for duplicates
                     helpers.add("MergeKeywords")
-                    code.put_error_if_neg(item.pos, "__Pyx_MergeKeywords(%s, %s)" % (
+                    code.put_error_if_neg(item.pos, "__Pyx_MergeKeywords(HPY_CONTEXT_FIRST_ARG_CALL %s, %s)" % (
                         self.result(), item.py_result()))
                 else:
                     # simple case, just add all entries
@@ -8360,9 +8371,14 @@ class SequenceNode(ExprNode):
                 tmp_builder = code.funcstate.allocate_temp(tuple_builder_type, manage_ref=False)
             arg_count = len(self.args)
             if self.type is tuple_type:
+                code.putln("#if CYTHON_USING_HPY")
+                code.putln("%s(%s,%s,%s%s);" % (
+                    create_func, target, tmp_builder, arg_count, size_factor))
+                code.putln("#else")
                 code.putln("%s(%s,%s,%s%s); %s" % (
                     create_func, target, tmp_builder, arg_count, size_factor,
                     code.error_goto_if_null_object(target, self.pos)))
+                code.putln("#endif")
             else:
                 code.putln("%s = %s(%s%s); %s" % (
                     target, create_func, arg_count, size_factor,
