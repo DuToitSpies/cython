@@ -22,7 +22,7 @@
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
-
+  
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XNEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -62,6 +62,8 @@
   #define API_INT_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
+  #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
+  #define API_DICT_TYPE HPY_CONTEXT_CNAME->h_DictType
 
   //Type Checks
   #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
@@ -105,6 +107,7 @@
 
   //Dict Type
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
+  #define DICT_COPY(o) HPyDict_Copy(HPY_CONTEXT_CNAME, o)
   #define DICT_GET_ITEM(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
@@ -175,7 +178,7 @@
   #define PYOBJECT_GLOBAL_LOAD(global) global
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
   #define CAPI_NEEDS_DEREFERENCE &
-
+  
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) Py_NewRef(h)
   #define PYOBJECT_XNEWREF(h) Py_XNewRef(h)
@@ -209,12 +212,14 @@
   #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 
   //API Call Macros
-  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(HPY_CONTEXT_CNAME, callable, args, kwnames)
+  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(callable, args, kwnames)
 
   //Type Objects
   #define API_INT_TYPE PyInt_Type
   #define API_LONG_TYPE PyLong_Type
   #define API_SSIZE_T Py_ssize_t
+  #define API_STRING_TYPE PyString_Type
+  #define API_DICT_TYPE PyDict_Type
 
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)
@@ -258,6 +263,8 @@
 
   //Dict Type
   #define DICT_NEW() PyDict_New()
+  #define DICT_COPY(o) PyDict_Copy(o)
+  #define DICT_CONTAINS(o, key) PyDict_Contains(o, key)
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)

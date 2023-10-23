@@ -359,55 +359,62 @@ bad:
 
 //////////////////// MergeKeywords.proto ////////////////////
 
-static int __Pyx_MergeKeywords(PyObject *kwdict, PyObject *source_mapping); /*proto*/
+static int __Pyx_MergeKeywords(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kwdict, PYOBJECT_TYPE source_mapping); /*proto*/
 
 //////////////////// MergeKeywords ////////////////////
 //@requires: RaiseDoubleKeywords
 //@requires: Optimize.c::dict_iter
 
-static int __Pyx_MergeKeywords(PyObject *kwdict, PyObject *source_mapping) {
-    PyObject *iter, *key = NULL, *value = NULL;
+static int __Pyx_MergeKeywords(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kwdict, PYOBJECT_TYPE source_mapping) {
+    PYOBJECT_TYPE iter, CAPI_IS_POINTER key = API_NULL_VALUE, CAPI_IS_POINTER value = API_NULL_VALUE;
     int source_is_dict, result;
-    Py_ssize_t orig_length, ppos = 0;
+    API_SSIZE_T orig_length, ppos = 0;
+    PYOBJECT_TYPE items_loader = HPY_LEGACY_OBJECT_AS(PYIDENT("items"));
 
-    iter = __Pyx_dict_iterator(source_mapping, 0, PYIDENT("items"), &orig_length, &source_is_dict);
-    if (unlikely(!iter)) {
+    iter = HPY_LEGACY_OBJECT_FROM(__Pyx_dict_iterator(HPY_LEGACY_OBJECT_AS(source_mapping), 0, HPY_LEGACY_OBJECT_AS(items_loader), &orig_length, &source_is_dict));
+    if (unlikely(API_IS_NULL(iter))) {
         // slow fallback: try converting to dict, then iterate
-        PyObject *args;
+        PYOBJECT_TYPE args;
         if (unlikely(!PyErr_ExceptionMatches(PyExc_AttributeError))) goto bad;
         PyErr_Clear();
-        args = PyTuple_Pack(1, source_mapping);
-        if (likely(args)) {
-            PyObject *fallback = PyObject_Call((PyObject*)&PyDict_Type, args, NULL);
-            Py_DECREF(args);
-            if (likely(fallback)) {
-                iter = __Pyx_dict_iterator(fallback, 1, PYIDENT("items"), &orig_length, &source_is_dict);
-                Py_DECREF(fallback);
+        args = TUPLE_PACK(1, source_mapping);
+        if (likely(API_IS_NOT_NULL(args))) {
+#if CYTHON_USING_HPY
+            PYOBJECT_TYPE fallback = API_CALL_FUNC(HPY_CONTEXT_CNAME->h_DictType, args, 0, NULL);
+#else
+            PYOBJECT_TYPE fallback = API_CALL_FUNC((PyObject*)&PyDict_Type, args, 0, NULL);
+#endif
+            PYOBJECT_CLOSEREF(args);
+            if (likely(API_IS_NOT_NULL(fallback))) {
+                iter = __Pyx_dict_iterator(HPY_LEGACY_OBJECT_AS(fallback), 1, HPY_LEGACY_OBJECT_AS(items_loader), &orig_length, &source_is_dict);
+                PYOBJECT_CLOSEREF(fallback);
             }
         }
-        if (unlikely(!iter)) goto bad;
+        if (unlikely(API_IS_NULL(iter))) goto bad;
     }
 
     while (1) {
-        result = __Pyx_dict_iter_next(iter, orig_length, &ppos, &key, &value, NULL, source_is_dict);
+        result = __Pyx_dict_iter_next(HPY_LEGACY_OBJECT_AS(iter), orig_length, &ppos, &HPY_LEGACY_OBJECT_AS(key), &HPY_LEGACY_OBJECT_AS(value), API_NULL_VALUE, source_is_dict);
         if (unlikely(result < 0)) goto bad;
         if (!result) break;
 
-        if (unlikely(PyDict_Contains(kwdict, key))) {
-            __Pyx_RaiseDoubleKeywordsError("function", key);
+        if (unlikely(PyDict_Contains(HPY_LEGACY_OBJECT_AS(kwdict), HPY_LEGACY_OBJECT_AS(key)))) {
+            __Pyx_RaiseDoubleKeywordsError("function", HPY_LEGACY_OBJECT_AS(key));
             result = -1;
         } else {
-            result = PyDict_SetItem(kwdict, key, value);
+            result = DICT_SET_ITEM(kwdict, key, value);
         }
-        Py_DECREF(key);
-        Py_DECREF(value);
+        PYOBJECT_CLOSEREF(key);
+        PYOBJECT_CLOSEREF(value);
         if (unlikely(result < 0)) goto bad;
     }
-    Py_XDECREF(iter);
+    PYOBJECT_XCLOSEREF(iter);
+    PYOBJECT_CLOSEREF(items_loader);
     return 0;
 
 bad:
     Py_XDECREF(iter);
+    PYOBJECT_CLOSEREF(items_loader);
     return -1;
 }
 
@@ -440,7 +447,7 @@ bad:
 #define __Pyx_NumKwargs_VARARGS(kwds) PyDict_Size(kwds)
 #define __Pyx_KwValues_VARARGS(args, nargs) NULL
 #define __Pyx_GetKwValue_VARARGS(kw, kwvalues, s) __Pyx_PyDict_GetItemStrWithError(kw, s)
-#define __Pyx_KwargsAsDict_VARARGS(kw, kwvalues) PyDict_Copy(kw)
+#define __Pyx_KwargsAsDict_VARARGS(kw, kwvalues) DICT_COPY(kw)
 #if CYTHON_METH_FASTCALL
     #define __Pyx_Arg_FASTCALL(args, i) args[i]
     #define __Pyx_NumKwargs_FASTCALL(kwds) TUPLE_GET_SIZE(kwds)

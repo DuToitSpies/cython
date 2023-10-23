@@ -2445,12 +2445,13 @@ class FuncDefNode(StatNode, BlockNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("ArgTypeTest", "FunctionArguments.c"))
             typeptr_cname = arg.type.typeptr_cname
+            hpy_typeptr_cname = typeptr_cname.replace("&", "") if typeptr_cname.startswith("(&API") else "HPY_LEGACY_OBJECT_FROM((PyObject *)%s)" %typeptr_cname
             arg_code = "((PyObject *)%s)" % arg.entry.cname
             code.putln("#if CYTHON_USING_HPY")
             code.putln(
-                'if (unlikely(!__Pyx_ArgTypeTest(%s, HPY_LEGACY_OBJECT_FROM((PyObject*)%s), %d, %s, %s))) %s' % (
+                'if (unlikely(!__Pyx_ArgTypeTest(%s, %s, %d, %s, %s))) %s' % (
                     arg.entry.cname,
-                    typeptr_cname,
+                    hpy_typeptr_cname,
                     arg.accept_none,
                     arg.name_cstring,
                     arg.type.is_builtin_type and arg.type.require_exact,
@@ -3857,7 +3858,7 @@ class DefNodeWrapper(FuncDefNode):
         # Create nargs, but avoid an "unused" warning in the few cases where we don't need it.
         if self.signature_has_generic_args():
             # error handling for this is checked after the declarations
-            nargs_code = "CYTHON_UNUSED Py_ssize_t %s;" % Naming.nargs_cname
+            nargs_code = "CYTHON_UNUSED API_SSIZE_T %s;" % Naming.nargs_cname
             if self.signature.use_fastcall:
                 code.putln("#if !CYTHON_METH_FASTCALL")
                 code.putln(nargs_code)
@@ -3866,7 +3867,7 @@ class DefNodeWrapper(FuncDefNode):
                 code.putln(nargs_code)
 
         # Array containing the values of keyword arguments when using METH_FASTCALL.
-        code.putln('CYTHON_UNUSED PyObject *const *%s;' % Naming.kwvalues_cname)
+        code.putln('CYTHON_UNUSED PYOBJECT_TYPE const *%s;' % Naming.kwvalues_cname)
 
     def generate_argument_parsing_code(self, env, code, decl_code):
         # Generate fast equivalent of PyArg_ParseTuple call for

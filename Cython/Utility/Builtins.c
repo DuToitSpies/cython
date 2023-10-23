@@ -359,7 +359,7 @@ static long __Pyx__PyObject_Ord(PyObject* c) {
 
 //////////////////// py_dict_keys.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_Keys(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_Keys(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_keys ////////////////////
 
@@ -369,7 +369,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_Keys(PyObject* d) {
 
 //////////////////// py_dict_values.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_Values(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_Values(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_values ////////////////////
 
@@ -379,7 +379,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_Values(PyObject* d) {
 
 //////////////////// py_dict_items.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_Items(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_Items(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_items ////////////////////
 
@@ -389,7 +389,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_Items(PyObject* d) {
 
 //////////////////// py_dict_iterkeys.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_IterKeys(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_IterKeys(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_iterkeys ////////////////////
 
@@ -399,7 +399,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_IterKeys(PyObject* d) {
 
 //////////////////// py_dict_itervalues.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_IterValues(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_IterValues(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_itervalues ////////////////////
 
@@ -409,7 +409,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_IterValues(PyObject* d) {
 
 //////////////////// py_dict_iteritems.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_IterItems(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_IterItems(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_iteritems ////////////////////
 
@@ -419,7 +419,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_IterItems(PyObject* d) {
 
 //////////////////// py_dict_viewkeys.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_ViewKeys(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_ViewKeys(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_viewkeys ////////////////////
 
@@ -429,7 +429,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_ViewKeys(PyObject* d) {
 
 //////////////////// py_dict_viewvalues.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_ViewValues(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_ViewValues(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_viewvalues ////////////////////
 
@@ -439,7 +439,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_ViewValues(PyObject* d) {
 
 //////////////////// py_dict_viewitems.proto ////////////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyDict_ViewItems(PyObject* d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_ViewItems(PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_viewitems ////////////////////
 

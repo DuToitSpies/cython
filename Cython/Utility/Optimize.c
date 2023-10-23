@@ -198,20 +198,22 @@ static PyObject* __Pyx__PyList_PopIndex(PyObject* L, PyObject* py_ix, Py_ssize_t
 
 /////////////// dict_getitem_default.proto ///////////////
 
-static PyObject* __Pyx_PyDict_GetItemDefault(PyObject* d, PyObject* key, PyObject* default_value); /*proto*/
+static PYOBJECT_TYPE __Pyx_PyDict_GetItemDefault(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d, PYOBJECT_TYPE key, PYOBJECT_TYPE default_value); /*proto*/
 
 /////////////// dict_getitem_default ///////////////
 
-static PyObject* __Pyx_PyDict_GetItemDefault(PyObject* d, PyObject* key, PyObject* default_value) {
-    PyObject* value;
+static PYOBJECT_TYPE __Pyx_PyDict_GetItemDefault(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d, PYOBJECT_TYPE key, PYOBJECT_TYPE default_value) {
+    PYOBJECT_TYPE value;
 #if !CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07020000
-    value = PyDict_GetItemWithError(d, key);
-    if (unlikely(!value)) {
+    value = DICT_GET_ITEM_WITH_ERROR(d, key);
+    if (unlikely(API_IS_NULL(value))) {
         if (unlikely(PyErr_Occurred()))
-            return NULL;
+            return API_NULL_VALUE;
         value = default_value;
     }
+#if !CYTHON_USING_HPY
     Py_INCREF(value);
+#endif
     // avoid C compiler warning about unused utility functions
     if ((1));
 #else
@@ -225,10 +227,10 @@ static PyObject* __Pyx_PyDict_GetItemDefault(PyObject* d, PyObject* key, PyObjec
     }
 #endif
     else {
-        if (default_value == Py_None)
-            value = CALL_UNBOUND_METHOD(PyDict_Type, "get", d, key);
+        if (API_IS_EQUAL(default_value, API_NONE_VALUE))
+            value = CALL_UNBOUND_METHOD(API_DICT_TYPE, "get", d, key);
         else
-            value = CALL_UNBOUND_METHOD(PyDict_Type, "get", d, key, default_value);
+            value = CALL_UNBOUND_METHOD(API_DICT_TYPE, "get", d, key, default_value);
     }
     return value;
 }

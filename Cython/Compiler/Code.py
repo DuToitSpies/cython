@@ -1187,7 +1187,7 @@ class GlobalState:
         self.cached_cmethods = {}
         self.initialised_constants = set()
 
-        self.const_cname_array = []
+        self.const_cname_array = ['__pyx_d', '__pyx_cython_runtime', '__pyx_empty_tuple', '__pyx_empty_bytes', '__pyx_empty_unicode']
 
         writer.set_global_state(self)
         self.rootwriter = writer
@@ -1492,7 +1492,7 @@ class GlobalState:
         self.use_utility_code(UtilityCode.load_cached(utility_code_name, "ObjectHandling.c"))
         cache_cname = self.get_cached_unbound_method(type_cname, method_name)
         args = [obj_cname] + arg_cnames
-        return "__Pyx_%s(&%s, %s)" % (
+        return "__Pyx_%s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s)" % (
             utility_code_name,
             cache_cname,
             ', '.join(args),
@@ -1568,11 +1568,19 @@ class GlobalState:
             decl.putln('static __Pyx_CachedCFunction %s = {0, 0, 0, 0, 0};' % (
                 cname))
             # split type reference storage as it might not be static
-            init.putln('%s.type = (PyObject*)%s;' % (
-                cname, type_cname))
             # method name string isn't static in limited api
+            init.putln('#if CYTHON_USING_HPY')
+            init.putln("PYOBJECT_TYPE temp_meth_name = PYOBJECT_GLOBAL_LOAD(%s);" % method_name_cname)
+            init.putln('%s.method_name = &temp_meth_name;' % (cname))
+            init.putln('%s.type = %s;' % (
+                cname, type_cname))
+            init.putln('PYOBJECT_CLOSEREF(temp_meth_name);')
+            init.putln('#else')
+            init.putln('%s.type = (PyObject*)&%s;' % (
+                cname, type_cname))
             init.putln('%s.method_name = &%s;' % (
                 cname, method_name_cname))
+            init.putln('#endif')
 
         if Options.generate_cleanup_code:
             cleanup = self.parts['cleanup_globals']

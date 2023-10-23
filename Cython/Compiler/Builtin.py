@@ -302,7 +302,7 @@ builtin_types_table = [
                                     BuiltinMethod("__mul__",  "Tz",   "T", "__Pyx_PySequence_Multiply",
                                                   utility_code=UtilityCode.load("PySequenceMultiply", "ObjectHandling.c")),
                                     ]),
-    ("str",     "&PyString_Type",  [BuiltinMethod("join",  "TO",   "O", "__Pyx_PyString_Join",
+    ("str",     "API_STRING_TYPE", [BuiltinMethod("join",  "TO",   "O", "__Pyx_PyString_Join",
                                                   builtin_return_type='basestring',
                                                   utility_code=UtilityCode.load("StringJoin", "StringTools.c")),
                                     BuiltinMethod("__mul__",  "Tz",   "T", "__Pyx_PySequence_Multiply",
@@ -328,7 +328,7 @@ builtin_types_table = [
                                                   utility_code=UtilityCode.load("PySequenceMultiply", "ObjectHandling.c")),
                                     ]),
 
-    ("dict",   "&PyDict_Type",     [BuiltinMethod("__contains__",  "TO",   "b", "PyDict_Contains"),
+    ("dict",    "API_DICT_TYPE",   [BuiltinMethod("__contains__",  "TO",   "b", "PyDict_Contains"),
                                     BuiltinMethod("has_key",       "TO",   "b", "PyDict_Contains"),
                                     BuiltinMethod("items",  "T",   "O", "__Pyx_PyDict_Items",
                                                   utility_code=UtilityCode.load("py_dict_items", "Builtins.c")),
