@@ -379,7 +379,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyDict_Values(PyObject* d) {
 
 //////////////////// py_dict_items.proto ////////////////////
 
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_Items(PYOBJECT_TYPE d); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyDict_Items(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d); /*proto*/
 
 //////////////////// py_dict_items ////////////////////
 

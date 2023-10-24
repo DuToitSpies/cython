@@ -4670,12 +4670,12 @@ class IndexNode(_IndexingBaseNode):
                 function = "PYOBJECT_SET_ITEM"
         
         temp_load_index = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-        if hasattr(self.index, "is_global") and self.index.is_global:
+        if index_code in code.globalstate.const_cname_array:
             code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_index, index_code))
         else:
             code.putln("%s = %s;" % (temp_load_index, index_code))    
         temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-        if hasattr(value, "is_global") and value.is_global:
+        if value_code in code.globalstate.const_cname_array:
             code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, value_code))
         else:
             code.putln("%s = %s;" % (temp_load_value, value_code)) 
@@ -6461,6 +6461,8 @@ class SimpleCallNode(CallNode):
 
         if len(arg_list_code) > 0:
             arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
+            if self.function.result() == 'DICT_COPY':
+                arg_string = ""
             for arg in arg_list_code:
                 if code:
                     if arg in code.globalstate.const_cname_array:
@@ -6519,10 +6521,10 @@ class SimpleCallNode(CallNode):
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCallNoArg", "ObjectHandling.c"))
             code.putln(
-                "%s = __Pyx_PyObject_CallNoArg(%s); %s" % (
+                "%s = __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_ARG_CALL %s); %s" % (
                     self.result(),
                     function.py_result(),
-                    code.error_goto_if_null(self.result(), self.pos)))
+                    code.error_goto_if_null_object(self.result(), self.pos)))
         else:
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCallOneArg", "ObjectHandling.c"))
@@ -6558,7 +6560,7 @@ class SimpleCallNode(CallNode):
             else:
                 code.putln("%s = %s;" % (tmp_arg_code, arg_code))
             code.putln(
-                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(%s, %s, API_NULL_VALUE)); %s" % (
+                "%s = __Pyx_PyObject_Call_h(%s, %s, API_NULL_VALUE); %s" % (
                     self.result(),
                     tmp_func_result,
                     tmp_arg_code,
@@ -6748,11 +6750,25 @@ class PyMethodCallNode(SimpleCallNode):
         # To avoid passing an out-of-bounds argument pointer in the no-args case,
         # we need at least two entries, so we pad with NULL and point to that.
         # See https://github.com/cython/cython/issues/5668
-        code.putln("PyObject *__pyx_callargs[%d] = {%s, %s};" % (
+
+        loaded_vars = []
+        for arg in args:
+            arg_result = arg.py_result()
+            load_tmp = code.funcstate.allocate_temp(py_object_type, False)
+            loaded_vars.append(load_tmp)
+            if arg_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_tmp, arg_result))
+            else:
+                code.putln("%s = %s;" % (load_tmp, arg_result))
+        code.putln("PYOBJECT_TYPE __pyx_callargs[%d] = {%s, %s};" % (
             (len(args) + 1) if args else 2,
             self_arg,
-            ', '.join(arg.py_result() for arg in args) if args else "NULL",
+            ', '.join(tmp for tmp in loaded_vars) if args else "NULL",
         ))
+        for tmp in loaded_vars:
+            if arg_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_tmp)
+            code.funcstate.release_temp(tmp)
         code.putln("%s = __Pyx_PyObject_FastCall(%s, __pyx_callargs+1-%s, %d+%s);" % (
             self.result(),
             function,
@@ -6766,7 +6782,7 @@ class PyMethodCallNode(SimpleCallNode):
         for arg in args:
             arg.generate_disposal_code(code)
             arg.free_temps(code)
-        code.putln(code.error_goto_if_null(self.result(), self.pos))
+        code.putln(code.error_goto_if_null_object(self.result(), self.pos))
         self.generate_gotref(code)
 
         if reuse_function_temp:
@@ -7163,7 +7179,7 @@ class GeneralCallNode(CallNode):
         else:
             code.putln("%s = %s;" % (tmp_pos_args, pos_args_cname))
         code.putln(
-            "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_Call(%s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s))); %s" % (
+            "%s = __Pyx_PyObject_Call_h(%s, %s, %s); %s" % (
                 self.result(),
                 self.function.py_result(),
                 tmp_pos_args,
@@ -7306,7 +7322,7 @@ class MergedDictNode(ExprNode):
             code.putln("%s = DICT_COPY(%s); %s" % (
                 self.result(),
                 item.py_result(),
-                code.error_goto_if_null(self.result(), item.pos)))
+                code.error_goto_if_null_object(self.result(), item.pos)))
             self.generate_gotref(code)
             item.generate_disposal_code(code)
 

@@ -21,7 +21,9 @@
   #define PYOBJECT_GLOBAL_STORE(global, h) HPyGlobal_Store(HPY_CONTEXT_CNAME, &global, h)
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
+  #define CAPI_IS_POINTER_IF_TYPEOBJECT
   #define CAPI_NEEDS_DEREFERENCE
+  #define CAST_IF_CAPI(cast_type)
   
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -82,6 +84,7 @@
   //Long Type - From
   #define PYOBJECT_LONG_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_LONG_FROM_LONGLONG(i) HPyLong_FromLongLong(HPY_CONTEXT_CNAME, i)
+  #define PYOBJECT_LONG_FROM_UNSIGNED_LONG(i) HPyLong_FromUnsignedLong(HPY_CONTEXT_CNAME, i)
   #define PYOBJECT_LONG_FROM_UNSIGNED_LONGLONG(i) HPyLong_FromUnsignedLongLong(HPY_CONTEXT_CNAME, i)
 
   //Long Type - To
@@ -177,7 +180,9 @@
   #define PYOBJECT_GLOBAL_STORE(global, h) global = h
   #define PYOBJECT_GLOBAL_LOAD(global) global
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
+  #define CAPI_IS_POINTER_IF_TYPEOBJECT *
   #define CAPI_NEEDS_DEREFERENCE &
+  #define CAST_IF_CAPI(cast_type) (cast_type)
   
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) Py_NewRef(h)
@@ -238,6 +243,7 @@
   //Long Type - From
   #define PYOBJECT_LONG_FROM_LONG(i) PyLong_FromLong(i)
   #define PYOBJECT_LONG_FROM_LONGLONG(i) PyLong_FromLongLong(i)
+  #define PYOBJECT_LONG_FROM_UNSIGNED_LONG(i) PyLong_FromUnsignedLong(i)
   #define PYOBJECT_LONG_FROM_UNSIGNED_LONGLONG(i) PyLong_FromUnsignedLongLong(i)
 
   //Long Type - To

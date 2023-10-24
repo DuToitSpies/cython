@@ -259,7 +259,11 @@ static CYTHON_INLINE int __Pyx_IterFinish(void) {
 #if CYTHON_USE_TYPE_SLOTS
 static CYTHON_INLINE PyObject *__Pyx_PyObject_GetItem(PyObject *obj, PyObject *key);/*proto*/
 #else
-#define __Pyx_PyObject_GetItem(obj, key)  PyObject_GetItem(obj, key)
+#if CYTHON_USING_HPY
+#define __Pyx_PyObject_GetItem(ctx, obj, key)  PYOBJECT_GET_ITEM(obj, key)
+#else
+#define __Pyx_PyObject_GetItem(obj, key)  PYOBJECT_GET_ITEM(obj, key)
+#endif
 #endif
 
 /////////////// ObjectGetItem ///////////////
@@ -1698,12 +1702,16 @@ try_unpack:
 /////////////// UnpackUnboundCMethod.proto ///////////////
 
 typedef struct {
-    PyObject *type;
-    PyObject **method_name;
+    PYOBJECT_TYPE type;
+    PYOBJECT_TYPE *method_name;
     // "func" is set on first access (direct C function pointer)
+#if !CYTHON_USING_HPY
     PyCFunction func;
+#else
+    HPyDef *func;
+#endif
     // "method" is set on first access (fallback)
-    PyObject *method;
+    PYOBJECT_TYPE method;
     int flag;
 } __Pyx_CachedCFunction;
 
@@ -1720,21 +1728,25 @@ static PyObject *__Pyx_SelflessCall(PyObject *method, PyObject *args, PyObject *
     return result;
 }
 
+#if CYTHON_USING_HPY
+HPyDef_METH(__Pyx_UnboundCMethod_Def, "CythonUnboundCMethod", HPyFunc_KEYWORDS, .doc="")
+#else
 static PyMethodDef __Pyx_UnboundCMethod_Def = {
     /* .ml_name  = */ "CythonUnboundCMethod",
     /* .ml_meth  = */ __PYX_REINTERPRET_FUNCION(PyCFunction, __Pyx_SelflessCall),
     /* .ml_flags = */ METH_VARARGS | METH_KEYWORDS,
     /* .ml_doc   = */ NULL
 };
+#endif
 
-static int __Pyx_TryUnpackUnboundCMethod(__Pyx_CachedCFunction* target) {
-    PyObject *method;
+static int __Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *target) {
+    PYOBJECT_TYPE method;
     method = __Pyx_PyObject_GetAttrStr(target->type, *target->method_name);
-    if (unlikely(!method))
+    if (unlikely(API_IS_NULL(method)))
         return -1;
     target->method = method;
 // FIXME: use functionality from CythonFunction.c/ClassMethod
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
     if (likely(__Pyx_TypeCheck(method, &PyMethodDescr_Type)))
     {
         PyMethodDescrObject *descr = (PyMethodDescrObject*) method;
@@ -1743,31 +1755,35 @@ static int __Pyx_TryUnpackUnboundCMethod(__Pyx_CachedCFunction* target) {
     } else
 #endif
     // bound classmethods need special treatment
-#if CYTHON_COMPILING_IN_PYPY
+#if CYTHON_COMPILING_IN_PYPY || CYTHON_USING_HPY
     // In PyPy, functions are regular methods, so just do the self check.
 #else
     if (PyCFunction_Check(method))
 #endif
     {
-        PyObject *self;
+        PYOBJECT_TYPE self;
         int self_found;
 #if CYTHON_COMPILING_IN_LIMITED_API || CYTHON_COMPILING_IN_PYPY
-        self = PyObject_GetAttrString(method, "__self__");
-        if (!self) {
+        self = PYOBJECT_GET_ATTR_STR(method, "__self__");
+        if (API_IS_NULL(self)) {
             PyErr_Clear();
         }
 #else
         self = PyCFunction_GET_SELF(method);
 #endif
-        self_found = (self && self != Py_None);
+        self_found = (API_IS_NOT_NULL(self) && API_IS_EQUAL(self, API_NONE_VALUE));
 #if CYTHON_COMPILING_IN_LIMITED_API || CYTHON_COMPILING_IN_PYPY
-        Py_XDECREF(self);
+        PYOBJECT_CLOSEREF(self);
 #endif
         if (self_found) {
-            PyObject *unbound_method = PyCFunction_New(&__Pyx_UnboundCMethod_Def, method);
-            if (unlikely(!unbound_method)) return -1;
+#if CYTHON_USING_HPY
+            PYOBJECT_TYPE unbound_method = method;
+#else
+            PYOBJECT_TYPE unbound_method = PyCFunction_New(&__Pyx_UnboundCMethod_Def, method);
+#endif
+            if (unlikely(API_IS_NULL(unbound_method))) return -1;
             // New PyCFunction will own method reference, thus decref __Pyx_PyObject_GetAttrStr
-            Py_DECREF(method);
+            PYOBJECT_CLOSEREF(method);
             target->method = unbound_method;
         }
     }
@@ -1779,16 +1795,16 @@ static int __Pyx_TryUnpackUnboundCMethod(__Pyx_CachedCFunction* target) {
 //@substitute: naming
 
 static PyObject* __Pyx__CallUnboundCMethod0(__Pyx_CachedCFunction* cfunc, PyObject* self); /*proto*/
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 // FASTCALL methods receive "&empty_tuple" as simple "PyObject[0]*"
 #define __Pyx_CallUnboundCMethod0(cfunc, self)  \
     (likely((cfunc)->func) ? \
-        (likely((cfunc)->flag == METH_NOARGS) ?  (*((cfunc)->func))(self, NULL) : \
+        (likely((cfunc)->flag == METH_NOARGS) ?  (*((cfunc)->func))(self, API_NULL_VALUE) : \
          (likely((cfunc)->flag == METH_FASTCALL) ? \
             (*(__Pyx_PyCFunctionFast)(void*)(PyCFunction)(cfunc)->func)(self, &$empty_tuple, 0) : \
           ((cfunc)->flag == (METH_FASTCALL | METH_KEYWORDS) ? \
-            (*(__Pyx_PyCFunctionFastWithKeywords)(void*)(PyCFunction)(cfunc)->func)(self, &$empty_tuple, 0, NULL) : \
-            (likely((cfunc)->flag == (METH_VARARGS | METH_KEYWORDS)) ?  ((*(PyCFunctionWithKeywords)(void*)(PyCFunction)(cfunc)->func)(self, $empty_tuple, NULL)) : \
+            (*(__Pyx_PyCFunctionFastWithKeywords)(void*)(PyCFunction)(cfunc)->func)(self, &$empty_tuple, 0, API_NULL_VALUE) : \
+            (likely((cfunc)->flag == (METH_VARARGS | METH_KEYWORDS)) ?  ((*(PyCFunctionWithKeywords)(void*)(PyCFunction)(cfunc)->func)(self, $empty_tuple, API_NULL_VALUE)) : \
                ((cfunc)->flag == METH_VARARGS ?  (*((cfunc)->func))(self, $empty_tuple) : \
                __Pyx__CallUnboundCMethod0(cfunc, self)))))) : \
         __Pyx__CallUnboundCMethod0(cfunc, self))
@@ -1821,12 +1837,22 @@ bad:
 
 /////////////// CallUnboundCMethod1.proto ///////////////
 
-static PyObject* __Pyx__CallUnboundCMethod1(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg);/*proto*/
+#if CYTHON_USING_HPY
+static PYOBJECT_TYPE __Pyx__CallUnboundCMethod1(HPyContext *HPY_CONTEXT_CNAME, __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg);/*proto*/
 
 #if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_CallUnboundCMethod1(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg);/*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod1(HPyContext *HPY_CONTEXT_CNAME, __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg);/*proto*/
+#else
+#define __Pyx_CallUnboundCMethod1(HPY_CONTEXT_CNAME, cfunc, self, arg)  __Pyx__CallUnboundCMethod1(HPY_CONTEXT_CNAME, cfunc, self, arg)
+#endif
+#else
+static PYOBJECT_TYPE __Pyx__CallUnboundCMethod1(__Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg);/*proto*/
+
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod1(__Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg);/*proto*/
 #else
 #define __Pyx_CallUnboundCMethod1(cfunc, self, arg)  __Pyx__CallUnboundCMethod1(cfunc, self, arg)
+#endif
 #endif
 
 /////////////// CallUnboundCMethod1 ///////////////
@@ -1834,7 +1860,8 @@ static CYTHON_INLINE PyObject* __Pyx_CallUnboundCMethod1(__Pyx_CachedCFunction* 
 //@requires: PyObjectCall
 
 #if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_CallUnboundCMethod1(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod1(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg) {
+#if !CYTHON_USING_HPY
     if (likely(cfunc->func)) {
         int flag = cfunc->flag;
         if (flag == METH_O) {
@@ -1845,51 +1872,73 @@ static CYTHON_INLINE PyObject* __Pyx_CallUnboundCMethod1(__Pyx_CachedCFunction* 
             return (*(__Pyx_PyCFunctionFastWithKeywords)(void*)(PyCFunction)cfunc->func)(self, &arg, 1, NULL);
         }
     }
-    return __Pyx__CallUnboundCMethod1(cfunc, self, arg);
+#endif
+    return __Pyx__CallUnboundCMethod1(HPY_CONTEXT_FIRST_ARG_CALL cfunc, self, arg);
 }
 #endif
 
-static PyObject* __Pyx__CallUnboundCMethod1(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg){
-    PyObject *args, *result = NULL;
-    if (unlikely(!cfunc->func && !cfunc->method) && unlikely(__Pyx_TryUnpackUnboundCMethod(cfunc) < 0)) return NULL;
-#if CYTHON_COMPILING_IN_CPYTHON
+static PYOBJECT_TYPE __Pyx__CallUnboundCMethod1(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg) {
+    PYOBJECT_TYPE args;
+    PYOBJECT_TYPE result = API_NULL_VALUE;
+#if CYTHON_USING_HPY
+    if (unlikely(!(cfunc->func == HPyDef_Kind_Meth) && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
+#else
+    if (unlikely(!cfunc->func && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
+#endif
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
     if (cfunc->func && (cfunc->flag & METH_VARARGS)) {
-        args = PyTuple_New(1);
-        if (unlikely(!args)) goto bad;
+        TUPLE_BUILDER_TYPE builder;
+        TUPLE_CREATE_START(args, builder, 1);
+        if (unlikely(API_IS_NULL(args))) goto bad;
+#if !CYTHON_USING_HPY
         Py_INCREF(arg);
-        PyTuple_SET_ITEM(args, 0, arg);
+#endif
+        TUPLE_CREATE_ASSIGN(args, builder, 0, arg);
+        TUPLE_CREATE_FINALISE(args, builder);
+#if !CYTHON_USING_HPY
         if (cfunc->flag & METH_KEYWORDS)
             result = (*(PyCFunctionWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, NULL);
         else
             result = (*cfunc->func)(self, args);
+#else
+        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+#endif
     } else {
-        args = PyTuple_New(2);
-        if (unlikely(!args)) goto bad;
+        TUPLE_BUILDER_TYPE builder;
+        TUPLE_CREATE_START(args, builder, 2);
+        if (unlikely(API_IS_NULL(args))) goto bad;
+#if !CYTHON_USING_HPY
         Py_INCREF(self);
-        PyTuple_SET_ITEM(args, 0, self);
         Py_INCREF(arg);
-        PyTuple_SET_ITEM(args, 1, arg);
-        result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
+#endif
+        TUPLE_CREATE_ASSIGN(args, builder, 0, self);
+        TUPLE_CREATE_ASSIGN(args, builder, 1, arg);
+        TUPLE_CREATE_FINALISE(args, builder);
+        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
     }
 #else
-    args = PyTuple_Pack(2, self, arg);
-    if (unlikely(!args)) goto bad;
-    result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
+    args = TUPLE_PACK(2, self, arg);
+    if (unlikely(API_IS_NULL(args))) goto bad;
+    result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
 #endif
 bad:
-    Py_XDECREF(args);
+    PYOBJECT_XCLOSEREF(args);
     return result;
 }
 
 
 /////////////// CallUnboundCMethod2.proto ///////////////
 
-static PyObject* __Pyx__CallUnboundCMethod2(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg1, PyObject* arg2); /*proto*/
+static PYOBJECT_TYPE __Pyx__CallUnboundCMethod2(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2);
 
 #if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject *__Pyx_CallUnboundCMethod2(__Pyx_CachedCFunction *cfunc, PyObject *self, PyObject *arg1, PyObject *arg2); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod2(__Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2); /*proto*/
+#else
+#if CYTHON_USING_HPY
+#define __Pyx_CallUnboundCMethod2(cfunc, self, arg1, arg2)  __Pyx__CallUnboundCMethod2(HPY_CONTEXT_CNAME, cfunc, self, arg1, arg2)
 #else
 #define __Pyx_CallUnboundCMethod2(cfunc, self, arg1, arg2)  __Pyx__CallUnboundCMethod2(cfunc, self, arg1, arg2)
+#endif
 #endif
 
 /////////////// CallUnboundCMethod2 ///////////////
@@ -1897,60 +1946,85 @@ static CYTHON_INLINE PyObject *__Pyx_CallUnboundCMethod2(__Pyx_CachedCFunction *
 //@requires: PyObjectCall
 
 #if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject *__Pyx_CallUnboundCMethod2(__Pyx_CachedCFunction *cfunc, PyObject *self, PyObject *arg1, PyObject *arg2) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod2(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2) {
     if (likely(cfunc->func)) {
-        PyObject *args[2] = {arg1, arg2};
+        PYOBJECT_TYPE args[2] = {arg1, arg2};
+#if !CYTHON_USING_HPY
         if (cfunc->flag == METH_FASTCALL) {
             return (*(__Pyx_PyCFunctionFast)(void*)(PyCFunction)cfunc->func)(self, args, 2);
         }
         if (cfunc->flag == (METH_FASTCALL | METH_KEYWORDS))
             return (*(__Pyx_PyCFunctionFastWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, 2, NULL);
+#else
+        return __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+
+#endif
     }
-    return __Pyx__CallUnboundCMethod2(cfunc, self, arg1, arg2);
+    return __Pyx__CallUnboundCMethod2(HPY_CONTEXT_FIRST_ARG_CALL cfunc, self, arg1, arg2);
 }
 #endif
 
-static PyObject* __Pyx__CallUnboundCMethod2(__Pyx_CachedCFunction* cfunc, PyObject* self, PyObject* arg1, PyObject* arg2){
-    PyObject *args, *result = NULL;
-    if (unlikely(!cfunc->func && !cfunc->method) && unlikely(__Pyx_TryUnpackUnboundCMethod(cfunc) < 0)) return NULL;
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (cfunc->func && (cfunc->flag & METH_VARARGS)) {
-        args = PyTuple_New(2);
-        if (unlikely(!args)) goto bad;
+static PYOBJECT_TYPE __Pyx__CallUnboundCMethod2(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_CachedCFunction *cfunc, PYOBJECT_TYPE self, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2) {
+    PYOBJECT_TYPE args, CAPI_IS_POINTER result = API_NULL_VALUE;
+#if CYTHON_USING_HPY
+    if (unlikely(!(cfunc->func == HPyDef_Kind_Meth) && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
+#else
+    if (unlikely(API_IS_NULL(cfunc->func) && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
+#endif
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
+    if (API_IS_NOT_NULL(cfunc->func) && (cfunc->flag & METH_VARARGS)) {
+        TUPLE_BUILDER_TYPE builder;
+        TUPLE_CREATE_START(args, builder, 2);
+        if (unlikely(API_IS_NULL(args))) goto bad;
+#if !CYTHON_USING_HPY
         Py_INCREF(arg1);
-        PyTuple_SET_ITEM(args, 0, arg1);
         Py_INCREF(arg2);
-        PyTuple_SET_ITEM(args, 1, arg2);
+#endif
+        TUPLE_CREATE_ASSIGN(args, builder, 0, arg1);
+        TUPLE_CREATE_ASSIGN(args, builder, 1, arg2);
+        TUPLE_CREATE_FINALISE(args, builder);
+#if !CYTHON_USING_HPY
         if (cfunc->flag & METH_KEYWORDS)
             result = (*(PyCFunctionWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, NULL);
         else
             result = (*cfunc->func)(self, args);
+#else
+        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+#endif
     } else {
-        args = PyTuple_New(3);
-        if (unlikely(!args)) goto bad;
+        TUPLE_BUILDER_TYPE builder;
+        TUPLE_CREATE_START(args, builder, 3);
+        if (unlikely(API_IS_NULL(args))) goto bad;
+#if !CYTHON_USING_HPY
         Py_INCREF(self);
-        PyTuple_SET_ITEM(args, 0, self);
         Py_INCREF(arg1);
-        PyTuple_SET_ITEM(args, 1, arg1);
         Py_INCREF(arg2);
-        PyTuple_SET_ITEM(args, 2, arg2);
-        result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
+#endif
+        TUPLE_CREATE_ASSIGN(args, builder, 0, self);
+        TUPLE_CREATE_ASSIGN(args, builder, 1, arg1);
+        TUPLE_CREATE_ASSIGN(args, builder, 2, arg2);
+        TUPLE_CREATE_FINALISE(args, builder);
+        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
     }
 #else
-    args = PyTuple_Pack(3, self, arg1, arg2);
-    if (unlikely(!args)) goto bad;
-    result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
+    args = TUPLE_PACK(3, self, arg1, arg2);
+    if (unlikely(API_IS_NULL(args))) goto bad;
+    result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
 #endif
 bad:
-    Py_XDECREF(args);
+    PYOBJECT_XCLOSEREF(args);
     return result;
 }
 
 
 /////////////// PyObjectFastCall.proto ///////////////
 
+#if CYTHON_USING_HPY
+#define __Pyx_PyObject_FastCall(func, args, nargs)  API_CALL_FUNC(func, args, (size_t)(nargs), API_NULL_VALUE)
+#else
 #define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(func, args, (size_t)(nargs), NULL)
 static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs); /*proto*/
+#endif
 
 /////////////// PyObjectFastCall ///////////////
 //@requires: PyObjectCall
@@ -1958,7 +2032,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObj
 //@requires: PyObjectCallMethO
 //@substitute: naming
 
-#if PY_VERSION_HEX < 0x03090000 || CYTHON_COMPILING_IN_LIMITED_API
+#if !CYTHON_USING_HPY && PY_VERSION_HEX < 0x03090000 || CYTHON_COMPILING_IN_LIMITED_API
 static PyObject* __Pyx_PyObject_FastCall_fallback(PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs) {
     PyObject *argstuple;
     PyObject *result = 0;
@@ -2042,6 +2116,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObj
     return __Pyx_PyObject_FastCall_fallback(func, args, (size_t)nargs, kwargs);
     #endif
 }
+#endif
 
 
 /////////////// PyObjectCallMethod0.proto ///////////////
@@ -2119,6 +2194,11 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 
 /////////////// PyObjectCall.proto ///////////////
 
+#if CYTHON_USING_HPY
+#define __Pyx_PyObject_Call_h(func, arg, kw) API_CALL_FUNC(func, &arg, TUPLE_GET_SIZE(arg), kw)
+#else
+#define __Pyx_PyObject_Call_h(func, arg, kw) __Pyx_PyObject_Call(func, arg, kw)
+#endif
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw); /*proto*/
 #else
@@ -2127,7 +2207,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg
 
 /////////////// PyObjectCall ///////////////
 
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw) {
     PyObject *result;
     ternaryfunc call = Py_TYPE(func)->tp_call;
@@ -2398,14 +2478,14 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObjec
 
 /////////////// PyObjectCallNoArg.proto ///////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func); /*proto*/
 
 /////////////// PyObjectCallNoArg ///////////////
 //@requires: PyObjectFastCall
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func) {
-    PyObject *arg[2] = {NULL, NULL};
-    return __Pyx_PyObject_FastCall(func, arg + 1, 0 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func) {
+    PYOBJECT_TYPE arg = API_NULL_VALUE;
+    return __Pyx_PyObject_FastCall(func, (&arg)+1, 0 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
 }
 
 
