@@ -697,7 +697,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         if (sizeof({{TYPE}}) < sizeof(long)) {
             return PYOBJECT_INT_FROM_LONG((long) value);
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned long)) {
-            return PYOBJECT_INT_FROM_UNSIGNED_LONG((unsigned long) value);
+            return PYOBJECT_LONG_FROM_UNSIGNED_LONG((unsigned long) value);
 #ifdef HAVE_LONG_LONG
         } else if (sizeof({{TYPE}}) <= sizeof(unsigned PY_LONG_LONG)) {
             return PYOBJECT_LONG_FROM_UNSIGNED_LONGLONG((unsigned PY_LONG_LONG) value);
