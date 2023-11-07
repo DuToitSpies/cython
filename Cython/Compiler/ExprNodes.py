@@ -7900,7 +7900,7 @@ class AttributeNode(ExprNode):
                     temp_load_attr,
                     code.error_goto_if_null_object(self.result(), self.pos)))
             if not attr_str.startswith("__pyx_t_"):
-                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s)" % temp_load_attr)
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_attr)
             code.funcstate.release_temp(temp_load_attr)
             self.generate_gotref(code)
         elif self.type.is_memoryviewslice:

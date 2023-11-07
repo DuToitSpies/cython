@@ -134,7 +134,7 @@
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
-  #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
