@@ -2445,18 +2445,7 @@ class FuncDefNode(StatNode, BlockNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("ArgTypeTest", "FunctionArguments.c"))
             typeptr_cname = arg.type.typeptr_cname
-            hpy_typeptr_cname = typeptr_cname.replace("&", "") if typeptr_cname.startswith("(&API") else "HPY_LEGACY_OBJECT_FROM((PyObject *)%s)" %typeptr_cname
             arg_code = "((PyObject *)%s)" % arg.entry.cname
-            code.putln("#if CYTHON_USING_HPY")
-            code.putln(
-                'if (unlikely(!__Pyx_ArgTypeTest(%s, %s, %d, %s, %s))) %s' % (
-                    arg.entry.cname,
-                    hpy_typeptr_cname,
-                    arg.accept_none,
-                    arg.name_cstring,
-                    arg.type.is_builtin_type and arg.type.require_exact,
-                    code.error_goto(arg.pos)))
-            code.putln("#else")
             code.putln(
                 'if (unlikely(!__Pyx_ArgTypeTest(%s, %s, %d, %s, %s))) %s' % (
                     arg_code,
@@ -2465,7 +2454,6 @@ class FuncDefNode(StatNode, BlockNode):
                     arg.name_cstring,
                     arg.type.is_builtin_type and arg.type.require_exact,
                     code.error_goto(arg.pos)))
-            code.putln("#endif")
         else:
             error(arg.pos, "Cannot test type of extern C class without type object name specification")
 

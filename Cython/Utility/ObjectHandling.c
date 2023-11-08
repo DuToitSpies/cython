@@ -2195,7 +2195,7 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 /////////////// PyObjectCall.proto ///////////////
 
 #if CYTHON_USING_HPY
-#define __Pyx_PyObject_Call_h(func, arg, kw) API_CALL_FUNC(func, &arg, TUPLE_GET_SIZE(arg), kw)
+#define __Pyx_PyObject_Call_h(func, arg, kw) API_CALL_FUNC(func, &arg, TUPLE_GET_SIZE(arg), kw) // Will be removed when no longer needed
 #else
 #define __Pyx_PyObject_Call_h(func, arg, kw) __Pyx_PyObject_Call(func, arg, kw)
 #endif

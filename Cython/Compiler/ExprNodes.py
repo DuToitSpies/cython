@@ -1211,7 +1211,6 @@ class PyConstNode(AtomicExprNode):
     is_literal = 1
     type = py_object_type
     nogil_check = None
-    is_global = True
 
     def is_simple(self):
         return 1
@@ -1268,8 +1267,6 @@ class ConstNode(AtomicExprNode):
 
     is_literal = 1
     nogil_check = None
-    is_global = True
-
 
     def is_simple(self):
         return 1
@@ -1605,7 +1602,6 @@ class BytesNode(ConstNode):
     is_string_literal = True
     # start off as Python 'bytes' to support len() in O(1)
     type = bytes_type
-    is_global = True
 
     def calculate_constant_result(self):
         self.constant_result = self.value
@@ -1696,7 +1692,6 @@ class UnicodeNode(ConstNode):
     is_string_literal = True
     bytes_value = None
     type = unicode_type
-    is_global = True
 
     def calculate_constant_result(self):
         self.constant_result = self.value
@@ -4689,10 +4684,10 @@ class IndexNode(_IndexingBaseNode):
                 self.extra_index_params(code)),
             self.pos))
 
-        if hasattr(self.index, "is_global") and self.index.is_global:
+        if index_code in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
         code.funcstate.release_temp(temp_load_index)
-        if hasattr(value, "is_global") and value.is_global:
+        if value_code in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
         code.funcstate.release_temp(temp_load_value)
 
@@ -6459,14 +6454,17 @@ class SimpleCallNode(CallNode):
         for actual_arg in self.args[len(formal_args):]:
             arg_list_code.append(actual_arg.move_result_rhs())
 
+        global_args = []
+
         if len(arg_list_code) > 0:
             arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
-            if self.function.result() == 'DICT_COPY':
+            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex']: 
                 arg_string = ""
             for arg in arg_list_code:
                 if code:
                     if arg in code.globalstate.const_cname_array:
-                        arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(" + arg + ")" #temp fix for globals and non-globals being handled by the same code
+                        arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(%s)" % arg
+                        global_args.append(arg)
                     else:
                         arg_string = arg_string + "%s" % arg
                 else:
@@ -6477,7 +6475,10 @@ class SimpleCallNode(CallNode):
             arg_string = "HPY_CONTEXT_ONLY_ARG_CALL"
 
         result = "%s(%s)" % (self.function.result(), arg_string)
-        return result
+        if code:
+            return result, global_args
+        else:
+            return result
 
     def is_c_result_required(self):
         func_type = self.function_type()
@@ -6614,7 +6615,7 @@ class SimpleCallNode(CallNode):
                     else:
                         exc_checks.append("PyErr_Occurred()")
             if self.is_temp or exc_checks:
-                rhs = self.c_call_code(code=code)
+                rhs, globals_to_close = self.c_call_code(code=code)
                 if self.result():
                     lhs = "%s = " % self.result()
                     if self.is_temp and self.type.is_pyobject:
@@ -6634,6 +6635,8 @@ class SimpleCallNode(CallNode):
                     else:
                         goto_error = ""
                     code.putln("%s%s; %s" % (lhs, rhs, goto_error))
+                    for arg in globals_to_close:
+                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % arg)
                 if self.type.is_pyobject and self.result():
                     self.generate_gotref(code)
             if self.has_optional_args:
@@ -7888,7 +7891,7 @@ class AttributeNode(ExprNode):
                 lookup_func_name = '__Pyx_PyObject_GetAttrStr'
             temp_load_attr = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
             attr_str = code.intern_identifier(self.attribute)
-            if  attr_str.startswith("__pyx_int_") or attr_str.startswith("__pyx_k_") or attr_str.startswith("__pyx_n_s_"):
+            if attr_str in code.globalstate.const_cname_array:
                 code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_attr, attr_str))
             else:
                 code.putln("%s = %s;" % (temp_load_attr, attr_str))
@@ -7899,7 +7902,7 @@ class AttributeNode(ExprNode):
                     self.obj.py_result(),
                     temp_load_attr,
                     code.error_goto_if_null_object(self.result(), self.pos)))
-            if not attr_str.startswith("__pyx_t_"):
+            if attr_str in code.globalstate.const_cname_array:
                 code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_attr)
             code.funcstate.release_temp(temp_load_attr)
             self.generate_gotref(code)
@@ -8287,7 +8290,7 @@ class SequenceNode(ExprNode):
                 arg.generate_giveref(code)
                 code.putln("#endif")
                 if self.type is tuple_type:
-                    code.putln("%s(%s, %s, %s, %s);" % (
+                    code.putln("%s(%s, %s, %s, %s);" % ( #I had to remove the error checking condition, as HPyTuple/ListBuilder_Set doesn't have a return value
                         set_item_func,
                         target,
                         tmp_builder,
@@ -9504,15 +9507,13 @@ class DictNode(ExprNode):
                         code.putln("} else {")
 
                 temp_load_key = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-                code.putln("//%s" % item.key)
-                code.putln("//%s" % item.key.type)
-                if hasattr(item.key, "is_global") and item.key.is_global:
+                if item.key.py_result() in code.globalstate.const_cname_array:
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_key, item.key.py_result()))
                 else:
                     code.putln("%s = %s;" % (temp_load_key, item.key.py_result()))
 
                 temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-                if hasattr(item.value, "is_global") and item.value.is_global:
+                if item.value.py_result() in code.globalstate.const_cname_array:
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, item.value.py_result()))
                 else:
                     code.putln("%s = %s;" % (temp_load_value, item.value.py_result()))
@@ -9521,11 +9522,11 @@ class DictNode(ExprNode):
                     temp_load_key,
                     temp_load_value))
 
-                if hasattr(item.key, "is_global") and item.key.is_global:
+                if item.key.py_result() in code.globalstate.const_cname_array:
                     code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_key)
                 code.funcstate.release_temp(temp_load_key)
                 
-                if hasattr(item.value, "is_global") and item.value.is_global:
+                if item.value.py_result() in code.globalstate.const_cname_array:
                     code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
                 code.funcstate.release_temp(temp_load_value)
 
