@@ -6476,8 +6476,10 @@ class SimpleCallNode(CallNode):
             for arg in arg_list_code:
                 if code:
                     if arg in code.globalstate.const_cname_array:
-                        arg_string = arg_string + "PYOBJECT_GLOBAL_LOAD(%s)" % arg
-                        global_args.append(arg)
+                        temp = code.funcstate.allocate_temp(py_object_type, False)
+                        arg_string = arg_string + "%s" % temp
+                        global_args.append([temp, arg])
+                        code.funcstate.release_temp(temp)
                     else:
                         arg_string = arg_string + "%s" % arg
                 else:
@@ -6630,7 +6632,7 @@ class SimpleCallNode(CallNode):
                     else:
                         exc_checks.append("PyErr_Occurred()")
             if self.is_temp or exc_checks:
-                rhs, globals_to_close = self.c_call_code(code=code)
+                rhs, globals_to_load = self.c_call_code(code=code)
                 if self.result():
                     lhs = "%s = " % self.result()
                     if self.is_temp and self.type.is_pyobject:
@@ -6649,9 +6651,11 @@ class SimpleCallNode(CallNode):
                         goto_error = code.error_goto_if(" && ".join(exc_checks), self.pos)
                     else:
                         goto_error = ""
+                    for arg in globals_to_load:
+                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (arg[0], arg[1]))
                     code.putln("%s%s; %s" % (lhs, rhs, goto_error))
-                    for arg in globals_to_close:
-                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % arg)
+                    for arg in globals_to_load:
+                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % arg[0])
                 if self.type.is_pyobject and self.result():
                     self.generate_gotref(code)
             if self.has_optional_args:

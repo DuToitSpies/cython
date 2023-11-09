@@ -1587,11 +1587,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
         return tp->tp_getattro(obj, attr_name);
 #endif
     PYOBJECT_TYPE item = DICT_GET_ITEM(obj, attr_name);
-#if CYTHON_USING_HPY
-    if (HPy_Is(item, HPy_NULL)) {
-        HPyErr_Clear(HPY_CONTEXT_CNAME);
-    }
-#endif
+
     return item;
 }
 #endif
@@ -1621,13 +1617,13 @@ static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr
 
 /////////////// PyObjectGetMethod.proto ///////////////
 
-static int __Pyx_PyObject_GetMethod(PyObject *obj, PyObject *name, PyObject **method);/*proto*/
+static int __Pyx_PyObject_GetMethod(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE name, PYOBJECT_TYPE *method);/*proto*/
 
 /////////////// PyObjectGetMethod ///////////////
 //@requires: PyObjectGetAttrStr
 
-static int __Pyx_PyObject_GetMethod(PyObject *obj, PyObject *name, PyObject **method) {
-    PyObject *attr;
+static int __Pyx_PyObject_GetMethod(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE name, PYOBJECT_TYPE *method) {
+    PYOBJECT_TYPE attr;
 #if CYTHON_UNPACK_METHODS && CYTHON_COMPILING_IN_CPYTHON && CYTHON_USE_PYTYPE_LOOKUP
     __Pyx_TypeName type_name;
     // Copied from _PyObject_GetMethod() in CPython 3.7
@@ -1710,7 +1706,11 @@ static int __Pyx_PyObject_GetMethod(PyObject *obj, PyObject *name, PyObject **me
 
 // Generic fallback implementation using normal attribute lookup.
 #else
+#if CYTHON_USING_HPY
+    attr = HPy_GetAttr(HPY_CONTEXT_CNAME, obj, name);
+#else
     attr = __Pyx_PyObject_GetAttrStr(obj, name);
+#endif
     goto try_unpack;
 #endif
 
@@ -2246,7 +2246,7 @@ bad:
 
 /////////////// PyObjectCallMethod1.proto ///////////////
 
-static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg); /*proto*/
+static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE method_name, PYOBJECT_TYPE arg); /*proto*/
 
 /////////////// PyObjectCallMethod1 ///////////////
 //@requires: PyObjectGetMethod
@@ -2254,16 +2254,18 @@ static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name
 //@requires: PyObjectCall2Args
 
 #if !(CYTHON_VECTORCALL && __PYX_LIMITED_VERSION_HEX >= 0x030C00A2)
-static PyObject* __Pyx__PyObject_CallMethod1(PyObject* method, PyObject* arg) {
+static PYOBJECT_TYPE __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE method, PYOBJECT_TYPE arg) {
     // Separate function to avoid excessive inlining.
-    PyObject *result = __Pyx_PyObject_CallOneArg(method, arg);
+    PYOBJECT_TYPE result = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
+#if !CYTHON_USING_HPY
     Py_DECREF(method);
+#endif
     return result;
 }
 #endif
 
-static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg) {
-#if CYTHON_VECTORCALL && __PYX_LIMITED_VERSION_HEX >= 0x030C00A2
+static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE method_name, PYOBJECT_TYPE arg) {
+#if CYTHON_VECTORCALL && __PYX_LIMITED_VERSION_HEX >= 0x030C00A2 && !CYTHON_USING_HPY
     PyObject *args[2] = {obj, arg};
     // avoid unused functions
     (void) __Pyx_PyObject_GetMethod;
@@ -2271,15 +2273,16 @@ static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name
     (void) __Pyx_PyObject_Call2Args;
     return PyObject_VectorcallMethod(method_name, args, 2 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
 #else
-    PyObject *method = NULL, *result;
-    int is_method = __Pyx_PyObject_GetMethod(obj, method_name, &method);
+    PYOBJECT_TYPE method = API_NULL_VALUE;
+    PYOBJECT_TYPE result;
+    int is_method = __Pyx_PyObject_GetMethod(HPY_CONTEXT_FIRST_ARG_CALL obj, method_name, &method);
     if (likely(is_method)) {
-        result = __Pyx_PyObject_Call2Args(method, obj, arg);
-        Py_DECREF(method);
+        result = __Pyx_PyObject_Call2Args(HPY_CONTEXT_FIRST_ARG_CALL method, obj, arg);
+        PYOBJECT_CLOSEREF(method);
         return result;
     }
-    if (unlikely(!method)) return NULL;
-    return __Pyx__PyObject_CallMethod1(method, arg);
+    if (unlikely(API_IS_NULL(method))) return API_NULL_VALUE;
+    return __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
 #endif
 }
 
@@ -2552,27 +2555,31 @@ done:
 
 /////////////// PyObjectCall2Args.proto ///////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_Call2Args(PyObject* function, PyObject* arg1, PyObject* arg2); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_Call2Args(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE function, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2); /*proto*/
 
 /////////////// PyObjectCall2Args ///////////////
 //@requires: PyObjectFastCall
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_Call2Args(PyObject* function, PyObject* arg1, PyObject* arg2) {
-    PyObject *args[3] = {NULL, arg1, arg2};
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_Call2Args(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE function, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2) {
+    PYOBJECT_TYPE args[3] = {API_NULL_VALUE, arg1, arg2};
     return __Pyx_PyObject_FastCall(function, args+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
 }
 
 
 /////////////// PyObjectCallOneArg.proto ///////////////
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE arg); /*proto*/
 
 /////////////// PyObjectCallOneArg ///////////////
 //@requires: PyObjectFastCall
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg) {
-    PyObject *args[2] = {NULL, arg};
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE arg) {
+    PYOBJECT_TYPE args[2] = {API_NULL_VALUE, arg};
+#if CYTHON_USING_HPY
+    return __Pyx_PyObject_FastCall(func, args+1, 1);
+#else
     return __Pyx_PyObject_FastCall(func, args+1, 1 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
+#endif
 }
 
 

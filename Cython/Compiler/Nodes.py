@@ -4081,7 +4081,7 @@ class DefNodeWrapper(FuncDefNode):
         loaded_args_arr = []
         for arg in non_posonly_args:
             arg_str = code.intern_identifier(arg.entry.name)
-            if not arg_str.startswith("__pyx_t_"):
+            if arg_str in code.globalstate.const_cname_array:
                 temp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
                 loaded_args_arr.append(temp_load_arg)
                 code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_arg, arg_str))
