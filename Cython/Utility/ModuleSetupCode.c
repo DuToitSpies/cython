@@ -394,6 +394,8 @@
   #define CYTHON_USE_PYLONG_INTERNALS 0
   #undef CYTHON_USE_UNICODE_INTERNALS
   #define CYTHON_USE_UNICODE_INTERNALS 0
+  #undef CYTHON_USE_PYLIST_INTERNALS
+  #define CYTHON_USE_PYLIST_INTERNALS 0
   #undef CYTHON_USE_DICT_VERSIONS
   #define CYTHON_USE_DICT_VERSIONS 0
   #undef CYTHON_FAST_THREAD_STATE
@@ -1237,7 +1239,7 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
 #define PyInt_FromUnicode            PyLong_FromUnicode
 #define PyInt_FromLong               PyLong_FromLong
 #define PyInt_FromSize_t             PyLong_FromSize_t
-#define PyInt_FromSsize_t            PyLong_FromSsize_t
+#define PyInt_FromSsize_t            PYOBJECT_LONG_FROM_SSIZE_T
 #define PyInt_AsLong                 PyLong_AsLong
 #define PyInt_AS_LONG                PyLong_AS_LONG
 #define PyInt_AsSsize_t              PyLong_AsSsize_t

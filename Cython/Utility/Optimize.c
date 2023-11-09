@@ -128,6 +128,19 @@ static CYTHON_INLINE PyObject* __Pyx_PyList_Pop(PyObject* L) {
 
 /////////////// pop_index.proto ///////////////
 
+#if CYTHON_USING_HPY
+
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
+static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix); /*proto*/
+
+#define __Pyx_PyList_PopIndex(L, py_ix, ix, is_signed, type, to_py_func) \
+    __Pyx_PyObject_PopIndex(L, py_ix, ix, is_signed, type, to_py_func)
+
+#define __Pyx_PyObject_PopIndex(L, py_ix, ix, is_signed, type, to_py_func) ( \
+    (unlikely(API_IS_EQUAL(py_ix, API_NONE_VALUE))) ? __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_CNAME, L, to_py_func(ix)) : \
+        __Pyx__PyObject_PopIndex(HPY_CONTEXT_CNAME, L, py_ix))
+#else
+
 static PyObject* __Pyx__PyObject_PopNewIndex(PyObject* L, PyObject* py_ix); /*proto*/
 static PyObject* __Pyx__PyObject_PopIndex(PyObject* L, PyObject* py_ix); /*proto*/
 
@@ -155,20 +168,26 @@ static PyObject* __Pyx__PyList_PopIndex(PyObject* L, PyObject* py_ix, Py_ssize_t
     (unlikely((py_ix) == Py_None)) ? __Pyx__PyObject_PopNewIndex(L, to_py_func(ix)) : \
         __Pyx__PyObject_PopIndex(L, py_ix))
 #endif
+#endif
 
 /////////////// pop_index ///////////////
 //@requires: ObjectHandling.c::PyObjectCallMethod1
 
-static PyObject* __Pyx__PyObject_PopNewIndex(PyObject* L, PyObject* py_ix) {
-    PyObject *r;
-    if (unlikely(!py_ix)) return NULL;
-    r = __Pyx__PyObject_PopIndex(L, py_ix);
-    Py_DECREF(py_ix);
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
+    PYOBJECT_TYPE r;
+    if (unlikely(API_IS_NULL(py_ix))) return API_NULL_VALUE;
+    r = __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_CALL L, py_ix);
+#if !CYTHON_USING_HPY
+    Py_DECREF(py_ix); //Can't close arg in HPy
+#endif
     return r;
 }
 
-static PyObject* __Pyx__PyObject_PopIndex(PyObject* L, PyObject* py_ix) {
-    return __Pyx_PyObject_CallMethod1(L, PYIDENT("pop"), py_ix);
+static PYOBJECT_TYPE __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
+    PYOBJECT_TYPE temp_popindex = PYOBJECT_GLOBAL_LOAD(PYIDENT("pop"));
+    PYOBJECT_TYPE retval = __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL L, temp_popindex, py_ix);
+    PYOBJECT_GLOBAL_CLOSEREF(temp_popindex);
+    return retval;
 }
 
 #if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
