@@ -390,6 +390,8 @@
   /* Module state is not yet supported in HPy */
   #define CYTHON_USE_MODULE_STATE 0
   /* Any Python objects are generally opaque in HPy */
+  #undef CYTHON_ASSUME_SAFE_MACROS
+  #define CYTHON_ASSUME_SAFE_MACROS 0
   #undef CYTHON_USE_PYLONG_INTERNALS
   #define CYTHON_USE_PYLONG_INTERNALS 0
   #undef CYTHON_USE_UNICODE_INTERNALS
