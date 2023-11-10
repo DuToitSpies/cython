@@ -18,7 +18,7 @@ static CYTHON_INLINE int __Pyx_PyObject_Append(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     if (likely(LIST_CHECK_EXACT(L))) {
         if (unlikely(__Pyx_PyList_Append(L, x) < 0)) return -1;
     } else {
-        PYOBJECT_TYPE retval = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_CallMethod1(HPY_LEGACY_OBJECT_AS(L), HPY_LEGACY_OBJECT_AS(PYOBJECT_GLOBAL_LOAD(PYIDENT("append"))), HPY_LEGACY_OBJECT_AS(x)));
+        PYOBJECT_TYPE retval = __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL L, PYOBJECT_GLOBAL_LOAD(PYIDENT("append")), x);
         if (unlikely(API_IS_NULL(retval)))
             return -1;
         PYOBJECT_CLOSEREF(retval);

@@ -71,6 +71,7 @@
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
+  #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
@@ -136,8 +137,8 @@
 
   //List Type
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
-  #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_FROM_LONG(pos))
-  #define LIST_APPEND(list, h) PyList_Append(list, h)
+  #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)

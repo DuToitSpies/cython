@@ -2585,7 +2585,7 @@ class NameNode(AtomicExprNode):
             code.putln("PYOBJECT_CLOSEREF(%s);" % load_cname_temp)
             code.funcstate.release_temp(load_namespace_temp)
             code.funcstate.release_temp(load_cname_temp)
-            if rhs_result in code.globalstate.const_cname_array and b:
+            if rhs_result in code.globalstate.const_cname_array and entry.scope.is_module_scope:
                 code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_result_temp)
                 code.funcstate.release_temp(load_result_temp)
             code.putln("#else")
@@ -8423,7 +8423,7 @@ class SequenceNode(ExprNode):
                 arg.generate_giveref(code)
                 code.putln("#endif")
                 tmp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-                if hasattr(arg, "is_global") and arg.is_global:
+                if arg.py_result() in code.globalstate.const_cname_array:
                     code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_arg, arg.py_result()))
                 else:
                     code.putln("%s = %s;" % (tmp_load_arg, arg.py_result()))
