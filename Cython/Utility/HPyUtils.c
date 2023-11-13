@@ -12,6 +12,7 @@
 
   //Handle/PyObject Macros
   #define PYOBJECT_TYPE HPy
+  #define PYOBJECT_TYPE_NO_POINTER HPy
   #define PYTYPEOBJECT_TYPE HPy
   #define PYOBJECT_FIELD_TYPE HPyField
   #define PYOBJECT_FIELD_STORE(owner, field, h) HPyField_Store(HPY_CONTEXT_CNAME, owner, &field, h)
@@ -184,6 +185,7 @@
 
   //Handle/PyObject Macros
   #define PYOBJECT_TYPE PyObject *
+  #define PYOBJECT_TYPE_NO_POINTER PyObject
   #define PYTYPEOBJECT_TYPE PyTypeObject *
   #define PYOBJECT_FIELD_TYPE PyObject *
   #define PYOBJECT_FIELD_STORE(owner, field, h) field = h
@@ -224,6 +226,7 @@
 
   //General Methods
   #define API_IS_EQUAL(a, b) a==b
+  #define API_IS_NOT_EQUAL(a, b) a!=b
   #define API_RICH_COMPARE(h1, h2, op) PyObject_RichCompare(h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 

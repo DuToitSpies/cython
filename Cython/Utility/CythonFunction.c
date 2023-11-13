@@ -472,7 +472,7 @@ __Pyx_CyFunction_set_defaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_F
     if (API_IS_NULL(value)) {
         // del => explicit None to prevent rebuilding
         value = API_ASSIGN_NONE;
-    } else if (unlikely(!API_IS_EQUAL(value, API_NONE_VALUE) && !DICT_CHECK(value))) {
+    } else if (unlikely(API_IS_NOT_EQUAL(value, API_NONE_VALUE) && !TUPLE_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__defaults__ must be set to a tuple object");
         return -1;
@@ -519,7 +519,7 @@ __Pyx_CyFunction_set_kwdefaults(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject
     if (API_IS_NULL(value)) {
         // del => explicit None to prevent rebuilding
         value = API_ASSIGN_NONE;
-    } else if (unlikely(API_IS_EQUAL(value, API_NONE_VALUE) && !DICT_CHECK(value))) {
+    } else if (unlikely(API_IS_NOT_EQUAL(value, API_NONE_VALUE) && !DICT_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__kwdefaults__ must be set to a dict object");
         return -1;
@@ -636,9 +636,9 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
         }
 #endif
 #else
-        LIST_BUILDER_ASSIGN(fromlist, fromlist_builder, 0, marker);
+        LIST_CREATE_ASSIGN(fromlist, fromlist_builder, 0, marker);
 #endif
-        LIST_BUILDER_FINALISE(fromlist, fromlist_builder);
+        LIST_CREATE_FINALISE(fromlist, fromlist_builder);
         PYOBJECT_TYPE load_asyncio_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("asyncio.coroutines"));
         module = HPY_LEGACY_OBJECT_FROM(PyImport_ImportModuleLevelObject(HPY_LEGACY_OBJECT_AS(load_asyncio_temp), NULL, NULL, HPY_LEGACY_OBJECT_AS(fromlist), 0));
         PYOBJECT_GLOBAL_CLOSEREF(load_asyncio_temp);
@@ -646,7 +646,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
         if (unlikely(API_IS_NULL(module))) goto ignore;
         PYOBJECT_FIELD_STORE(op, struct_op->func_is_coroutine, __Pyx_PyObject_GetAttrStr(module, marker));
         PYOBJECT_CLOSEREF(module);
-        if (likely(API_IS_NOY_NULL(load_is_coroutine_temp))) {
+        if (likely(API_IS_NOT_NULL(load_is_coroutine_temp))) {
 #if CYTHON_USING_HPY
             return load_is_coroutine_temp;
 #else
@@ -842,7 +842,7 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
     struct_op->flags = flags;
-    PYOBJECT_FIELD_STORE(op, struct_op->func_self, op);
+    PYOBJECT_FIELD_STORE(op, struct_op->func_self, (PYOBJECT_TYPE) op);
     PYOBJECT_FIELD_STORE(op, struct_op->func_module, module);
     PYOBJECT_FIELD_STORE(op, struct_op->func_closure, closure);
     PYOBJECT_FIELD_STORE(op, struct_op->func_dict, API_NULL_VALUE);
