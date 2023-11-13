@@ -108,8 +108,12 @@ static CYTHON_INLINE size_t __Pyx_Py_UNICODE_strlen(const Py_UNICODE *u)
 #define __Pyx_PyUnicode_FromUnicodeAndLength PyUnicode_FromUnicode
 #define __Pyx_PyUnicode_AsUnicode            PyUnicode_AsUnicode
 
+#if CYTHON_USING_HPY
 #define __Pyx_hNewRef(obj) PYOBJECT_NEWREF(obj) //This will be merged into Pyx_NewRef eventually, but #if CYTHON_USING_HPY will make all calls to this macro use HPy, even if it hasn't been ported yet
-#define __Pyx_NewRef(obj) Py_NewRef(obj)
+#else
+#define __Pyx_hNewRef(obj) (Py_INCREF(obj), obj)
+#endif
+#define __Pyx_NewRef(obj) (Py_INCREF(obj), obj)
 #define __Pyx_Owned_Py_None(b) __Pyx_hNewRef(API_NONE_VALUE)
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyBool_FromLong(HPY_CONTEXT_FIRST_ARG_DEF long b);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrue(PyObject*);

@@ -1539,7 +1539,6 @@ class GlobalState:
                   for c in self.py_constants]
         consts.sort()
         for _, cname, c in consts:
-            c.type.is_global = True
             self.parts['module_state'].putln("PYOBJECT_GLOBAL_TYPE %s;" % cname)
             self.parts['module_state_defines'].putln(
                 "#define %s %s->%s" % (cname, Naming.modulestateglobal_cname, cname))

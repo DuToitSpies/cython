@@ -1008,14 +1008,12 @@ static void __Pyx_AddTraceback(HPY_CONTEXT_FIRST_ARG_DEF const char *funcname, i
         __Pyx_ErrRestoreInState(tstate, ptype, pvalue, ptraceback);
         $global_code_object_cache_insert(c_line ? -c_line : py_line, py_code);
     }
-    PYOBJECT_TYPE load_moddict_temp = PYOBJECT_GLOBAL_LOAD($moddict_cname);
     py_frame = PyFrame_New(
         tstate,            /*PyThreadState *tstate,*/
         py_code,           /*PyCodeObject *code,*/
-        HPY_LEGACY_OBJECT_AS(load_moddict_temp),    /*PyObject *globals,*/
+        $moddict_cname,    /*PyObject *globals,*/
         0                  /*PyObject *locals*/
     );
-    PYOBJECT_GLOBAL_CLOSEREF(load_moddict_temp);
     if (!py_frame) goto bad;
     __Pyx_PyFrame_SetLineNumber(py_frame, py_line);
     PyTraceBack_Here(py_frame);

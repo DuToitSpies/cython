@@ -1492,7 +1492,7 @@ class BuiltinObjectType(PyObjectType):
     vtabptr_cname = None
     typedef_flag = True
     is_external = True
-    decl_type = 'PYOBJECT_TYPE'
+    decl_type = 'PYOBJECT_TYPE_NO_POINTER'
 
     def __init__(self, name, cname, objstruct_cname=None):
         self.name = name
@@ -1601,7 +1601,7 @@ class BuiltinObjectType(PyObjectType):
         return self.base_declaration_code(base_code, entity_code)
 
     def as_pyobject(self, cname):
-        if self.decl_type == 'PYOBJECT_TYPE':
+        if self.decl_type == 'PYOBJECT_TYPE_NO_POINTER':
             return cname
         else:
             return "(PYOBJECT_TYPE)" + cname
