@@ -7032,12 +7032,20 @@ class RaiseStatNode(StatNode):
         else:
             cause_code = "0"
         code.globalstate.use_utility_code(raise_utility_code)
+        tmp_load_type = code.funcstate.allocate_temp(py_object_type, False)
+        if type_code in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_type, type_code))
+        else:
+            code.putln("%s = %s;" % (tmp_load_type, type_code))
         code.putln(
-            "__Pyx_Raise(%s, %s, %s, %s);" % (
-                type_code,
+            "__Pyx_Raise(HPY_LEGACY_OBJECT_AS(%s), %s, %s, %s);" % (
+                tmp_load_type,
                 value_code,
                 tb_code,
                 cause_code))
+        if type_code in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_type)
+        code.funcstate.release_temp(tmp_load_type)
         for obj in (self.exc_type, self.exc_value, self.exc_tb, self.cause):
             if obj:
                 obj.generate_disposal_code(code)

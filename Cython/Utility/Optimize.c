@@ -1063,7 +1063,7 @@ return_compare = (
 static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject else 'Bool'}}{{op}}{{order}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1, PYOBJECT_TYPE op2, long intval, long inplace) {
     CYTHON_MAYBE_UNUSED_VAR(intval);
     CYTHON_UNUSED_VAR(inplace);
-    if (op1 == op2) {
+    if (API_IS_EQUAL(op1, op2)) {
         {{return_true if op == 'Eq' else return_false}};
     }
 
@@ -1103,7 +1103,7 @@ static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject els
     }
     #endif
 
-    if (PyFloat_CheckExact({{pyval}})) {
+    if (FLOAT_CHECK_EXACT({{pyval}})) {
         const long {{'a' if order == 'CObj' else 'b'}} = intval;
 #if CYTHON_COMPILING_IN_LIMITED_API
         double {{ival}} = __pyx_PyFloat_AsDouble({{pyval}});
@@ -1114,7 +1114,7 @@ static CYTHON_INLINE {{c_ret_type}} __Pyx_PyInt_{{'' if ret_type.is_pyobject els
     }
 
     return {{'' if ret_type.is_pyobject else '__Pyx_PyObject_IsTrueAndDecref'}}(
-        PyObject_RichCompare(op1, op2, Py_{{op.upper()}}));
+        HPY_CONTEXT_FIRST_ARG_CALL API_RICH_COMPARE(op1, op2, Py_{{op.upper()}}));
 }
 
 
@@ -1353,7 +1353,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
 
     {{if op in ('Eq', 'Ne')}}
     return {{'' if ret_type.is_pyobject else '__Pyx_PyObject_IsTrueAndDecref'}}(
-        API_RICH_COMPARE(op1, op2, Py_{{op.upper()}}));
+        HPY_CONTEXT_FIRST_ARG_CALL API_RICH_COMPARE(op1, op2, Py_{{op.upper()}}));
     {{else}}
 #if CYTHON_USING_HPY
     return HPy_{{op}}(HPY_CONTEXT_CNAME, op1, op2);

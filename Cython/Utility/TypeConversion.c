@@ -116,8 +116,8 @@ static CYTHON_INLINE size_t __Pyx_Py_UNICODE_strlen(const Py_UNICODE *u)
 #define __Pyx_NewRef(obj) (Py_INCREF(obj), obj)
 #define __Pyx_Owned_Py_None(b) __Pyx_hNewRef(API_NONE_VALUE)
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyBool_FromLong(HPY_CONTEXT_FIRST_ARG_DEF long b);
-static CYTHON_INLINE int __Pyx_PyObject_IsTrue(PyObject*);
-static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject*);
+static CYTHON_INLINE int __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
+static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
 static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x);
 
 #define __Pyx_PySequence_Tuple(obj) \
@@ -306,17 +306,17 @@ static CYTHON_INLINE const char* __Pyx_PyObject_AsStringAndSize(PyObject* o, Py_
 }
 
 /* Note: __Pyx_PyObject_IsTrue is written to minimize branching. */
-static CYTHON_INLINE int __Pyx_PyObject_IsTrue(PyObject* x) {
-   int is_true = x == Py_True;
-   if (is_true | (x == Py_False) | (x == Py_None)) return is_true;
-   else return PyObject_IsTrue(x);
+static CYTHON_INLINE int __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE x) {
+   int is_true = API_IS_EQUAL(x, API_TRUE);
+   if (is_true | API_IS_EQUAL(x, API_FALSE) | API_IS_EQUAL(x, API_NULL_VALUE)) return is_true;
+   else return API_IS_TRUE(x);
 }
 
-static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(PyObject* x) {
+static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE x) {
     int retval;
-    if (unlikely(!x)) return -1;
-    retval = __Pyx_PyObject_IsTrue(x);
-    Py_DECREF(x);
+    if (unlikely(API_IS_NULL(x))) return -1;
+    retval = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL x);
+    PYOBJECT_CLOSEREF(x);
     return retval;
 }
 
