@@ -1334,6 +1334,7 @@ class GlobalState:
 
     def put_pyobject_decl(self, entry):
         self['global_var'].putln("static PYOBJECT_GLOBAL_TYPE %s;" % entry.cname)
+        self.const_cname_array.append(entry.cname)
 
     # constant handling at code generation time
 
