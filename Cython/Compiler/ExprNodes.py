@@ -1361,7 +1361,6 @@ class IntNode(ConstNode):
     unsigned = ""
     longness = ""
     is_c_literal = None  # unknown
-    is_global = True
 
     # hex_value and base_10_value are designed only to simplify
     # writing tests to get a consistent representation of value
