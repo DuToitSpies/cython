@@ -71,6 +71,7 @@
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
+  #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -229,6 +230,7 @@
   #define DICT_CHECK(o) PyDict_Check(o)
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
+  #define PYOBJECT_TYPE_CHECK(o, t) PyObject_TypeCheck(o, t)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) PyInt_FromLong(i)

@@ -18,7 +18,7 @@ static int __Pyx__ArgTypeTest(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYTYP
         return 0;
     }
     else if (!exact) {
-        if (likely(__Pyx_TypeCheck(HPY_LEGACY_OBJECT_AS(obj), HPY_LEGACY_OBJECT_AS(type)))) return 1;
+        if (likely(__Pyx_TypeCheck(obj, type))) return 1;
     }
     type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL type);
     obj_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(obj));
