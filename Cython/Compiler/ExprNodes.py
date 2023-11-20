@@ -7493,7 +7493,7 @@ class MergedDictNode(ExprNode):
                 for arg in item.key_value_pairs:
                     arg.generate_evaluation_code(code)
                     if self.reject_duplicates:
-                        code.putln("if (unlikely(PyDict_Contains(%s, %s))) {" % (
+                        code.putln("if (unlikely(DICT_CONTAINS(%s, %s))) {" % (
                             self.result(),
                             arg.key.py_result()))
                         helpers.add("RaiseDoubleKeywords")
@@ -9644,7 +9644,7 @@ class DictNode(ExprNode):
                             keys_seen.add(key.value)
 
                     if keys_seen is None:
-                        code.putln('if (unlikely(PyDict_Contains(%s, %s))) {' % (
+                        code.putln('if (unlikely(DICT_CONTAINS(%s, %s))) {' % (
                             self.result(), key.py_result()))
                         # currently only used in function calls
                         needs_error_helper = True

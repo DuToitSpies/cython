@@ -111,6 +111,7 @@
   //Dict Type
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_COPY(o) HPyDict_Copy(HPY_CONTEXT_CNAME, o)
+  #define DICT_CONTAINS(dict, key) HPy_Contains(HPY_CONTEXT_CNAME, dict, key)
   #define DICT_GET_ITEM(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
