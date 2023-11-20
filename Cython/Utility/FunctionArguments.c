@@ -398,7 +398,7 @@ static int __Pyx_MergeKeywords(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kwdict, P
         if (unlikely(result < 0)) goto bad;
         if (!result) break;
 
-        if (unlikely(PyDict_Contains(HPY_LEGACY_OBJECT_AS(kwdict), HPY_LEGACY_OBJECT_AS(key)))) {
+        if (unlikely(DICT_CONTAINS(kwdict, key))) {
             __Pyx_RaiseDoubleKeywordsError("function", HPY_LEGACY_OBJECT_AS(key));
             result = -1;
         } else {
