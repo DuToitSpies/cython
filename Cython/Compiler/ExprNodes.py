@@ -4690,13 +4690,6 @@ class IndexNode(_IndexingBaseNode):
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
         code.funcstate.release_temp(temp_load_value)
 
-        if index_code in code.globalstate.const_cname_array:
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
-        code.funcstate.release_temp(temp_load_index)
-        if value_code in code.globalstate.const_cname_array:
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
-        code.funcstate.release_temp(temp_load_value)
-
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
                                  exception_check=None, exception_value=None):
         self.generate_subexpr_evaluation_code(code)
