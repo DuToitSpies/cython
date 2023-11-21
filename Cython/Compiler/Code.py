@@ -2168,7 +2168,6 @@ class CCodeWriter:
             self.put(entry.type.cpp_optional_declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         else:
-            entry.type.is_global = False
             self.put(entry.type.declaration_code(
                 entry.cname, dll_linkage=dll_linkage))
         if entry.type.is_pyobject:
@@ -2185,7 +2184,6 @@ class CCodeWriter:
             else:
                 decl = type.declaration_code(name)
             if type.is_pyobject:
-                type.is_global=False
                 self.putln("%s = API_NULL_VALUE;" % decl)
             elif type.is_memoryviewslice:
                 self.putln("%s = %s;" % (decl, type.literal_code(type.default_value)))
