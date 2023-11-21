@@ -3422,9 +3422,6 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("PYOBJECT_TYPE modules = HPY_LEGACY_OBJECT_FROM(PyImport_GetModuleDict()); %s" % ##TODO: Figure out how to get module dict
                    code.error_goto_if_null_object("modules", self.pos))
         code.putln('if (API_IS_NULL(DICT_GET_ITEM_STR(modules, %s))) {' % fq_module_name_cstring)
-        code.putln('#if CYTHON_USING_HPY')
-        code.putln('HPyErr_Clear(HPY_CONTEXT_CNAME);')
-        code.putln('#endif')
         code.putln(code.error_goto_if_neg('DICT_SET_ITEM_STR(modules, %s, %s)' % (
             fq_module_name_cstring, Naming.pymodinit_module_arg), self.pos))
         code.putln("}")
