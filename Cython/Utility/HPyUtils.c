@@ -198,8 +198,8 @@
   #define CAPI_NEEDS_DEREFERENCE &
 
   //Create New and Close References
-  #define PYOBJECT_NEWREF(h) Py_NewRef(h)
-  #define PYOBJECT_XNEWREF(h) Py_XNewRef(h)
+  #define PYOBJECT_NEWREF(h) (Py_INCREF(h), h)
+  #define PYOBJECT_XNEWREF(h) (Py_XINCREF(h), h)
   #define PYOBJECT_CLOSEREF(h) Py_DECREF(h)
   #define PYOBJECT_XCLOSEREF(h) Py_XDECREF(h)
   #define PYOBJECT_GLOBAL_CLOSEREF(ref) /* nop */

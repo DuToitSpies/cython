@@ -26,7 +26,7 @@ typedef struct {
 #endif
 // using CYTHON_ATOMICS as a cdef extern bint in the Cython memoryview code
 // interacts badly with "import *". Therefore, define a helper function-like macro
-#define __PYX_CYTHON_ATOMICS_ENABLED() CYTHON_ATOMICS
+#define __PYX_CYTHON_ATOMICS_ENABLED(HPY_CONTEXT_FIRST_ARG_CALL) CYTHON_ATOMICS
 
 #define __pyx_atomic_int_type int
 #define __pyx_nonatomic_int_type int

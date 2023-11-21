@@ -1492,10 +1492,16 @@ class GlobalState:
         self.use_utility_code(UtilityCode.load_cached(utility_code_name, "ObjectHandling.c"))
         cache_cname = self.get_cached_unbound_method(type_cname, method_name)
         args = [obj_cname] + arg_cnames
+        args_with_load = []
+        for arg in args:
+            if arg in self.const_cname_array:
+                args_with_load.append("PYOBJECT_GLOBAL_LOAD(%s)" % arg)
+            else:
+                args_with_load.append(arg)
         return "__Pyx_%s(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s)" % (
             utility_code_name,
             cache_cname,
-            ', '.join(args),
+            ', '.join(args_with_load),
         )
 
     def add_cached_builtin_decl(self, entry):
@@ -2332,9 +2338,9 @@ class CCodeWriter:
         from .PyrexTypes import py_object_type, typecast
         py_none = typecast(type, py_object_type, "API_NONE_VALUE")
         if nanny:
-            self.putln("%s = __Pyx_hNewRef(API_NONE_VALUE);" % (cname))
+            self.putln("%s = __Pyx_hNewRef(%s);" % (cname, py_none))
         else:
-            self.putln("%s = PYOBJECT_NEWREF(API_NONE_VALUE);" % (cname))
+            self.putln("%s = PYOBJECT_NEWREF(%s);" % (cname, py_none))
 
     def put_init_var_to_py_none(self, entry, template = "%s", nanny=True):
         code = template % entry.cname
