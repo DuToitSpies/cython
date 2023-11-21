@@ -4649,6 +4649,15 @@ class IndexNode(_IndexingBaseNode):
                     UtilityCode.load_cached("SetItemInt", "ObjectHandling.c"))
                 function = "__Pyx_SetItemInt"
             index_code = self.index.result()
+            code.putln(code.error_goto_if_neg(
+            "%s(%s, %s, %s%s)" % (
+                function,
+                self.base.py_result(),
+                index_code,
+                value_code,
+                self.extra_index_params(code)),
+            self.pos))
+
         else:
             index_code = self.index.py_result()
             if self.base.type is dict_type:
@@ -4663,32 +4672,32 @@ class IndexNode(_IndexingBaseNode):
             else:
                 function = "PYOBJECT_SET_ITEM"
         
-        temp_load_index = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-        if index_code in code.globalstate.const_cname_array:
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_index, index_code))
-        else:
-            code.putln("%s = %s;" % (temp_load_index, index_code))    
-        temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-        if value_code in code.globalstate.const_cname_array:
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, value_code))
-        else:
-            code.putln("%s = %s;" % (temp_load_value, value_code)) 
+            temp_load_index = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            if index_code in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_index, index_code))
+            else:
+                code.putln("%s = %s;" % (temp_load_index, index_code))    
+            temp_load_value = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
+            if value_code in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (temp_load_value, value_code))
+            else:
+                code.putln("%s = %s;" % (temp_load_value, value_code)) 
 
-        code.putln(code.error_goto_if_neg(
-            "%s(%s, %s, %s%s)" % (
-                function,
-                self.base.py_result(),
-                temp_load_index,
-                temp_load_value,
-                self.extra_index_params(code)),
-            self.pos))
+            code.putln(code.error_goto_if_neg(
+                "%s(%s, %s, %s%s)" % (
+                    function,
+                    self.base.py_result(),
+                    index_code,
+                    value_code,
+                    self.extra_index_params(code)),
+                self.pos))
 
-        if index_code in code.globalstate.const_cname_array:
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
-        code.funcstate.release_temp(temp_load_index)
-        if value_code in code.globalstate.const_cname_array:
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
-        code.funcstate.release_temp(temp_load_value)
+            if index_code in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_index)
+            code.funcstate.release_temp(temp_load_index)
+            if value_code in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % temp_load_value)
+            code.funcstate.release_temp(temp_load_value)
 
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
                                  exception_check=None, exception_value=None):
@@ -8282,9 +8291,10 @@ class SequenceNode(ExprNode):
                     code.put_incref(arg.result(), arg.ctype())
                 arg.generate_giveref(code)
                 code.putln("#endif")
+                code.putln("{")
                 tmp_load_arg = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
                 if arg.py_result() in code.globalstate.const_cname_array:
-                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_arg, arg.py_result()))
+                    code.putln("PYOBJECT_TYPE %s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_arg, arg.py_result()))
                 else:
                     code.putln("%s = %s;" % (tmp_load_arg, arg.py_result()))
                 code.putln("%s(%s, %s, %s, %s);" % ( # %s;" % (
@@ -8297,7 +8307,8 @@ class SequenceNode(ExprNode):
                 if arg in code.globalstate.const_cname_array:
                     code.putln("PYOBJECT_CLOSEREF(%s);" % tmp_load_arg)
                 code.funcstate.release_temp(tmp_load_arg)
-                
+                code.putln("}")
+
             code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
             code.funcstate.release_temp(tmp_builder)
 

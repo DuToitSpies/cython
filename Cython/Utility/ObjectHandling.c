@@ -571,7 +571,7 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     }
 #endif
     PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
-    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, PYOBJECT_LONG_FROM_SSIZE(i), tmp_load_v);
+    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, PYOBJECT_LONG_FROM_SSIZE_T(i), tmp_load_v);
     PYOBJECT_CLOSEREF(tmp_load_v);
     return retval;
 }
