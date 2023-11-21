@@ -75,7 +75,7 @@
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
-  #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
+  #define LIST_CHECK_EXACT(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -123,7 +123,7 @@
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
 
   //Sequence Type
-  #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, pos)
+  #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) HPy_SetItem_i(HPY_CONTEXT_CNAME, h, pos, o)
 
   //Tuple Type
