@@ -1724,8 +1724,9 @@ class CEnumDefNode(StatNode):
             return  # nothing to do here for C++ enums
         if self.visibility == 'public' or self.api:
             code.mark_pos(self.pos)
-            load_moddict_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=True)
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_moddict_temp, Naming.moddict_cname))
+            from . import ExprNodes
+            load_moddict_temp = ExprNodes.HPyGlobalTempNode(Naming.moddict_cname)
+            load_moddict_temp.load_global(code)
             temp = code.funcstate.allocate_temp(PyrexTypes.py_object_type, manage_ref=True)
             for item in self.entry.enum_values:
                 code.putln("%s = PyInt_FromLong(%s); %s" % (
@@ -1733,14 +1734,13 @@ class CEnumDefNode(StatNode):
                     item.cname,
                     code.error_goto_if_null(temp, item.pos)))
                 code.put_gotref(temp, PyrexTypes.py_object_type)
-                code.putln('if (DICT_SET_ITEM_STR(load_moddict_temp, "%s", %s) < 0) %s' % (
+                code.putln('if (DICT_SET_ITEM_STR(load_moddict_temp.temp_var, "%s", %s) < 0) %s' % (
                     Naming.moddict_cname,
                     item.name,
                     temp,
                     code.error_goto(item.pos)))
                 code.put_decref_clear(temp, PyrexTypes.py_object_type)
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_moddict_temp)
-            code.funcstate.release_temp(load_moddict_temp)
+            load_moddict_temp.release_global(code)
             code.funcstate.release_temp(temp)
 
 
@@ -4408,16 +4408,13 @@ class DefNodeWrapper(FuncDefNode):
                     code.putln('else if (unlikely(PyErr_Occurred())) %s' % code.error_goto(self.pos))
                     code.putln('}')
                 else:
-                    tmp_load_pystr = code.funcstate.allocate_temp(py_object_type, False)
-                    if pystring_cname in code.globalstate.const_cname_array:
-                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_pystr, pystring_cname))
-                    else:
-                        code.putln("%s = %s;" % (tmp_load_pystr, pystring_cname))
+                    from . import ExprNodes
+                    
+                    tmp_load_pystr = ExprNodes.HPyGlobalTempNode(pystring_cname)
+                    tmp_load_pystr.load_global(code)
                     code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
-                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr))
-                    if pystring_cname in code.globalstate.const_cname_array:
-                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_pystr)
-                    code.funcstate.release_temp(tmp_load_pystr)
+                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_var))
+                    tmp_load_pystr.release_global(code)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
                     code.putln('kw_args--;')
                     code.putln('}')
@@ -7031,21 +7028,19 @@ class RaiseStatNode(StatNode):
             cause_code = self.cause.py_result()
         else:
             cause_code = "0"
+            
+        from . import ExprNodes
+
         code.globalstate.use_utility_code(raise_utility_code)
-        tmp_load_type = code.funcstate.allocate_temp(py_object_type, False)
-        if type_code in code.globalstate.const_cname_array:
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_type, type_code))
-        else:
-            code.putln("%s = %s;" % (tmp_load_type, type_code))
+        tmp_load_type = ExprNodes.HPyGlobalTempNode(type_code)
+        tmp_load_type.load_global(code)
         code.putln(
             "__Pyx_Raise(HPY_LEGACY_OBJECT_AS(%s), %s, %s, %s);" % (
-                tmp_load_type,
+                tmp_load_type.temp_var,
                 value_code,
                 tb_code,
                 cause_code))
-        if type_code in code.globalstate.const_cname_array:
-            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_type)
-        code.funcstate.release_temp(tmp_load_type)
+        tmp_load_type.release_global(code)
         for obj in (self.exc_type, self.exc_value, self.exc_tb, self.cause):
             if obj:
                 obj.generate_disposal_code(code)
