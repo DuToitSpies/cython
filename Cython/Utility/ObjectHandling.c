@@ -2130,7 +2130,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObj
     }
 
     if (nargs == 0) {
-        return __Pyx_PyObject_Call(func, PyTuple_New(0), kwargs); //Must be changed back to $empty_tuple when context is available
+        return __Pyx_PyObject_Call(func, PyTuple_New(0), kwargs); //TODO(HPy): Must be changed back to $empty_tuple when context is available
     }
     #if PY_VERSION_HEX >= 0x03090000 && !CYTHON_COMPILING_IN_LIMITED_API
     return PyObject_VectorcallDict(func, args, (size_t)nargs, kwargs);
