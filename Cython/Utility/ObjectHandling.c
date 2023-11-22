@@ -511,7 +511,9 @@ static int __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, P
     int r;
     if (unlikely(API_IS_NULL(j))) return -1;
     r = PYOBJECT_SET_ITEM(o, j, v);
+#if !CYTHON_USING_HPY
     PYOBJECT_CLOSEREF(j);
+#endif
     return r;
 }
 
@@ -571,8 +573,12 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     }
 #endif
     PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
-    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, PYOBJECT_LONG_FROM_SSIZE_T(i), tmp_load_v);
+    PYOBJECT_TYPE i_obj = PYOBJECT_LONG_FROM_SSIZE_T(i)
+    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, tmp_load_v);
     PYOBJECT_CLOSEREF(tmp_load_v);
+#if CYTHON_USING_HPY
+    PYOBJECT_CLOSEREF(i_obj);
+#endif
     return retval;
 }
 
