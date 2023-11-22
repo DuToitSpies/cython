@@ -1439,7 +1439,7 @@ class TupleBuilderType(PyrexType):
     
 class ListBuilderType(PyrexType):
     #
-    #  Class for a C tuple builder
+    #  Class for a C list builder
     #
 
     name = "list_builder"
