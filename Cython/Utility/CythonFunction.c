@@ -90,12 +90,16 @@ HPyType_HELPERS(__pyx_CyFunctionObject)
 #endif
 
 #undef __Pyx_CyOrPyCFunction_Check
-#define __Pyx_CyFunction_Check(obj)  __Pyx_TypeCheck(obj, __pyx_CyFunctionType)
+#define __Pyx_CyFunction_Check(obj) __Pyx_TypeCheck(obj, PYOBJECT_GLOBAL_LOAD(__pyx_CyFunctionType))
 #define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck2(obj, __pyx_CyFunctionType, &PyCFunction_Type)
+#if !CYTHON_USING_HPY
 #define __Pyx_CyFunction_CheckExact(obj)  __Pyx_IS_TYPE(obj, __pyx_CyFunctionType)
-static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc);/*proto*/
+#else
+#define __Pyx_CyFunction_CheckExact(obj)  __Pyx_TypeCheck(obj, __pyx_CyFunctionType)
+#endif
+static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, void *cfunc);/*proto*/
 #undef __Pyx_IsSameCFunction
-#define __Pyx_IsSameCFunction(func, cfunc)   __Pyx__IsSameCyOrCFunction(func, cfunc)
+#define __Pyx_IsSameCFunction(func, cfunc)   __Pyx__IsSameCyOrCFunction(HPY_CONTEXT_FIRST_ARG_CALL func, cfunc)
 
 static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op,
                                       PYMETHODDEF_TYPE *ml,
@@ -149,27 +153,21 @@ static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject 
 //@requires: ObjectHandling.c::PyObjectGetAttrStr
 
 #if CYTHON_COMPILING_IN_LIMITED_API
-static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc) {
-    if (__Pyx_CyFunction_Check(func)) {
-        return PyCFunction_GetFunction(((__pyx_CyFunctionObject*)func)->func) == (PyCFunction) cfunc;
-    } else if (PyCFunction_Check(func)) {
-        return PyCFunction_GetFunction(func) == (PyCFunction) cfunc;
-    }
-    return 0;
-}
+static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, void *cfunc) {
+#if CYTHON_USING_HPY
+    __pyx_CyFunctionObject *struct_func = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, func);
 #else
-static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc) {
-    return __Pyx_CyOrPyCFunction_Check(func) && __Pyx_CyOrPyCFunction_GET_FUNCTION(func) == (PyCFunction) cfunc;
-}
+    __pyx_CyFunctionObject *struct_func = (__pyx_CyFunctionObject*) func;
 #endif
-
-#if CYTHON_COMPILING_IN_LIMITED_API
-static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(PyObject *func, void *cfunc) {
     if (__Pyx_CyFunction_Check(func)) {
-        return PyCFunction_GetFunction(((__pyx_CyFunctionObject*)func)->func) == (PyCFunction) cfunc;
+        return PyCFunction_GetFunction(struct_func->func) == CAST_IF_CAPI(PyCFunction) cfunc; 
+#if CYTHON_USING_HPY
+    }
+#else
     } else if (PyCFunction_Check(func)) {
         return PyCFunction_GetFunction(func) == (PyCFunction) cfunc;
     }
+#endif
     return 0;
 }
 #else
@@ -329,7 +327,7 @@ static int
 __Pyx_CyFunction_set_qualname(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObject_FuncDef op, PYOBJECT_TYPE value, void *context)
 {
     CYTHON_UNUSED_VAR(context);
-    if (unlikely(value == NULL || !PyUnicode_Check(HPY_LEGACY_OBJECT_AS((value)))) {
+    if (unlikely(API_IS_NULL(value) || !UNICODE_CHECK(value))) {
         PyErr_SetString(PyExc_TypeError,
                         "__qualname__ must be set to a string object");
         return -1;
@@ -614,7 +612,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
         return __Pyx_hNewRef(load_is_coroutine_temp);
     }
 
-    is_coroutine = PYOBJECT_FIELD_LOAD(op, struct_op->flags) & __Pyx_CYFUNCTION_COROUTINE;
+    is_coroutine = struct_op->flags & __Pyx_CYFUNCTION_COROUTINE;
     if (is_coroutine) {
         PYOBJECT_TYPE load_marker_temp = PYOBJECT_GLOBAL_LOAD(PYIDENT("_is_coroutine"));
         PYOBJECT_TYPE module;
@@ -728,7 +726,6 @@ static PyGetSetDef __pyx_CyFunction_getsets[] = {
 #endif
     {0, 0, 0, 0, 0}
 };
-#endif /* CYTHON_USING_HPY */
 
 #if CYTHON_USING_HPY
 HPyDef_MEMBER(__pyx_CyFunction_member_module, "__module__", HPyMember_OBJECT, offsetof(__pyx_CyFunctionObject, func_module))
@@ -1446,6 +1443,7 @@ static PyObject * __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD(PyObject 
     return ((__Pyx_PyCMethod)(void(*)(void))def->ml_meth)(self, cls, args, (size_t)nargs, kwnames);
 }
 #endif /* !CYTHON_USING_HPY */
+#endif
 
 #if CYTHON_USING_HPY
 HPyDef_SLOT(__Pyx_CyFunction_call, HPy_tp_call)

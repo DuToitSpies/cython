@@ -26,23 +26,26 @@ static CYTHON_INLINE Py_ssize_t __Pyx_Py_UNICODE_ssize_strlen(const Py_UNICODE *
 
 //////////////////// InitStrings.proto ////////////////////
 
+#if !CYTHON_USING_HPY
 static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t); /*proto*/
+#endif
 
 //////////////////// InitStrings ////////////////////
 
+#if !CYTHON_USING_HPY
 static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t) {
     while (t->p) {
         PyObject *str;
         if (t->is_unicode | t->is_str) {
             if (t->intern) {
-                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_InternFromString(t->s)));
+                str = HPY_LEGACY_OBJECT_FROM(PyUnicode_InternFromString(t->s));
             } else if (t->encoding) {
-                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_Decode(t->s, t->n - 1, t.encoding, NULL)));
+                str = HPY_LEGACY_OBJECT_FROM(PyUnicode_Decode(t->s, t->n - 1, t->encoding, NULL));
             } else {
-                PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(t->s, t->n - 1)));
+                str = HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(t->s, t->n - 1));
             }
         } else {
-            PYOBJECT_GLOBAL_STORE(CAPI_IS_POINTER str, BYTES_FROM_STR_AND_SIZE(t->s, t->n - 1));
+            str =  BYTES_FROM_STR_AND_SIZE(t->s, t->n - 1);
         }
         if (!str)
             return -1;
@@ -54,6 +57,7 @@ static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t) 
     }
     return 0;
 }
+#endif
 
 //////////////////// BytesContains.proto ////////////////////
 

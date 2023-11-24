@@ -1582,7 +1582,7 @@ class GlobalState:
                 cname, type_cname))
             init.putln('PYOBJECT_CLOSEREF(temp_meth_name);')
             init.putln('#else')
-            init.putln('%s.type = (PyObject*)&%s;' % (
+            init.putln('%s.type = (PyObject*)%s;' % (
                 cname, type_cname))
             init.putln('%s.method_name = &%s;' % (
                 cname, method_name_cname))

@@ -883,7 +883,7 @@ static PYOBJECT_TYPE __Pyx_PyCode_Replace_For_AddTraceback(HPY_CONTEXT_FIRST_ARG
         return result;
     }
     #else
-    return NULL;
+    return API_NULL_VALUE;
     #endif
 }
 
