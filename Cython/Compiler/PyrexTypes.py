@@ -1437,7 +1437,7 @@ class TupleBuilderType(PyrexType):
         ('object') is always true
         """
         return False
-    
+
 class ListBuilderType(PyrexType):
     #
     #  Class for a C list builder
@@ -1498,7 +1498,7 @@ class BuiltinObjectType(PyObjectType):
     def __init__(self, name, cname, objstruct_cname=None):
         self.name = name
         self.cname = cname
-        self.typeptr_cname = "(CAPI_NEEDS_DEREFERENCE %s)" % cname
+        self.typeptr_cname = "(%s)" % cname
         self.objstruct_cname = objstruct_cname
         self.is_gc_simple = name in builtin_types_that_cannot_create_refcycles
         self.builtin_trashcan = name in builtin_types_with_trashcan
@@ -1801,10 +1801,16 @@ class CType(PyrexType):
                     func = func.replace("Object", result_type_name.title(), 1)
                 elif result_type_name == 'bytearray':
                     func = func.replace("Object", "ByteArray", 1)
-        return '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s)' % (
-            result_code,
-            func,
-            source_code or 'NULL')
+        if func == 'PyInt_FromSsize_t':
+            return '%s = %s(%s)' % (
+                result_code,
+                func,
+                source_code or 'NULL')
+        else:
+            return '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s)' % (
+                result_code,
+                func,
+                source_code or 'NULL')
 
     def from_py_call_code(self, source_code, result_code, error_pos, code,
                           from_py_function=None, error_condition=None,

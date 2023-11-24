@@ -736,7 +736,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
             // default is signed=False
             kwds = DICT_NEW();
             if (API_IS_NULL(kwds)) goto limited_bad;
-            if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(Py_True))) goto limited_bad;
+            if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(API_TRUE))) goto limited_bad;
         }
         result = API_CALL_FUNC(from_bytes, &arg_tuple, 2, kwds);
 

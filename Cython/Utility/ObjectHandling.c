@@ -573,7 +573,7 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     }
 #endif
     PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
-    PYOBJECT_TYPE i_obj = PYOBJECT_LONG_FROM_SSIZE_T(i)
+    PYOBJECT_TYPE i_obj = PYOBJECT_LONG_FROM_SSIZE_T(i);
     int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, tmp_load_v);
     PYOBJECT_CLOSEREF(tmp_load_v);
 #if CYTHON_USING_HPY
@@ -2044,8 +2044,8 @@ bad:
 #if CYTHON_USING_HPY
 #define __Pyx_PyObject_FastCall(func, args, nargs)  API_CALL_FUNC(func, args, (size_t)(nargs), API_NULL_VALUE)
 #else
-#define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(func, args, (size_t)(nargs), NULL)
-static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs); /*proto*/
+#define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(func, args, (size_t)(nargs), API_NULL_VALUE)
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t nargs, PYOBJECT_TYPE kwargs); /*proto*/
 #endif
 
 /////////////// PyObjectFastCall ///////////////
@@ -2073,18 +2073,22 @@ static PyObject* __Pyx_PyObject_FastCall_fallback(PyObject *func, PyObject **arg
 }
 #endif
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObject **args, size_t _nargs, PyObject *kwargs) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t _nargs, PYOBJECT_TYPE kwargs) {
     // Special fast paths for 0 and 1 arguments
     // NOTE: in many cases, this is called with a constant value for nargs
     // which is known at compile-time. So the branches below will typically
     // be optimized away.
-    Py_ssize_t nargs = __Pyx_PyVectorcall_NARGS(_nargs);
+#if CYTHON_USING_HPY
+    API_SSIZE_T nargs = _nargs
+#else
+    API_SSIZE_T nargs = __Pyx_PyVectorcall_NARGS(_nargs);
+#endif
 #if CYTHON_COMPILING_IN_CPYTHON
-    if (nargs == 0 && kwargs == NULL) {
+    if (nargs == 0 && API_IS_NULL(kwargs)) {
         if (__Pyx_CyOrPyCFunction_Check(func) && likely( __Pyx_CyOrPyCFunction_GET_FLAGS(func) & METH_NOARGS))
             return __Pyx_PyObject_CallMethO(func, NULL);
     }
-    else if (nargs == 1 && kwargs == NULL) {
+    else if (nargs == 1 && API_IS_NULL(kwargs)) {
         if (__Pyx_CyOrPyCFunction_Check(func) && likely( __Pyx_CyOrPyCFunction_GET_FLAGS(func) & METH_O))
             return __Pyx_PyObject_CallMethO(func, args[0]);
     }
@@ -2138,7 +2142,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_FastCallDict(PyObject *func, PyObj
     return __Pyx_PyObject_FastCall_fallback(func, args, (size_t)nargs, kwargs);
     #endif
 }
-#endif
 
 
 /////////////// PyObjectCallMethod0.proto ///////////////

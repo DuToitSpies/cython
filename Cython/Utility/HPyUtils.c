@@ -23,6 +23,7 @@
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
+  #define CAST_IF_CAPI(type) 
 
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -60,19 +61,20 @@
   #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
 
   //Type Objects
-  #define API_INT_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
   #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
+  #define API_STRING_TYPE_DEREF API_STRING_TYPE 
   #define API_DICT_TYPE HPY_CONTEXT_CNAME->h_DictType
+  #define API_DICT_TYPE_DEREF API_DICT_TYPE 
 
   //Type Checks
   #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
   #define FLOAT_CHECK_EXACT(f) HPyNumber_Check(HPY_CONTEXT_CNAME, f)
+  #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
-  #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_CHECK_EXACT(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
@@ -152,6 +154,7 @@
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) HPy_SetAttr_s(HPY_CONTEXT_CNAME, o1, attr_name, o2)
+  #define PYOBJECT_HASH(o) HPy_Hash(HPY_CONTEXT_CNAME, o)
 
   //Type Type
   #define TYPESPEC_TYPE HPyType_Spec
@@ -196,6 +199,7 @@
   #define PYOBJECT_GLOBAL_LOAD(global) global
   #define CAPI_IS_POINTER * //Some types are sometimes pointers and sometimes not (i.e. PyModuleDef) where the type is always the same in HPy
   #define CAPI_NEEDS_DEREFERENCE &
+  #define CAST_IF_CAPI(type) (type)
 
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) (Py_INCREF(h), h)
@@ -234,15 +238,17 @@
   #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(callable, args, kwnames)
 
   //Type Objects
-  #define API_INT_TYPE PyInt_Type
   #define API_LONG_TYPE PyLong_Type
   #define API_SSIZE_T Py_ssize_t
   #define API_STRING_TYPE PyString_Type
+  #define API_STRING_TYPE_DEREF &PyString_Type
   #define API_DICT_TYPE PyDict_Type
+  #define API_DICT_TYPE_DEREF &PyDict_Type
 
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
+  #define UNICODE_CHECK(u) PyUnicode_Check(u)
   #define DICT_CHECK(o) PyDict_Check(o)
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
@@ -326,6 +332,7 @@
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
   #define PYOBJECT_SET_ATTR_STR(o1, attr_name, o2) PyObject_SetAttrString(o1, attr_name, o2)
+  #define PYOBJECT_HASH(o) PyObject_Hash(o)
 
   //Type Type
   #define TYPESPEC_TYPE PyType_Spec
