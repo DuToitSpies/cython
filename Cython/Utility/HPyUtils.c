@@ -164,6 +164,7 @@
   #define TYPE_AS_PYOBJECT(t) t
   #define GET_TYPE(o) HPy_Type(HPY_CONTEXT_CNAME, o)
   #define OBJ_IS_TYPE(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
+  #define TYPE_IS_SUBTYPE(sub, t) HPyType_IsSubtype(HPY_CONTEXT_CNAME, sub, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
@@ -342,6 +343,7 @@
   #define TYPE_AS_PYOBJECT(t) (PyObject*)&##t
   #define GET_TYPE(o) Py_TYPE(o)
   #define OBJ_IS_TYPE(o, t) Py_IS_TYPE(o, t)
+  #define TYPE_IS_SUBTYPE(sub, t) PyType_IsSubtype(sub, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() (!!PyErr_Occurred())
