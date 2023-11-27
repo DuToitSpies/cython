@@ -9890,7 +9890,6 @@ class Py3ClassNode(ExprNode):
         if mkw in code.globalstate.const_cname_array:
             code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_mkw, mkw))
         else:
-            print(mkw)
             if mkw == 'NULL':
                 mkw = 'API_NULL_VALUE'
             code.putln("%s = %s;" % (tmp_load_mkw, mkw))
