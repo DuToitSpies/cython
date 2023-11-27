@@ -679,7 +679,7 @@ class __Pyx_FakeReference {
 // TODO: remove this block
 #if CYTHON_USING_HPY
   #define __Pyx_BUILTIN_MODULE_NAME "HPY_CONTEXT_CNAME->h_Builtins"
-  #define __Pyx_DefaultClassType HPyType_Type
+  #define __Pyx_DefaultClassType HPY_CONTEXT_CNAME->h_TypeType
 #else
 #define __Pyx_BUILTIN_MODULE_NAME "builtins"
 #define __Pyx_DefaultClassType PyType_Type
