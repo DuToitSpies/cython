@@ -1633,7 +1633,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
 static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value);/*proto*/
 #else
 #define __Pyx_PyObject_DelAttrStr(o,n)   PyObject_DelAttr(o,n)
-#define __Pyx_PyObject_SetAttrStr(o,n,v) PyObject_SetAttr(o,n,v)
+#define __Pyx_PyObject_SetAttrStr(o,n,v) PYOBJECT_SET_ATTR(o,n,v)
 #endif
 
 /////////////// PyObjectSetAttrStr ///////////////
