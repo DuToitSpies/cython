@@ -8074,11 +8074,38 @@ class AttributeNode(ExprNode):
         if self.is_py_attr:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("PyObjectSetAttrStr", "ObjectHandling.c"))
+            self_result = self.obj.py_result()
+            tmp_load_self = code.funcstate.allocate_temp(py_object_type, False)
+            if self_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_self, self_result))
+            else:
+                code.putln("%s = %s;" % (tmp_load_self, self_result))
+            attr_ident = code.intern_identifier(self.attribute)
+            tmp_load_attr = code.funcstate.allocate_temp(py_object_type, False)
+            if attr_ident in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_attr, attr_ident))
+            else:
+                code.putln("%s = %s;" % (tmp_load_attr, attr_ident))
+            rhs_result = rhs.py_result()
+            tmp_load_rhs = code.funcstate.allocate_temp(py_object_type, False)
+            if rhs_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_rhs, rhs_result))
+            else:
+                code.putln("%s = %s;" % (tmp_load_rhs, rhs_result))
             code.put_error_if_neg(self.pos,
                 '__Pyx_PyObject_SetAttrStr(%s, %s, %s)' % (
-                    self.obj.py_result(),
-                    code.intern_identifier(self.attribute),
-                    rhs.py_result()))
+                    tmp_load_self,
+                    tmp_load_attr,
+                    tmp_load_rhs))
+            if self_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_self)
+            code.funcstate.release_temp(tmp_load_self)
+            if attr_ident in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_attr)
+            code.funcstate.release_temp(tmp_load_attr)
+            if rhs_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_rhs)
+            code.funcstate.release_temp(tmp_load_rhs)
             rhs.generate_disposal_code(code)
             rhs.free_temps(code)
         elif self.obj.type.is_complex:
