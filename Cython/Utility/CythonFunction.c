@@ -834,7 +834,11 @@ static PYOBJECT_TYPE __Pyx_CyFunction_Init(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFun
     assert(ml->kind == HPyDef_Kind_Meth);
     struct_op->func = ml;
     PYOBJECT_FIELD_STORE(op, struct_op->func_qualname, qualname);
-    PYOBJECT_FIELD_STORE(op, struct_op->func_doc, HPyUnicode_FromString(HPY_CONTEXT_CNAME, ml->meth.doc));
+    if (ml->meth.doc != NULL) {
+        PYOBJECT_FIELD_STORE(op, struct_op->func_doc, HPyUnicode_FromString(HPY_CONTEXT_CNAME, ml->meth.doc));
+    } else {
+        struct_op->func_doc = HPyField_NULL;
+    }
 #endif /* !CYTHON_USING_HPY */
     if (unlikely(API_IS_NULL(op)))
         return API_NULL_VALUE;
