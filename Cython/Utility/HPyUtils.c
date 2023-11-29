@@ -54,6 +54,7 @@
 
   //General Methods
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_IS_NOT_EQUAL(a, b) !HPy_Is(HPY_CONTEXT_CNAME, a, b)
   #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) HPy_RichCompareBool(HPY_CONTEXT_CNAME, h1, h2, op)
 

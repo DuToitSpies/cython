@@ -1151,13 +1151,12 @@ static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
         PYOBJECT_GLOBAL_CLOSEREF(loaded_prepare);
         if (API_IS_NOT_NULL(prep)) {
 #if CYTHON_USING_HPY
-            HPyListBuilder builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, 3);
-            HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, 0, HPy_NULL);
-            HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, 1, name);
-            HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, 2, bases);
+            HPyListBuilder builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, 2);
+            HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, 0, name);
+            HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, 1, bases);
             PYOBJECT_TYPE pargs = HPyListBuilder_Build(HPY_CONTEXT_CNAME, builder);
             ns = HPy_Call(HPY_CONTEXT_CNAME, prep, &pargs, HPy_Length(HPY_CONTEXT_CNAME, pargs), mkw);
-            HPy_Close(HPY_CONTEXT_CNAME, pargs);
+            HPy_Close(HPY_CONTEXT_CNAME, prep);
 #else
             PyObject *pargs[3] = {NULL, name, bases};
             ns = __Pyx_PyObject_FastCallDict(prep, pargs+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, mkw);
@@ -2177,7 +2176,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST
     }
 
     if (nargs == 0) {
-        return __Pyx_PyObject_Call(func, PyTuple_New(0), kwargs); //TODO(HPy): Must be changed back to $empty_tuple when context is available
+        return __Pyx_PyObject_Call(func, $empty_tuple, kwargs);
     }
     #if PY_VERSION_HEX >= 0x03090000 && !CYTHON_COMPILING_IN_LIMITED_API
     return PyObject_VectorcallDict(func, args, (size_t)nargs, kwargs);
@@ -2270,10 +2269,10 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 #else
 #define __Pyx_PyObject_Call_h(func, arg, kw) __Pyx_PyObject_Call(func, arg, kw)
 #endif
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw); /*proto*/
 #else
-#define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
+#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_FUNC(func, arg, 0, kw)
 #endif
 
 /////////////// PyObjectCall ///////////////
