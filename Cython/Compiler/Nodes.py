@@ -5239,9 +5239,9 @@ class PyClassDefNode(ClassDefNode):
         self.dict.generate_evaluation_code(code)
         if self.orig_bases:
             # update __orig_bases__ if needed
-            code.putln("if (%s != %s) {" % (self.bases.result(), self.orig_bases.result()))
+            code.putln("if (API_IS_NOT_EQUAL(%s, %s)) {" % (self.bases.result(), self.orig_bases.result()))
             code.putln(
-                code.error_goto_if_neg('PyDict_SetItemString(%s, "__orig_bases__", %s)' % (
+                code.error_goto_if_neg('DICT_SET_ITEM_STR(%s, "__orig_bases__", %s)' % (
                     self.dict.result(), self.orig_bases.result()),
                     self.pos
             ))
