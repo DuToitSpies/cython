@@ -1046,7 +1046,7 @@ __Pyx_CyFunction_repr_impl(HPyContext *HPY_CONTEXT_CNAME, HPy op)
 {
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     HPy qualname_field = HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_qualname);
-    HPy result = HPyUnicode_FromFormat(HPY_CONTEXT_CNAME, "<cyfunction %U at %R>", qualname_field, op);
+    HPy result = HPyUnicode_FromFormat(HPY_CONTEXT_CNAME, "<cyfunction %U at %p>", qualname_field, struct_op);
     HPy_Close(HPY_CONTEXT_CNAME, qualname_field);
     return result;
 }
