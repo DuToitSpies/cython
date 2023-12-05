@@ -1620,9 +1620,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
     if (likely(tp->tp_getattro))
         return tp->tp_getattro(obj, attr_name);
 #endif
-    PYOBJECT_TYPE item = DICT_GET_ITEM(obj, attr_name);
-
-    return item;
+    return PYOBJECT_GET_ATTR_STR(obj, attr_name);
 }
 #endif
 
