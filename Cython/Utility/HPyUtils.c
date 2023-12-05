@@ -23,7 +23,7 @@
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
-  #define CAST_IF_CAPI(type) 
+  #define CAST_IF_CAPI(type)
 
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
@@ -66,9 +66,9 @@
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
   #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
-  #define API_STRING_TYPE_DEREF API_STRING_TYPE 
+  #define API_STRING_TYPE_DEREF API_STRING_TYPE
   #define API_DICT_TYPE HPY_CONTEXT_CNAME->h_DictType
-  #define API_DICT_TYPE_DEREF API_DICT_TYPE 
+  #define API_DICT_TYPE_DEREF API_DICT_TYPE
 
   //Type Checks
   #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
