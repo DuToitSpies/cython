@@ -9780,7 +9780,10 @@ class Py3ClassNode(ExprNode):
         tmp_load_metaclass = code.funcstate.allocate_temp(py_object_type, False)
         if class_def_node.metaclass:
             metaclass = class_def_node.metaclass.py_result()
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_metaclass, metaclass))
+            if metaclass in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_metaclass, metaclass))
+            else:
+                code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
         elif self.force_type:
             metaclass = "(CAST_IF_CAPI(PYOBJECT_TYPE)CAPI_NEEDS_DEREFERENCE __Pyx_DefaultClassType)"
             code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
@@ -9843,12 +9846,12 @@ class PyClassMetaclassNode(ExprNode):
         else:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("CalculateMetaclass", "ObjectHandling.c"))
-            call = "__Pyx_CalculateMetaclass(NULL, %s)" % (
+            call = "__Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_CALL API_NULL_VALUE, %s)" % (
                 bases.result())
         code.putln(
             "%s = %s; %s" % (
                 self.result(), call,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
         self.generate_gotref(code)
 
 

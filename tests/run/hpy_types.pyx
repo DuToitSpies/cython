@@ -1,24 +1,30 @@
 import cython
 
-class Circle:
-    def __init__(self):
-        self.radius = 10
+class Shape:
+    def __init__(self, colour):
+        self.colour = colour
 
-    def radius_getter(self):
+    def get_colour(self):
+        return self.colour
+
+    def set_colour(self, colour):
+        self.colour = colour
+
+class Circle(Shape):
+    def __init__(self, colour, radius):
+        Shape.__init__(self, colour)
+        self.radius = radius
+
+    def get_radius(self):
         return self.radius
 
-def circle_init():
-    """
-    >>> circle_init()
-    10
-    """
-    loop = Circle()
-    return loop.radius
+    def set_radius(self, radius):
+        self.radius = radius
 
 def get_circle_radius(circle):
     """
-    >>> loop = Circle()
+    >>> loop = Circle("red", 11)
     >>> get_circle_radius(loop)
-    10
+    11
     """
-    return circle.radius
+    return circle.get_radius()
