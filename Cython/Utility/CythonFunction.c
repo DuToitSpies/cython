@@ -1463,7 +1463,7 @@ static HPy __Pyx_CyFunction_call_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, c
 
 HPyDef_SLOT(__pyx_CyFunction_descr_get, HPy_tp_descr_get)
 static HPy __pyx_CyFunction_descr_get_impl(HPyContext *ctx, HPy func, HPy self, HPy typ) {
-    __Pyx_PyMethod_New(ctx, func, self, typ);
+    return __Pyx_PyMethod_New(ctx, func, self, typ);
 }
 
 static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {
