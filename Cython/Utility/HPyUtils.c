@@ -72,6 +72,7 @@
 
   //Type Checks
   #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
+  #define LONG_CHECK_EXACT(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
   #define FLOAT_CHECK_EXACT(f) HPyNumber_Check(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
@@ -96,7 +97,7 @@
   #define PYOBJECT_LONG_FROM_SSIZE_T(i) HPyLong_FromSsize_t(HPY_CONTEXT_CNAME, i)
 
   //Long Type - To
-  #define PYOBJECT_LONG_AS_SSIZE(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_LONG_AS_SSIZE_T(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) HPyLong_AsUnsignedLong(HPY_CONTEXT_CNAME, l)
 
   //Float Type - From
@@ -149,6 +150,7 @@
   #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
+  #define LIST_INSERT(list, index, h) PyList_Insert(HPY_LEGACY_OBJECT_AS(list), index, HPY_LEGACY_OBJECT_AS(h))
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -157,6 +159,7 @@
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define PYOBJECT_DEL_ITEM(o, attr_name) HPy_DelItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
@@ -256,6 +259,7 @@
 
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)
+  #define LONG_CHECK_EXACT(l) PyLong_CheckExact(l)
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
   #define UNICODE_CHECK(u) PyUnicode_Check(u)
   #define DICT_CHECK(o) PyDict_Check(o)
@@ -281,7 +285,7 @@
   #define PYOBJECT_LONG_FROM_SSIZE_T(i) PyLong_FromSsize_t(i)
 
   //Long Type - To
-  #define PYOBJECT_LONG_AS_SSIZE(l) PyLong_AsSsize_t(l)
+  #define PYOBJECT_LONG_AS_SSIZE_T(l) PyLong_AsSsize_t(l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) PyLong_AsUnsignedLong(l)
 
   //Float Type - From
@@ -332,6 +336,7 @@
   #define LIST_NEW(i) PyList_New(i)
   #define LIST_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
   #define LIST_APPEND(list, h) PyList_Append(list, h)
+  #define LIST_INSERT(list, index, h) PyList_Insert(list, index, h)
   #define LIST_GET_SIZE(h) PyList_GET_SIZE(h)
   #define LIST_GET_SIZE_SAFE(h) PyList_Size(h)
   #define LIST_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
@@ -342,6 +347,7 @@
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) PyObject_SetItem(o, attr_name, attr_val)
+  #define PYOBJECT_DEL_ITEM(o, attr_name) PyObject_DelItem(o, attr_name)
   #define PYOBJECT_GET_ATTR(o, attr_name) PyObject_GetAttr(o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)

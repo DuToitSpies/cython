@@ -118,14 +118,14 @@ static CYTHON_INLINE int __Pyx_StrEq(const char *s1, const char *s2) {
 
 //////////////////// UnicodeEquals.proto ////////////////////
 
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals); /*proto*/
+static CYTHON_INLINE int __Pyx_PyUnicode_Equals(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE s1, PYOBJECT_TYPE s2, int equals); /*proto*/
 
 //////////////////// UnicodeEquals ////////////////////
 //@requires: BytesEquals
 
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
+static CYTHON_INLINE int __Pyx_PyUnicode_Equals(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE s1, PYOBJECT_TYPE s2, int equals) {
 #if CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API
-    return PyObject_RichCompareBool(s1, s2, equals);
+    return API_RICH_COMPARE_BOOL(s1, s2, equals);
 #else
     int s1_is_unicode, s2_is_unicode;
     if (s1 == s2) {

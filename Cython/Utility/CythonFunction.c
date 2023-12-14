@@ -91,10 +91,11 @@ HPyType_HELPERS(__pyx_CyFunctionObject)
 
 #undef __Pyx_CyOrPyCFunction_Check
 #define __Pyx_CyFunction_Check(obj) __Pyx_TypeCheck(obj, PYOBJECT_GLOBAL_LOAD(__pyx_CyFunctionType))
-#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck2(obj, __pyx_CyFunctionType, &PyCFunction_Type)
 #if !CYTHON_USING_HPY
+#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck2(obj, __pyx_CyFunctionType, &PyCFunction_Type)
 #define __Pyx_CyFunction_CheckExact(obj)  __Pyx_IS_TYPE(obj, __pyx_CyFunctionType)
 #else
+#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck(obj, PYOBJECT_GLOBAL_LOAD(__pyx_CyFunctionType)) //TODO(HPy): Loading here is a memory leak
 #define __Pyx_CyFunction_CheckExact(obj)  __Pyx_TypeCheck(obj, __pyx_CyFunctionType)
 #endif
 static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, void *cfunc);/*proto*/

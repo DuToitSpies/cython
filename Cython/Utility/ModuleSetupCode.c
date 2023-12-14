@@ -1236,7 +1236,9 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
 #define __Pyx_PyBaseString_Check(obj) PyUnicode_Check(obj)
 #define __Pyx_PyBaseString_CheckExact(obj) PyUnicode_CheckExact(obj)
 
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_USING_HPY
+  #define __Pyx_PySequence_ListKeepNew(obj) HPY_LEGACY_OBJECT_FROM(PySequence_List(HPY_LEGACY_OBJECT_AS(obj)))
+#elif CYTHON_COMPILING_IN_CPYTHON
   #define __Pyx_PySequence_ListKeepNew(obj) \
     (likely(PyList_CheckExact(obj) && Py_REFCNT(obj) == 1) ? __Pyx_NewRef(obj) : PySequence_List(obj))
 #else
@@ -1308,7 +1310,7 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
 #define PyInt_FromSsize_t            PYOBJECT_LONG_FROM_SSIZE_T
 #define PyInt_AsLong                 PyLong_AsLong
 #define PyInt_AS_LONG                PyLong_AS_LONG
-#define PyInt_AsSsize_t              PyLong_AsSsize_t
+#define PyInt_AsSsize_t              PYOBJECT_LONG_AS_SSIZE_T
 #define PyInt_AsUnsignedLongMask     PyLong_AsUnsignedLongMask
 #define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
 #define PyNumber_Int                 PyNumber_Long
