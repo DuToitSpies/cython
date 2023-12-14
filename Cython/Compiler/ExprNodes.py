@@ -2615,16 +2615,24 @@ class NameNode(AtomicExprNode):
                     if is_external_ref:
                         self.generate_gotref(code, handle_null=True)
                     assigned = True
+                    load_rhs = code.funcstate.allocate_temp(py_object_type, False)
+                    if rhs.result_as(self.ctype()) in code.globalstate.const_cname_array:
+                        code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_rhs, rhs.result_as(self.ctype())))
+                    else:
+                        code.putln("%s = %s;" % (load_rhs, rhs.result_as(self.ctype())))
                     if entry.is_cglobal:
-                        self.generate_decref_set(code, rhs.result_as(self.ctype()))
+                        self.generate_decref_set(code, load_rhs)
                     else:
                         if not self.cf_is_null:
                             if self.cf_maybe_null:
-                                self.generate_xdecref_set(code, rhs.result_as(self.ctype()))
+                                self.generate_xdecref_set(code, load_rhs)
                             else:
-                                self.generate_decref_set(code, rhs.result_as(self.ctype()))
+                                self.generate_decref_set(code, load_rhs)
                         else:
                             assigned = False
+                    if rhs.result_as(self.ctype()) in code.globalstate.const_cname_array:
+                        code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_rhs)
+                    code.funcstate.release_temp(load_rhs)
                     if is_external_ref:
                         rhs.generate_giveref(code)
             if not self.type.is_memoryviewslice:

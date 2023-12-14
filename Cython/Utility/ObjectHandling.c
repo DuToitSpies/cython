@@ -1630,7 +1630,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 #if !CYTHON_USING_HPY
     result = __Pyx_PyObject_GetAttrStr(obj, attr_name);
 #else
-    result = PYOBJECT_GET_ATTR(obj, attr_name);
+    result = PYOBJECT_GET_ITEM(obj, attr_name);
 #endif
     if (unlikely(API_IS_NULL(result))) {
         __Pyx_PyObject_GetAttrStr_ClearAttributeError();

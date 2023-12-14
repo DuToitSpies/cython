@@ -12,6 +12,10 @@ DEFAULT_ARG = 9
 
 
 def fannkuch(n):
+    """
+    >>> fannkuch(9)
+    30
+    """
     count = list(range(1, n + 1))
     max_flips = 0
     m = n - 1
@@ -52,3 +56,4 @@ if __name__ == "__main__":
     runner = pyperf.Runner()
     arg = DEFAULT_ARG
     runner.bench_func('fannkuch', fannkuch, arg)
+
