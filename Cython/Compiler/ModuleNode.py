@@ -2236,7 +2236,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 code.putln("PyObject *ret;")
                 code.putln("ret = %s(o1, o2);" % comp_entry[ordering_source].func_cname)
                 code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-                code.putln("int order_res = __Pyx_PyObject_IsTrue(ret);")
+                code.putln("int order_res = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
                 code.putln("Py_DECREF(ret);")
                 code.putln("if (unlikely(order_res < 0)) return NULL;")
                 # We may need to check equality too. For some combos it's never required.
@@ -2261,7 +2261,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
                     code.putln("ret = %s(o1, o2);" % comp_entry[eq_func].func_cname)
                     code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-                    code.putln("int eq_res = __Pyx_PyObject_IsTrue(ret);")
+                    code.putln("int eq_res = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
                     code.putln("Py_DECREF(ret);")
                     code.putln("if (unlikely(eq_res < 0)) return NULL;")
                     if invert_equals:
@@ -2291,7 +2291,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             #code.putln("if (o1 == o2) return __Pyx_NewRef(Py_False);")
             code.putln("ret = %s(o1, o2);" % comp_entry['__eq__'].func_cname)
             code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-            code.putln("int b = __Pyx_PyObject_IsTrue(ret);")
+            code.putln("int b = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
             code.putln("Py_DECREF(ret);")
             code.putln("if (unlikely(b < 0)) return NULL;")
             code.putln("ret = (b) ? API_FALSE : API_TRUE;")

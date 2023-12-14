@@ -2544,8 +2544,8 @@ class NameNode(AtomicExprNode):
                 load_result_value = load_result_temp.temp_cname
             else:
                 assert False, repr(entry)
-            code.putln("#if CYTHON_USING_HPY") 
-            # Wrapping namespace and interned_cname in PyObjects breaks the C API 
+            code.putln("#if CYTHON_USING_HPY")
+            # Wrapping namespace and interned_cname in PyObjects breaks the C API
             # version when not using the Limited API
             load_namespace_temp = LoadGlobalNode(self.pos, namespace)
             load_namespace_temp.allocate(code)
@@ -2841,14 +2841,17 @@ class ImportNode(ExprNode):
                 utility_code = UtilityCode.load_cached("ImportDottedModuleRelFirst", "ImportExport.c")
                 helper_func = "__Pyx_ImportDottedModuleRelFirst"
             code.globalstate.use_utility_code(utility_code)
-            import_code = "%s(%s, %s)" % (
+            load_result = LoadGlobalNode(self.pos, self.module_name.py_result())
+            load_result.allocate(code)
+            import_code = "%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s)" % (
                 helper_func,
-                self.module_name.py_result(),
-                self.module_names.py_result() if self.module_names else 'NULL',
+                load_result.temp_cname,
+                self.module_names.py_result() if self.module_names else 'API_NULL_VALUE',
             )
+            load_result.release(code)
         else:
             code.globalstate.use_utility_code(UtilityCode.load_cached("Import", "ImportExport.c"))
-            import_code = "__Pyx_Import(%s, %s, %d)" % (
+            import_code = "__Pyx_Import(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %d)" % (
                 self.module_name.py_result(),
                 self.name_list.py_result() if self.name_list else '0',
                 self.level)
@@ -2856,7 +2859,7 @@ class ImportNode(ExprNode):
         code.putln("%s = %s; %s" % (
             self.result(),
             import_code,
-            code.error_goto_if_null(self.result(), self.pos)))
+            code.error_goto_if_null_object(self.result(), self.pos)))
         self.generate_gotref(code)
 
     def get_known_standard_library_import(self):
@@ -3509,7 +3512,7 @@ class WithExitCallNode(ExprNode):
 
         if self.result_is_used:
             self.allocate_temp_result(code)
-            code.putln("%s = __Pyx_PyObject_IsTrue(%s);" % (self.result(), result_var))
+            code.putln("%s = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL %s);" % (self.result(), result_var))
         code.put_decref_clear(result_var, type=py_object_type)
         if self.result_is_used:
             code.put_error_if_neg(self.pos, self.result())
@@ -5635,7 +5638,7 @@ class SliceIndexNode(ExprNode):
             (has_c_start, has_c_stop, c_start, c_stop,
              py_start, py_stop, py_slice) = self.get_slice_config()
             code.putln(
-                "%s = __Pyx_PyObject_GetSlice(%s, %s, %s, %s, %s, %s, %d, %d, %d); %s" % (
+                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_GetSlice(HPY_LEGACY_OBJECT_AS(%s), %s, %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, %d, %d)); %s" % (
                     result,
                     self.base.py_result(),
                     c_start, c_stop,
@@ -5655,13 +5658,13 @@ class SliceIndexNode(ExprNode):
             else:
                 cfunc = 'PySequence_GetSlice'
             code.putln(
-                "%s = %s(%s, %s, %s); %s" % (
+                "%s = HPY_LEGACY_OBJECT_FROM(%s(HPY_LEGACY_OBJECT_AS(%s), %s, %s)); %s" % (
                     result,
                     cfunc,
                     self.base.py_result(),
                     start_code,
                     stop_code,
-                    code.error_goto_if_null(result, self.pos)))
+                    code.error_goto_if_null_object(result, self.pos)))
         self.generate_gotref(code)
 
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
@@ -5671,7 +5674,7 @@ class SliceIndexNode(ExprNode):
             code.globalstate.use_utility_code(self.set_slice_utility_code)
             has_c_start, has_c_stop, c_start, c_stop, py_start, py_stop, py_slice = self.get_slice_config()
             code.put_error_if_neg(self.pos,
-                "__Pyx_PyObject_SetSlice(%s, %s, %s, %s, %s, %s, %s, %d, %d, %d)" % (
+                "__Pyx_PyObject_SetSlice(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %s, %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, %d, %d)" % (
                     self.base.py_result(),
                     rhs.py_result(),
                     c_start, c_stop,
@@ -5718,21 +5721,21 @@ class SliceIndexNode(ExprNode):
         self.free_subexpr_temps(code)
 
     def get_slice_config(self):
-        has_c_start, c_start, py_start = False, '0', 'NULL'
+        has_c_start, c_start, py_start = False, '0', 'API_NULL_VALUE'
         if self.start:
             has_c_start = not self.start.type.is_pyobject
             if has_c_start:
                 c_start = self.start.result()
             else:
                 py_start = '&%s' % self.start.py_result()
-        has_c_stop, c_stop, py_stop = False, '0', 'NULL'
+        has_c_stop, c_stop, py_stop = False, '0', 'API_NULL_VALUE'
         if self.stop:
             has_c_stop = not self.stop.type.is_pyobject
             if has_c_stop:
                 c_stop = self.stop.result()
             else:
                 py_stop = '&%s' % self.stop.py_result()
-        py_slice = self.slice and '&%s' % self.slice.py_result() or 'NULL'
+        py_slice = self.slice and '&%s' % self.slice.py_result() or 'API_NULL_VALUE'
         return (has_c_start, has_c_stop, c_start, c_stop,
                 py_start, py_stop, py_slice)
 
@@ -5893,16 +5896,27 @@ class SliceNode(ExprNode):
                 return  # already initialised
             code.mark_pos(self.pos)
 
+        code.putln("{")
+        load_start = LoadGlobalNode(self.pos, self.start.py_result())
+        load_stop = LoadGlobalNode(self.pos, self.stop.py_result())
+        load_step = LoadGlobalNode(self.pos, self.step.py_result())
+        load_start.allocate(code, needs_decl=True)
+        load_stop.allocate(code, needs_decl=True)
+        load_step.allocate(code, needs_decl=True)
         code.putln(
-            "%s = PySlice_New(%s, %s, %s); %s" % (
+            "%s = HPY_LEGACY_OBJECT_FROM(PySlice_New(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s))); %s" % (
                 self.result(),
-                self.start.py_result(),
-                self.stop.py_result(),
-                self.step.py_result(),
-                code.error_goto_if_null(self.result(), self.pos)))
+                load_start.temp_cname,
+                load_stop.temp_cname,
+                load_step.temp_cname,
+                code.error_goto_if_null_object(self.result(), self.pos)))
+        load_start.release(code)
+        load_stop.release(code)
+        load_step.release(code)
         self.generate_gotref(code)
         if self.is_literal:
             self.generate_giveref(code)
+        code.putln("}")
 
 class SliceIntNode(SliceNode):
     #  start:stop:step in subscript list
@@ -6453,7 +6467,7 @@ class SimpleCallNode(CallNode):
 
         if len(arg_list_code) > 0:
             arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
-            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex']:
+            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex', '__Pyx_PySequence_ListKeepNew', 'LIST_INSERT']:
                 arg_string = ""
             for arg in arg_list_code:
                 if code:
@@ -6526,12 +6540,15 @@ class SimpleCallNode(CallNode):
         else:
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCallOneArg", "ObjectHandling.c"))
+            load_result_temp = LoadGlobalNode(self.pos, function.py_result())
+            load_result_temp.allocate(code)
             code.putln(
-                "%s = __Pyx_PyObject_CallOneArg(%s, %s); %s" % (
+                "%s = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL %s, %s); %s" % (
                     self.result(),
-                    function.py_result(),
+                    load_result_temp.temp_cname,
                     arg.py_result(),
-                    code.error_goto_if_null(self.result(), self.pos)))
+                    code.error_goto_if_null_object(self.result(), self.pos)))
+            load_result_temp.release(code)
 
         self.generate_gotref(code)
 
@@ -6549,15 +6566,23 @@ class SimpleCallNode(CallNode):
             func_result = self.function.py_result()
             tmp_func_result = LoadGlobalNode(self.pos, func_result)
             tmp_func_result.allocate(code)
-            func_result = self.function.py_result()
             tmp_arg_code = LoadGlobalNode(self.pos, arg_code)
             tmp_arg_code.allocate(code)
+            code.putln("#if CYTHON_USING_HPY")
             code.putln(
-                "%s = __Pyx_PyObject_Call_h(%s, %s, API_NULL_VALUE); %s" % (
+                "%s = HPy_CallTupleDict(HPY_CONTEXT_CNAME, %s, %s, API_NULL_VALUE); %s" % (
                     self.result(),
                     tmp_func_result.temp_cname,
                     tmp_arg_code.temp_cname,
                     code.error_goto_if_null_object(self.result(), self.pos)))
+            code.putln("#else")
+            code.putln(
+                "%s = __Pyx_PyObject_Call(%s, %s, API_NULL_VALUE); %s" % (
+                    self.result(),
+                    tmp_func_result.temp_cname,
+                    tmp_arg_code.temp_cname,
+                    code.error_goto_if_null_object(self.result(), self.pos)))
+            code.putln("#endif")
             tmp_func_result.release(code)
             tmp_arg_code.release(code)
             self.generate_gotref(code)
@@ -7156,19 +7181,29 @@ class GeneralCallNode(CallNode):
         if self.keyword_args:
             kwargs = self.keyword_args.py_result()
         else:
-            kwargs = 'NULL'
+            kwargs = 'API_NULL_VALUE'
         code.globalstate.use_utility_code(UtilityCode.load_cached(
             "PyObjectCall", "ObjectHandling.c"))
         pos_args_cname = self.positional_args.py_result()
         tmp_pos_args = LoadGlobalNode(self.pos, pos_args_cname)
         tmp_pos_args.allocate(code)
+        code.putln("#if CYTHON_USING_HPY")
         code.putln(
-            "%s = __Pyx_PyObject_Call_h(%s, %s, %s); %s" % (
+            "%s = HPy_CallTupleDict(HPY_CONTEXT_CNAME, %s, %s, %s); %s" % (
                 self.result(),
                 self.function.py_result(),
                 tmp_pos_args.temp_cname,
                 kwargs,
                 code.error_goto_if_null_object(self.result(), self.pos)))
+        code.putln("#else")
+        code.putln(
+            "%s = __Pyx_PyObject_Call(%s, %s, %s); %s" % (
+                self.result(),
+                self.function.py_result(),
+                tmp_pos_args.temp_cname,
+                kwargs,
+                code.error_goto_if_null_object(self.result(), self.pos)))
+        code.putln("#endif")
         tmp_pos_args.release(code)
         self.generate_gotref(code)
 
@@ -7312,10 +7347,10 @@ class MergedDictNode(ExprNode):
             code.putln('} else {')
             code.globalstate.use_utility_code(UtilityCode.load_cached(
                 "PyObjectCallOneArg", "ObjectHandling.c"))
-            code.putln("%s = __Pyx_PyObject_CallOneArg((PyObject*)&PyDict_Type, %s); %s" % (
+            code.putln("%s = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL (PyObject*)&PyDict_Type, %s); %s" % (
                 self.result(),
                 item.py_result(),
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
             self.generate_gotref(code)
             item.generate_disposal_code(code)
             code.putln('}')
@@ -13109,7 +13144,7 @@ class BoolBinopNode(ExprNode):
             test_result = code.funcstate.allocate_temp(
                 PyrexTypes.c_bint_type, manage_ref=False)
             code.putln(
-                "%s = __Pyx_PyObject_IsTrue(%s); %s" % (
+                "%s = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL %s); %s" % (
                     test_result,
                     self.operand1.py_result(),
                     code.error_goto_if_neg(test_result, self.pos)))
@@ -13166,7 +13201,7 @@ class BoolBinopResultNode(ExprNode):
             test_result = code.funcstate.allocate_temp(
                 PyrexTypes.c_bint_type, manage_ref=False)
             code.putln(
-                "%s = __Pyx_PyObject_IsTrue(%s); %s" % (
+                "%s = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL %s); %s" % (
                     test_result,
                     self.arg.py_result(),
                     code.error_goto_if_neg(test_result, self.pos)))
@@ -13673,27 +13708,39 @@ class CmpNode:
             ])
             if self.special_bool_cmp_utility_code:
                 code.globalstate.use_utility_code(self.special_bool_cmp_utility_code)
+            load_result1 = LoadGlobalNode(self.pos, result1)
+            load_result2 = LoadGlobalNode(self.pos, result2)
+            load_result1.allocate(code)
+            load_result2.allocate(code)
             code.putln(
-                "%s = %s(%s(%s, %s, %s)); %s%s" % (
+                "%s = %s(%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)); %s%s" % (
                     result_code,
                     coerce_result,
                     self.special_bool_cmp_function,
-                    result1, result2,
+                    load_result1.temp_cname, load_result2.temp_cname,
                     special_bool_extra_args_result if self.special_bool_extra_args else richcmp_constants[op],
                     got_ref,
                     error_clause(result_code, self.pos)))
+            load_result1.release(code)
+            load_result2.release(code)
 
         elif operand1.type.is_pyobject and op not in ('is', 'is_not'):
             assert op not in ('in', 'not_in'), op
             assert self.type.is_pyobject or self.type is PyrexTypes.c_bint_type
+            load_op1 = LoadGlobalNode(self.pos, operand1.py_result())
+            load_op2 = LoadGlobalNode(self.pos, operand2.py_result())
+            load_op1.allocate(code)
+            load_op2.allocate(code)
             code.putln("%s = API_RICH_COMPARE%s(%s, %s, %s); %s%s" % (
                     result_code,
                     "" if self.type.is_pyobject else "_BOOL",
-                    operand1.py_result(),
-                    operand2.py_result(),
+                    load_op1.temp_cname,
+                    load_op2.temp_cname,
                     richcmp_constants[op],
                     got_ref,
                     error_clause(result_code, self.pos)))
+            load_op1.release(code)
+            load_op2.release(code)
 
         elif operand1.type.is_complex:
             code.putln("%s = %s(%s%s(%s, %s));" % (
@@ -14097,7 +14144,7 @@ class CascadedCmpNode(Node, CmpNode):
 
     def generate_evaluation_code(self, code, result, operand1, needs_evaluation=False):
         if self.type.is_pyobject:
-            code.putln("if (__Pyx_PyObject_IsTrue(%s)) {" % result)
+            code.putln("if (__Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL %s)) {" % result)
             code.put_decref(result, self.type)
         else:
             code.putln("if (%s) {" % result)
@@ -14631,7 +14678,7 @@ class CoerceToBooleanNode(CoercionNode):
             code.putln("%s = %s;" % (self.result(), '&&'.join(checks)))
         else:
             code.putln(
-                "%s = __Pyx_PyObject_IsTrue(%s); %s" % (
+                "%s = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL %s); %s" % (
                     self.result(),
                     self.arg.py_result(),
                     code.error_goto_if_neg(self.result(), self.pos)))

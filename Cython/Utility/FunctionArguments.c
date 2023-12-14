@@ -502,7 +502,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetKwValue_FASTCALL(HPY_CONTEXT_FIRST_A
     }
     for (i = 0; i < n; i++)
     {
-        int eq = __Pyx_PyUnicode_Equals(HPY_LEGACY_OBJECT_AS(s), HPY_LEGACY_OBJECT_AS(TUPLE_GET_ITEM(kwnames, i)), Py_EQ);
+        int eq = __Pyx_PyUnicode_Equals(HPY_CONTEXT_FIRST_ARG_CALL s, TUPLE_GET_ITEM(kwnames, i), Py_EQ);
         if (unlikely(eq != 0)) {
             if (unlikely(eq < 0)) return API_NULL_VALUE;  // error
             return kwvalues[i];

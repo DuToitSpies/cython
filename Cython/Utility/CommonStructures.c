@@ -99,7 +99,7 @@ static PYTYPEOBJECT_TYPE __Pyx_FetchCommonTypeFromSpec(HPY_CONTEXT_FIRST_ARG_DEF
         PYOBJECT_TYPE py_basicsize;
         py_basicsize = PYOBJECT_GET_ATTR_STR(cached_type, "__basicsize__");
         if (unlikely(API_IS_NULL(py_basicsize))) goto bad;
-        basicsize = PYOBJECT_LONG_AS_SSIZE(py_basicsize);
+        basicsize = PYOBJECT_LONG_AS_SSIZE_T(py_basicsize);
         PYOBJECT_CLOSEREF(py_basicsize);
         py_basicsize = API_DEFAULT_VALUE;
         if (unlikely(basicsize == (API_SSIZE_T)-1) && PYERR_OCCURRED()) goto bad;

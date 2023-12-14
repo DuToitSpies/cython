@@ -318,7 +318,7 @@ builtin_types_table = [
                                                   utility_code=UtilityCode.load("PySequenceMultiply", "ObjectHandling.c")),
                                     ]),
 
-    ("list",   "&PyList_Type",     [BuiltinMethod("insert",  "TzO",  "r", "PyList_Insert"),
+    ("list",   "&PyList_Type",     [BuiltinMethod("insert",  "TzO",  "r", "LIST_INSERT"),
                                     BuiltinMethod("reverse", "T",    "r", "PyList_Reverse"),
                                     BuiltinMethod("append",  "TO",   "r", "__Pyx_PyList_Append",
                                                   utility_code=UtilityCode.load("ListAppend", "Optimize.c")),

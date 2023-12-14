@@ -1,21 +1,21 @@
 /////////////// ImportDottedModule.proto ///////////////
 
-static PyObject *__Pyx_ImportDottedModule(PyObject *name, PyObject *parts_tuple); /*proto*/
-static PyObject *__Pyx_ImportDottedModule_WalkParts(PyObject *module, PyObject *name, PyObject *parts_tuple); /*proto*/
+static PYOBJECT_TYPE __Pyx_ImportDottedModule(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple); /*proto*/
+static PYOBJECT_TYPE __Pyx_ImportDottedModule_WalkParts(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE module, PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple); /*proto*/
 
 /////////////// ImportDottedModule ///////////////
 //@requires: Import
 
-static PyObject *__Pyx__ImportDottedModule_Error(PyObject *name, PyObject *parts_tuple, Py_ssize_t count) {
-    PyObject *partial_name = NULL, *slice = NULL, *sep = NULL;
-    Py_ssize_t size;
+static PYOBJECT_TYPE __Pyx__ImportDottedModule_Error(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple, API_SSIZE_T count) {
+    PYOBJECT_TYPE partial_name = API_NULL_VALUE, CAPI_IS_POINTER slice = API_NULL_VALUE, CAPI_IS_POINTER sep = API_NULL_VALUE;
+    API_SSIZE_T size;
     if (unlikely(PyErr_Occurred())) {
         PyErr_Clear();
     }
 #if CYTHON_ASSUME_SAFE_MACROS
     size = PyTuple_GET_SIZE(parts_tuple);
 #else
-    size = PyTuple_Size(parts_tuple);
+    size = TUPLE_GET_SIZE_SAFE(parts_tuple);
     if (size < 0) {
         goto bad;
     }
@@ -23,13 +23,13 @@ static PyObject *__Pyx__ImportDottedModule_Error(PyObject *name, PyObject *parts
     if (likely(size == count)) {
         partial_name = name;
     } else {
-        slice = PySequence_GetSlice(parts_tuple, 0, count);
-        if (unlikely(!slice))
+        slice = HPY_LEGACY_OBJECT_FROM(PySequence_GetSlice(HPY_LEGACY_OBJECT_AS(parts_tuple), 0, count));
+        if (unlikely(API_IS_NULL(slice)))
             goto bad;
-        sep = PyUnicode_FromStringAndSize(".", 1);
-        if (unlikely(!sep))
+        sep = HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(".", 1));
+        if (unlikely(API_IS_NULL(sep)))
             goto bad;
-        partial_name = PyUnicode_Join(sep, slice);
+        partial_name = HPY_LEGACY_OBJECT_FROM(PyUnicode_Join(HPY_LEGACY_OBJECT_AS(sep), HPY_LEGACY_OBJECT_AS(slice)));
     }
 
     PyErr_Format(
@@ -37,14 +37,14 @@ static PyObject *__Pyx__ImportDottedModule_Error(PyObject *name, PyObject *parts
         "No module named '%U'", partial_name);
 
 bad:
-    Py_XDECREF(sep);
-    Py_XDECREF(slice);
-    Py_XDECREF(partial_name);
-    return NULL;
+    PYOBJECT_XCLOSEREF(sep);
+    PYOBJECT_XCLOSEREF(slice);
+    PYOBJECT_XCLOSEREF(partial_name);
+    return API_NULL_VALUE;
 }
 
-static PyObject *__Pyx__ImportDottedModule_Lookup(PyObject *name) {
-    PyObject *imported_module;
+static PYOBJECT_TYPE __Pyx__ImportDottedModule_Lookup(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name) {
+    PYOBJECT_TYPE imported_module;
 #if CYTHON_COMPILING_IN_PYPY && PYPY_VERSION_NUM  < 0x07030400
     PyObject *modules = PyImport_GetModuleDict();
     if (unlikely(!modules))
@@ -52,138 +52,143 @@ static PyObject *__Pyx__ImportDottedModule_Lookup(PyObject *name) {
     imported_module = __Pyx_PyDict_GetItemStr(modules, name);
     Py_XINCREF(imported_module);
 #else
-    imported_module = PyImport_GetModule(name);
+    imported_module = HPY_LEGACY_OBJECT_FROM(PyImport_GetModule(HPY_LEGACY_OBJECT_AS(name)));
 #endif
     return imported_module;
 }
 
-static PyObject *__Pyx_ImportDottedModule_WalkParts(PyObject *module, PyObject *name, PyObject *parts_tuple) {
-    Py_ssize_t i, nparts;
+static PYOBJECT_TYPE __Pyx_ImportDottedModule_WalkParts(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE module, PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple) {
+    API_SSIZE_T i, nparts;
 #if CYTHON_ASSUME_SAFE_MACROS
     nparts = PyTuple_GET_SIZE(parts_tuple);
 #else
-    nparts = PyTuple_Size(parts_tuple);
-    if (nparts < 0) return NULL;
+    nparts = TUPLE_GET_SIZE_SAFE(parts_tuple);
+    if (nparts < 0) return API_NULL_VALUE;
 #endif
-    for (i=1; i < nparts && module; i++) {
-        PyObject *part, *submodule;
+    for (i=1; i < nparts && API_IS_NOT_NULL(module); i++) {
+        PYOBJECT_TYPE part, CAPI_IS_POINTER submodule;
 #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
         part = PyTuple_GET_ITEM(parts_tuple, i);
 #else
-        part = __Pyx_PySequence_ITEM(parts_tuple, i);
-        if (!part) return NULL;
+        part = SEQUENCE_GET_ITEM(parts_tuple, i);
+        if (API_IS_NULL(part)) return API_NULL_VALUE;
 #endif
-        submodule = __Pyx_PyObject_GetAttrStrNoError(module, part);
+        submodule = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL module, part);
         // We stop if the attribute isn't found, i.e. if submodule is NULL here.
 #if !(CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS)
-        Py_DECREF(part);
+        PYOBJECT_CLOSEREF(part);
 #endif
-        Py_DECREF(module);
+        PYOBJECT_CLOSEREF(module);
         module = submodule;
     }
-    if (unlikely(!module)) {
-        return __Pyx__ImportDottedModule_Error(name, parts_tuple, i);
+    if (unlikely(API_IS_NULL(module))) {
+        return __Pyx__ImportDottedModule_Error(HPY_CONTEXT_FIRST_ARG_CALL name, parts_tuple, i);
     }
     return module;
 }
 
-static PyObject *__Pyx__ImportDottedModule(PyObject *name, PyObject *parts_tuple) {
-    PyObject *imported_module;
-    PyObject *module = __Pyx_Import(name, NULL, 0);
-    if (!parts_tuple || unlikely(!module))
+static PYOBJECT_TYPE __Pyx__ImportDottedModule(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple) {
+    PYOBJECT_TYPE imported_module;
+    PYOBJECT_TYPE module = __Pyx_Import(HPY_CONTEXT_FIRST_ARG_CALL name, API_NULL_VALUE, 0);
+    if (API_IS_NULL(parts_tuple) || unlikely(API_IS_NULL(module)))
         return module;
 
     // Look up module in sys.modules, which is safer than the attribute lookups below.
-    imported_module = __Pyx__ImportDottedModule_Lookup(name);
-    if (likely(imported_module)) {
-        Py_DECREF(module);
+    imported_module = __Pyx__ImportDottedModule_Lookup(HPY_CONTEXT_FIRST_ARG_CALL name);
+    if (likely(API_IS_NOT_NULL(imported_module))) {
+        PYOBJECT_CLOSEREF(module);
         return imported_module;
     }
     PyErr_Clear();
-    return __Pyx_ImportDottedModule_WalkParts(module, name, parts_tuple);
+    return __Pyx_ImportDottedModule_WalkParts(HPY_CONTEXT_FIRST_ARG_CALL module, name, parts_tuple);
 }
 
-static PyObject *__Pyx_ImportDottedModule(PyObject *name, PyObject *parts_tuple) {
+static PYOBJECT_TYPE __Pyx_ImportDottedModule(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple) {
 #if CYTHON_COMPILING_IN_CPYTHON
-    PyObject *module = __Pyx__ImportDottedModule_Lookup(name);
-    if (likely(module)) {
+    PYOBJECT_TYPE module = __Pyx__ImportDottedModule_Lookup(HPY_CONTEXT_FIRST_ARG_CALL name);
+    if (likely(API_IS_NOT_NULL(module))) {
         // CPython guards against thread-concurrent initialisation in importlib.
         // In this case, we let PyImport_ImportModuleLevelObject() handle the locking.
-        PyObject *spec = __Pyx_PyObject_GetAttrStrNoError(module, PYIDENT("__spec__"));
-        if (likely(spec)) {
-            PyObject *unsafe = __Pyx_PyObject_GetAttrStrNoError(spec, PYIDENT("_initializing"));
-            if (likely(!unsafe || !__Pyx_PyObject_IsTrue(unsafe))) {
-                Py_DECREF(spec);
-                spec = NULL;
+        PYOBJECT_TYPE load_spec = PYOBJECT_GLOBAL_LOAD(PYIDENT("__spec__"));
+        PYOBJECT_TYPE spec = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL module, load_spec);
+        PYOBJECT_GLOBAL_CLOSEREF(load_spec);
+        if (likely(API_IS_NOT_NULL(spec))) {
+            PYOBJECT_TYPE load_init = PYOBJECT_GLOBAL_LOAD(PYIDENT("_initializing"));
+            PYOBJECT_TYPE unsafe = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL spec, load_init);
+            PYOBJECT_GLOBAL_CLOSEREF(load_init);
+            if (likely(API_IS_NULL(unsafe) || !__Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL unsafe))) {
+                PYOBJECT_CLOSEREF(spec);
+                spec = API_NULL_VALUE;
             }
-            Py_XDECREF(unsafe);
+            PYOBJECT_XCLOSEREF(unsafe);
         }
-        if (likely(!spec)) {
+        if (likely(API_IS_NULL(spec))) {
             // Not in initialisation phase => use modules as is.
             PyErr_Clear();
             return module;
         }
-        Py_DECREF(spec);
-        Py_DECREF(module);
+        PYOBJECT_CLOSEREF(spec);
+        PYOBJECT_CLOSEREF(module);
     } else if (PyErr_Occurred()) {
         PyErr_Clear();
     }
 #endif
 
-    return __Pyx__ImportDottedModule(name, parts_tuple);
+    return __Pyx__ImportDottedModule(HPY_CONTEXT_FIRST_ARG_CALL name, parts_tuple);
 }
 
 
 /////////////// ImportDottedModuleRelFirst.proto ///////////////
 
-static PyObject *__Pyx_ImportDottedModuleRelFirst(PyObject *name, PyObject *parts_tuple); /*proto*/
+static PYOBJECT_TYPE __Pyx_ImportDottedModuleRelFirst(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple); /*proto*/
 
 /////////////// ImportDottedModuleRelFirst ///////////////
 //@requires: ImportDottedModule
 //@requires: Import
 
-static PyObject *__Pyx_ImportDottedModuleRelFirst(PyObject *name, PyObject *parts_tuple) {
-    PyObject *module;
-    PyObject *from_list = NULL;
-    module = __Pyx_Import(name, from_list, -1);
-    Py_XDECREF(from_list);
-    if (module) {
-        if (parts_tuple) {
-            module = __Pyx_ImportDottedModule_WalkParts(module, name, parts_tuple);
+static PYOBJECT_TYPE __Pyx_ImportDottedModuleRelFirst(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE parts_tuple) {
+    PYOBJECT_TYPE module;
+    PYOBJECT_TYPE from_list = API_NULL_VALUE;
+    module = HPY_LEGACY_OBJECT_FROM(__Pyx_Import(HPY_LEGACY_OBJECT_AS(name), HPY_LEGACY_OBJECT_AS(from_list), -1));
+    PYOBJECT_XCLOSEREF(from_list);
+    if (API_IS_NOT_NULL(module)) {
+        if (API_IS_NOT_NULL(parts_tuple)) {
+            module = __Pyx_ImportDottedModule_WalkParts(HPY_CONTEXT_FIRST_ARG_CALL module, name, parts_tuple);
         }
         return module;
     }
     if (unlikely(!PyErr_ExceptionMatches(PyExc_ImportError)))
-        return NULL;
+        return API_NULL_VALUE;
     PyErr_Clear();
     // try absolute import
-    return __Pyx_ImportDottedModule(name, parts_tuple);
+    return __Pyx_ImportDottedModule(HPY_CONTEXT_FIRST_ARG_CALL name, parts_tuple);
 }
 
 
 /////////////// Import.proto ///////////////
 
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level); /*proto*/
+static PYOBJECT_TYPE __Pyx_Import(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE from_list, int level); /*proto*/
 
 /////////////// Import ///////////////
 //@requires: ObjectHandling.c::PyObjectGetAttrStr
 //@requires:StringTools.c::IncludeStringH
 //@substitute: naming
 
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
-    PyObject *module = 0;
-    PyObject *empty_dict = 0;
-    PyObject *empty_list = 0;
-    empty_dict = PyDict_New();
-    if (unlikely(!empty_dict))
+static PYOBJECT_TYPE __Pyx_Import(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE name, PYOBJECT_TYPE from_list, int level) {
+    PYOBJECT_TYPE module = API_DEFAULT_VALUE;
+    PYOBJECT_TYPE empty_dict = API_DEFAULT_VALUE;
+    PYOBJECT_TYPE empty_list = API_DEFAULT_VALUE;
+    empty_dict = DICT_NEW();
+    if (unlikely(API_IS_NULL(empty_dict)))
         goto bad;
     {
+        PYOBJECT_TYPE load_moddict = PYOBJECT_GLOBAL_LOAD($moddict_cname);
         if (level == -1) {
             if (strchr(__Pyx_MODULE_NAME, '.') != NULL) {
                 /* try package relative import first */
-                module = PyImport_ImportModuleLevelObject(
-                    name, $moddict_cname, empty_dict, from_list, 1);
-                if (unlikely(!module)) {
+                module = HPY_LEGACY_OBJECT_FROM(PyImport_ImportModuleLevelObject(
+                    HPY_LEGACY_OBJECT_AS(name), HPY_LEGACY_OBJECT_AS(load_moddict), HPY_LEGACY_OBJECT_AS(empty_dict), HPY_LEGACY_OBJECT_AS(from_list), 1));
+                if (unlikely(API_IS_NULL(module))) {
                     if (unlikely(!PyErr_ExceptionMatches(PyExc_ImportError)))
                         goto bad;
                     PyErr_Clear();
@@ -191,14 +196,14 @@ static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
             }
             level = 0; /* try absolute import on failure */
         }
-        if (!module) {
-            module = PyImport_ImportModuleLevelObject(
-                name, $moddict_cname, empty_dict, from_list, level);
+        if (API_IS_NULL(module)) {
+            module = HPY_LEGACY_OBJECT_FROM(PyImport_ImportModuleLevelObject(
+                HPY_LEGACY_OBJECT_AS(name), HPY_LEGACY_OBJECT_AS(load_moddict), HPY_LEGACY_OBJECT_AS(empty_dict), HPY_LEGACY_OBJECT_AS(from_list), level));
         }
     }
 bad:
-    Py_XDECREF(empty_dict);
-    Py_XDECREF(empty_list);
+    PYOBJECT_XCLOSEREF(empty_dict);
+    PYOBJECT_XCLOSEREF(empty_list);
     return module;
 }
 

@@ -1332,7 +1332,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
     if (FLOAT_CHECK_EXACT({{pyval}})) {
         const long {{'a' if order == 'CObj' else 'b'}} = intval;
 #if CYTHON_COMPILING_IN_LIMITED_API
-        double {{ival}} = __pyx_PyFloat_AsDouble(HPY_LEGACY_OBJECT_AS({{pyval}}));
+        double {{ival}} = __pyx_PyFloat_AsDouble({{pyval}});
 #else
         double {{ival}} = PyFloat_AS_DOUBLE(HPY_LEGACY_OBJECT_AS({{pyval}}));
 #endif
