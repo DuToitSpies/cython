@@ -71,9 +71,9 @@
   #define API_DICT_TYPE_DEREF API_DICT_TYPE
 
   //Type Checks
-  #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
-  #define LONG_CHECK_EXACT(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
-  #define FLOAT_CHECK_EXACT(f) HPyNumber_Check(HPY_CONTEXT_CNAME, f)
+  #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
+  #define LONG_CHECK_EXACT(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
+  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
@@ -441,6 +441,18 @@ static CYTHON_INLINE HPy HPyDict_GetItem_s(HPyContext *ctx, HPy mp, const char *
         HPyErr_Clear(ctx);
     }
     return res;
+}
+
+static inline int
+HPyLong_Check(HPyContext *ctx, HPy obj)
+{
+    return HPy_TypeCheck(ctx, obj, ctx->h_LongType);
+}
+
+static inline int
+HPyFloat_Check(HPyContext *ctx, HPy obj)
+{
+    return HPy_TypeCheck(ctx, obj, ctx->h_FloatType);
 }
 
 static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField field, HPy owner) 
