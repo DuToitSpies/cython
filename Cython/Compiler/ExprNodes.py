@@ -2549,11 +2549,9 @@ class NameNode(AtomicExprNode):
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
                 code.globalstate.use_utility_code(UtilityCode.load_cached(n, "ObjectHandling.c"))
                 setter = '__Pyx_' + n
-                if rhs_result in code.globalstate.const_cname_array:
-                    code.putln("#if CYTHON_USING_HPY")
-                    load_result_temp = code.funcstate.allocate_temp(py_object_type, manage_ref=False)
-                    code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_result_temp, rhs_result))
-                    code.putln("#endif")
+                load_result_temp = LoadGlobalNode(self.pos, rhs_result)
+                load_result_temp.allocate(code)
+                load_result_value = load_result_temp.temp_cname
             else:
                 assert False, repr(entry)
             code.putln("#if CYTHON_USING_HPY") 
@@ -2572,7 +2570,7 @@ class NameNode(AtomicExprNode):
                     load_result_value))
             load_namespace_temp.release(code)
             load_cname_temp.release(code)
-            if entry.scope.is_module_scope:
+            if not entry.is_member and (entry.scope.is_module_scope or entry.is_pyclass_attr):
                 load_result_temp.release(code)
             code.putln("#else")
             code.put_error_if_neg(
@@ -6795,17 +6793,22 @@ class PyMethodCallNode(CallNode):
         loaded_vars = []
         for arg in args:
             arg_result = arg.py_result()
-            load_tmp = LoadGlobalNode(self.pos, arg_result)
+            load_tmp = code.funcstate.allocate_temp(py_object_type, False)
             loaded_vars.append(load_tmp)
-            load_tmp.allocate(code)
+            if arg_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_tmp, arg_result))
+            else:
+                code.putln("%s = %s;" % (load_tmp, arg_result))
         code.putln("PYOBJECT_TYPE __pyx_callargs[%d%s] = {%s, %s};" % (
             (len(args) + 1) if args else 2,
             extra_keyword_args,
             self_arg,
-            ', '.join(tmp.temp_cname for tmp in loaded_vars) if args else "NULL",
+            ', '.join(tmp for tmp in loaded_vars) if args else "NULL",
         ))
         for tmp in loaded_vars:
-            tmp.release(code)
+            if arg_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_tmp)
+            code.funcstate.release_temp(tmp)
         if kwargs_key_value_pairs:
             for n, keyvalue in enumerate(kwargs_key_value_pairs):
                 key_is_str = (
