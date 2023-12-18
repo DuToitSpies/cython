@@ -65,6 +65,7 @@
 
   //Type Objects
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
+  #define API_LONG_TYPE_DEREF HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
   #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
   #define API_STRING_TYPE_DEREF API_STRING_TYPE
@@ -74,11 +75,13 @@
   //Type Checks
   #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
   #define LONG_CHECK_EXACT(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
-  #define FLOAT_CHECK_EXACT(f) HPyFloat_CheckExact(HPY_CONTEXT_CNAME, f)
+  #define LONG_CHECKExact(l) HPyLong_Check(HPY_CONTEXT_CNAME, l) //TODO(HPy): Remove
+  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
+  #define TUPLE_CHECK_EXACT(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_CHECK_EXACT(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
@@ -117,6 +120,9 @@
   #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   //Bytes Type - To
+
+  //Number Type
+  #define NUMBER_INPLACE_MULTIPLY(h1, h2) HPy_InPlaceMultiply(HPY_CONTEXT_CNAME, h1, h2)
 
   //Dict Type
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
@@ -259,6 +265,7 @@
 
   //Type Objects
   #define API_LONG_TYPE PyLong_Type
+  #define API_LONG_TYPE_DEREF &PyLong_Type
   #define API_SSIZE_T Py_ssize_t
   #define API_STRING_TYPE PyString_Type
   #define API_STRING_TYPE_DEREF &PyString_Type
@@ -268,11 +275,13 @@
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)
   #define LONG_CHECK_EXACT(l) PyLong_CheckExact(l)
+  #define LONG_CHECKExact(l) PyLong_CheckExact(l) //TODO(HPy): Remove
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
   #define UNICODE_CHECK(u) PyUnicode_Check(u)
   #define DICT_CHECK(o) PyDict_Check(o)
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
+  #define TUPLE_CHECK_EXACT(o) PyTuple_CheckExact(o)
   #define PYOBJECT_TYPE_CHECK(o, t) PyObject_TypeCheck(o, t)
   #define LIST_CHECK(h) PyList_Check(h)
   #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
@@ -312,6 +321,9 @@
   #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   //Bytes Type - To
+
+  //Number Type
+  #define NUMBER_INPLACE_MULTIPLY(h1, h2) PyNumber_InPlaceMultiply(h1, h2)
 
   //Dict Type
   #define DICT_NEW() PyDict_New()

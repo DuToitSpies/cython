@@ -2863,10 +2863,17 @@ class ImportNode(ExprNode):
             load_result.release(code)
         else:
             code.globalstate.use_utility_code(UtilityCode.load_cached("Import", "ImportExport.c"))
+            load_module_name = LoadGlobalNode(self.pos, self.module_name.py_result())
+            load_name_list = LoadGlobalNode(self.pos, self.name_list.py_result() if self.name_list else '0')
+            load_module_name.allocate(code)
+            load_name_list.allocate(code)
             import_code = "__Pyx_Import(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %d)" % (
-                self.module_name.py_result(),
-                self.name_list.py_result() if self.name_list else '0',
+                load_module_name.temp_cname,
+                load_name_list.temp_cname,
                 self.level)
+            load_module_name.release(code)
+            load_name_list.release(code)
+
 
         code.putln("%s = %s; %s" % (
             self.result(),
@@ -3060,7 +3067,7 @@ class IteratorNode(ScopedExprNode):
         self.may_be_a_sequence = not sequence_type.is_builtin_type
         if self.may_be_a_sequence:
             code.putln(
-                "if (likely(PyList_CheckExact(%s)) || PyTuple_CheckExact(%s)) {" % (
+                "if (likely(LIST_CHECK_EXACT(%s)) || TUPLE_CHECK_EXACT(%s)) {" % (
                     self.sequence.py_result(),
                     self.sequence.py_result()))
 
@@ -3086,15 +3093,18 @@ class IteratorNode(ScopedExprNode):
                 code.putln("--%s;" % self.counter_cname)  # len -> last item
             else:
                 init_value = '0'
+            temp_result = LoadGlobalNode(self.pos, self.sequence.py_result())
+            temp_result.allocate(code)
             code.putln("#if !CYTHON_USING_HPY")
             code.putln("%s = __Pyx_NewRef(%s);" % (
-                self.result(),
+                temp_result.temp_cname,
                 self.sequence.py_result()))
             code.putln("#else")
-            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (
-                self.result(),
-                self.sequence.py_result()))
             code.putln("#endif")
+            code.putln("%s = %s;" % (self.result(), temp_result.temp_cname))
+            code.putln("#if CYTHON_USING_HPY")
+            temp_result.release(code)       
+            code.putln("#endif")     
             code.putln("%s = 0;" % self.counter_cname)
 
         if not is_builtin_sequence:
@@ -3104,10 +3114,10 @@ class IteratorNode(ScopedExprNode):
                 code.putln("} else {")
                 code.put("%s = -1; " % self.counter_cname)
 
-            code.putln("%s = PyObject_GetIter(%s); %s" % (
+            code.putln("%s = HPY_LEGACY_OBJECT_FROM(PyObject_GetIter(HPY_LEGACY_OBJECT_AS(%s))); %s" % (
                 self.result(),
                 self.sequence.py_result(),
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
             self.generate_gotref(code)
 
             # PyObject_GetIter() fails if "tp_iternext" is not set, but the check below
@@ -3186,7 +3196,7 @@ class IteratorNode(ScopedExprNode):
 
         if self.may_be_a_sequence:
             code.putln("if (likely(!%s)) {" % self.iter_func_ptr)
-            code.putln("if (likely(PyList_CheckExact(%s))) {" % self.py_result())
+            code.putln("if (likely(LIST_CHECK_EXACT(%s))) {" % self.py_result())
             self.generate_next_sequence_item('List', result_name, code)
             code.putln("} else {")
             self.generate_next_sequence_item('Tuple', result_name, code)
@@ -3199,7 +3209,7 @@ class IteratorNode(ScopedExprNode):
                 result_name,
                 self.iter_func_ptr,
                 self.py_result()))
-        code.putln("if (unlikely(!%s)) {" % result_name)
+        code.putln("if (unlikely(API_IS_NULL(%s))) {" % result_name)
         code.putln("PyObject* exc_type = PyErr_Occurred();")
         code.putln("if (exc_type) {")
         code.putln("if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();")
@@ -3615,18 +3625,19 @@ class LoadGlobalNode(TempNode):
     def __init__(self, pos, var_name):
         TempNode.__init__(self, pos, py_object_type)
         self.var_name = var_name
+        self.var_name_stripped = self.var_name.replace("CAPI_NEEDS_DEREFERENCE", "").replace("CAPI_IS_POINTER", "").strip()
 
     def allocate(self, code, needs_decl=False):
         super(self.__class__, self).allocate(code, False)
         if needs_decl:
             code.putln("PYOBJECT_TYPE %s;" % self.temp_cname)
-        if self.var_name in code.globalstate.const_cname_array:
+        if self.var_name_stripped in code.globalstate.const_cname_array:
             code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (self.temp_cname, self.var_name))
         else:
             code.putln("%s = %s;" % (self.temp_cname, self.var_name))
 
-    def release(self, code):
-        if self.var_name in code.globalstate.const_cname_array:
+    def release_global(self, code):
+        if self.var_name_stripped in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % self.temp_cname)
         super(LoadGlobalNode, self).release(code)
 
@@ -3684,10 +3695,13 @@ class JoinedStrNode(ExprNode):
         ulength_var = code.funcstate.allocate_temp(PyrexTypes.c_py_ssize_t_type, manage_ref=False)
         max_char_var = code.funcstate.allocate_temp(PyrexTypes.c_py_ucs4_type, manage_ref=False)
 
-        code.putln('%s = PyTuple_New(%s); %s' % (
+        code.putln("{")
+
+        code.putln("TUPLE_BUILDER_TYPE builder;")
+        code.putln('TUPLE_CREATE_START(%s, builder, %s); %s' % (
             list_var,
             num_items,
-            code.error_goto_if_null(list_var, self.pos)))
+            code.error_goto_if_null_object(list_var, self.pos)))
         code.put_gotref(list_var, py_object_type)
         code.putln("%s = 0;" % ulength_var)
         code.putln("%s = 127;" % max_char_var)  # at least ASCII character range
@@ -3730,35 +3744,53 @@ class JoinedStrNode(ExprNode):
             if not is_ascii:
                 code.putln("%s = (%s > %s) ? %s : %s;" % (
                     max_char_var, max_char_value, max_char_var, max_char_value, max_char_var))
+            code.putln("#if CYTHON_USING_HPY")
+            load_node_result = LoadGlobalNode(self.pos, node.py_result())
+            load_node_result.allocate(code)
+            code.putln("%s += HPy_Length(HPY_CONTEXT_CNAME, %s)" % (ulength_var, load_node_result.temp_cname))
+            load_node_result.release(code)
+            code.putln("#else")
             code.putln("%s += %s;" % (ulength_var, ulength))
+            code.putln("#endif")
 
             node.generate_giveref(code)
             code.putln('#if CYTHON_ASSUME_SAFE_MACROS')
             code.putln('PyTuple_SET_ITEM(%s, %s, %s);' % (list_var, i, node.py_result()))
             code.putln('#else')
+            load_node_result = LoadGlobalNode(self.pos, node.py_result())
+            load_node_result.allocate(code)
+            code.putln("#if !CYTHON_USING_HPY")
             code.put_error_if_neg(
                 self.pos,
-                'PyTuple_SetItem(%s, %s, %s)' % (list_var, i, node.py_result()))
+                'TUPLE_CREATE_ASSIGN(%s, builder, %s, %s)' % (list_var, i, load_node_result.temp_cname))
+            code.putln("#else")
+            code.putln("TUPLE_CREATE_ASSIGN(%s, builder, %s, %s);" % (list_var, i, load_node_result.temp_cname))
+            code.putln("#endif")
+            load_node_result.release(code)
             code.putln('#endif')
             node.generate_post_assignment_code(code)
             node.free_temps(code)
+        
+        code.putln("TUPLE_CREATE_FINALISE(%s, builder);" % list_var)
 
         code.mark_pos(self.pos)
         self.allocate_temp_result(code)
         code.globalstate.use_utility_code(UtilityCode.load_cached("JoinPyUnicode", "StringTools.c"))
-        code.putln('%s = __Pyx_PyUnicode_Join(%s, %d, %s, %s); %s' % (
+        code.putln('%s = __Pyx_PyUnicode_Join(HPY_CONTEXT_FIRST_ARG_CALL %s, %d, %s, %s); %s' % (
             self.result(),
             list_var,
             num_items,
             ulength_var,
             max_char_var,
-            code.error_goto_if_null(self.py_result(), self.pos)))
+            code.error_goto_if_null_object(self.py_result(), self.pos)))
         self.generate_gotref(code)
 
         code.put_decref_clear(list_var, py_object_type)
         code.funcstate.release_temp(list_var)
         code.funcstate.release_temp(ulength_var)
         code.funcstate.release_temp(max_char_var)
+    
+        code.putln("}")
 
 
 class FormattedValueNode(ExprNode):
@@ -3834,7 +3866,7 @@ class FormattedValueNode(ExprNode):
         if conversion_char:
             fn = self.find_conversion_func(conversion_char)
             assert fn is not None, "invalid conversion character found: '%s'" % conversion_char
-            value_result = '%s(%s)' % (fn, value_result)
+            value_result = '%s(HPY_LEGACY_OBJECT_AS(%s))' % (fn, value_result)
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("PyObjectFormatAndDecref", "StringTools.c"))
             format_func += 'AndDecref'
@@ -3845,12 +3877,16 @@ class FormattedValueNode(ExprNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("PyObjectFormatSimple", "StringTools.c"))
 
-        code.putln("%s = %s(%s, %s); %s" % (
+        load_format_spec = LoadGlobalNode(self.pos, format_spec)
+        load_format_spec.allocate(code)
+
+        code.putln("%s = HPY_LEGACY_OBJECT_FROM(%s(%s, HPY_LEGACY_OBJECT_AS(%s))); %s" % (
             self.result(),
             format_func,
             value_result,
-            format_spec,
-            code.error_goto_if_null(self.result(), self.pos)))
+            load_format_spec.temp_cname,
+            code.error_goto_if_null_object(self.result(), self.pos)))
+        load_format_spec.release(code)
         self.generate_gotref(code)
 
 
@@ -5649,15 +5685,18 @@ class SliceIndexNode(ExprNode):
             code.globalstate.use_utility_code(self.get_slice_utility_code)
             (has_c_start, has_c_stop, c_start, c_stop,
              py_start, py_stop, py_slice) = self.get_slice_config()
+            load_pyslice = LoadGlobalNode(self.pos, py_slice)
+            load_pyslice.allocate(code)
             code.putln(
                 "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %d, %d, %d); %s" % (
                     result,
                     self.base.py_result(),
                     c_start, c_stop,
-                    py_start, py_stop, py_slice,
+                    py_start, py_stop, load_pyslice.temp_cname,
                     has_c_start, has_c_stop,
                     bool(code.globalstate.directives['wraparound']),
-                    code.error_goto_if_null(result, self.pos)))
+                    code.error_goto_if_null_object(result, self.pos)))
+            load_pyslice.release(code)
         else:
             if self.base.type is list_type:
                 code.globalstate.use_utility_code(
@@ -5744,15 +5783,15 @@ class SliceIndexNode(ExprNode):
             if has_c_start:
                 c_start = self.start.result()
             else:
-                py_start = '&%s' % self.start.py_result()
+                py_start = 'CAPI_NEEDS_DEREFERENCE %s' % self.start.py_result()
         has_c_stop, c_stop, py_stop = False, '0', 'API_NULL_VALUE'
         if self.stop:
             has_c_stop = not self.stop.type.is_pyobject
             if has_c_stop:
                 c_stop = self.stop.result()
             else:
-                py_stop = '&%s' % self.stop.py_result()
-        py_slice = self.slice and '&%s' % self.slice.py_result() or 'API_NULL_VALUE'
+                py_stop = 'CAPI_NEEDS_DEREFERENCE %s' % self.stop.py_result()
+        py_slice = self.slice and 'CAPI_NEEDS_DEREFERENCE %s' % self.slice.py_result() or 'API_NULL_VALUE'
         return (has_c_start, has_c_stop, c_start, c_stop,
                 py_start, py_stop, py_slice)
 
@@ -8363,9 +8402,9 @@ class SequenceNode(ExprNode):
                 code.putln('}')
 
         if mult_factor is not None and mult_factor.type.is_pyobject:
-            code.putln('{ PyObject* %s = PyNumber_InPlaceMultiply(%s, %s); %s' % (
+            code.putln('{ PYOBJECT_TYPE %s = NUMBER_INPLACE_MULTIPLY(%s, %s); %s' % (
                 Naming.quick_temp_cname, target, mult_factor.py_result(),
-                code.error_goto_if_null(Naming.quick_temp_cname, self.pos)
+                code.error_goto_if_null_object(Naming.quick_temp_cname, self.pos)
                 ))
             code.put_gotref(Naming.quick_temp_cname, py_object_type)
             code.put_decref(target, py_object_type)
@@ -10357,7 +10396,7 @@ class PyCFunctionNode(ExprNode, ModuleNameMixin):
                 code.putln('__Pyx_CyFunction_SetDefaultsGetter(%s, %s);' % (
                     self.result(), def_node.defaults_getter.entry.pyfunc_cname))
             if self.annotations_dict:
-                code.putln('__Pyx_CyFunction_SetAnnotationsDict(%s, %s);' % (
+                code.putln('__Pyx_CyFunction_SetAnnotationsDict(HPY_CONTEXT_FIRST_ARG_CALL %s, %s);' % (
                     self.result(), self.annotations_dict.py_result()))
 
 
@@ -12162,15 +12201,21 @@ class BinopNode(ExprNode):
             function = self.hpy_operation_function(code)
             extra_args = ", API_NONE_VALUE" if self.operator == '**' else ""
             op1_result = self.operand1.py_result() if type1.is_pyobject else self.operand1.result()
+            load_op1 = LoadGlobalNode(self.pos, op1_result)
+            load_op2 = LoadGlobalNode(self.pos, op2_result)
+            load_op1.allocate(code)
+            load_op2.allocate(code)
             op2_result = self.operand2.py_result() if type2.is_pyobject else self.operand2.result()
             code.putln(
                 "%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s%s); %s" % (
                     self.result(),
                     function,
-                    op1_result,
-                    op2_result,
+                    load_op1.temp_cname,
+                    load_op2.temp_cname,
                     extra_args,
                     code.error_goto_if_null_object(self.result(), self.pos)))
+            load_op1.release(code)
+            load_op2.release(code)
             code.putln("#endif")
         elif self.is_temp:
             # C++ overloaded operators with exception values are currently all

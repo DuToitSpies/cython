@@ -816,15 +816,15 @@ static CYTHON_INLINE PyObject* __Pyx_PyBytes_Join(PyObject* sep, PyObject* value
 
 /////////////// JoinPyUnicode.proto ///////////////
 
-static PyObject* __Pyx_PyUnicode_Join(PyObject* value_tuple, Py_ssize_t value_count, Py_ssize_t result_ulength,
-                                      Py_UCS4 max_char);
+static PYOBJECT_TYPE __Pyx_PyUnicode_Join(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE value_tuple, API_SSIZE_T value_count,
+                                      API_SSIZE_T result_ulength, Py_UCS4 max_char);
 
 /////////////// JoinPyUnicode ///////////////
 //@requires: IncludeStringH
 //@substitute: naming
 
-static PyObject* __Pyx_PyUnicode_Join(PyObject* value_tuple, Py_ssize_t value_count, Py_ssize_t result_ulength,
-                                      Py_UCS4 max_char) {
+static PYOBJECT_TYPE __Pyx_PyUnicode_Join(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE value_tuple, API_SSIZE_T value_count,
+                                      API_SSIZE_T result_ulength, Py_UCS4 max_char) {
 #if CYTHON_USE_UNICODE_INTERNALS && CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     PyObject *result_uval;
     int result_ukind, kind_shift;
@@ -881,7 +881,10 @@ bad:
     CYTHON_UNUSED_VAR(max_char);
     CYTHON_UNUSED_VAR(result_ulength);
     CYTHON_UNUSED_VAR(value_count);
-    return PyUnicode_Join($empty_unicode, value_tuple);
+    PYOBJECT_TYPE load_empty = PYOBJECT_GLOBAL_LOAD($empty_unicode);
+    PYOBJECT_TYPE retval = HPY_LEGACY_OBJECT_FROM(PyUnicode_Join(HPY_LEGACY_OBJECT_AS(load_empty), HPY_LEGACY_OBJECT_AS(value_tuple)));
+    PYOBJECT_GLOBAL_CLOSEREF(load_empty);
+    return retval;
 #endif
 }
 

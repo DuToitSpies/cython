@@ -1217,8 +1217,8 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
   // Note that this doesn't leak a reference to whatever's at o[i]
   #define __Pyx_PyTuple_SET_ITEM(o, i, v) PyTuple_SetItem(o, i, v)
   #define __Pyx_PyList_SET_ITEM(o, i, v) PyList_SetItem(o, i, v)
-  #define __Pyx_PyTuple_GET_SIZE(o) PyTuple_Size(o)
-  #define __Pyx_PyList_GET_SIZE(o) PyList_Size(o)
+  #define __Pyx_PyTuple_GET_SIZE(o) TUPLE_GET_SIZE(o)
+  #define __Pyx_PyList_GET_SIZE(o) LIST_GET_SIZE(o)
   #define __Pyx_PySet_GET_SIZE(o) PySet_Size(o)
   #define __Pyx_PyBytes_GET_SIZE(o) PyBytes_Size(o)
   #define __Pyx_PyByteArray_GET_SIZE(o) PyByteArray_Size(o)

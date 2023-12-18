@@ -73,7 +73,11 @@ static PYOBJECT_TYPE __Pyx_ImportDottedModule_WalkParts(HPY_CONTEXT_FIRST_ARG_DE
         part = SEQUENCE_GET_ITEM(parts_tuple, i);
         if (API_IS_NULL(part)) return API_NULL_VALUE;
 #endif
+#if !CYTHON_USING_HPY
         submodule = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL module, part);
+#else
+        submodule = PYOBJECT_GET_ITEM(module, part);
+#endif
         // We stop if the attribute isn't found, i.e. if submodule is NULL here.
 #if !(CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS)
         PYOBJECT_CLOSEREF(part);
@@ -210,30 +214,32 @@ bad:
 
 /////////////// ImportFrom.proto ///////////////
 
-static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name); /*proto*/
+static PYOBJECT_TYPE __Pyx_ImportFrom(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE module, PYOBJECT_TYPE name); /*proto*/
 
 /////////////// ImportFrom ///////////////
 //@requires: ObjectHandling.c::PyObjectGetAttrStr
 
-static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
-    PyObject* value = __Pyx_PyObject_GetAttrStr(module, name);
-    if (unlikely(!value) && PyErr_ExceptionMatches(PyExc_AttributeError)) {
+static PYOBJECT_TYPE __Pyx_ImportFrom(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE module, PYOBJECT_TYPE name) {
+    PYOBJECT_TYPE value = __Pyx_PyObject_GetAttrStr(module, name);
+    if (unlikely(API_IS_NULL(value)) && PyErr_ExceptionMatches(PyExc_AttributeError)) {
         // 'name' may refer to a (sub-)module which has not finished initialization
         // yet, and may not be assigned as an attribute to its parent, so try
         // finding it by full name.
         const char* module_name_str = 0;
-        PyObject* module_name = 0;
-        PyObject* module_dot = 0;
-        PyObject* full_name = 0;
+        PYOBJECT_TYPE module_name = API_DEFAULT_VALUE;
+        PYOBJECT_TYPE module_dot = API_DEFAULT_VALUE;
+        PYOBJECT_TYPE full_name = API_DEFAULT_VALUE;
         PyErr_Clear();
-        module_name_str = PyModule_GetName(module);
+        module_name_str = PyModule_GetName(HPY_LEGACY_OBJECT_AS(module));
         if (unlikely(!module_name_str)) { goto modbad; }
-        module_name = PyUnicode_FromString(module_name_str);
-        if (unlikely(!module_name)) { goto modbad; }
-        module_dot = PyUnicode_Concat(module_name, PYUNICODE("."));
-        if (unlikely(!module_dot)) { goto modbad; }
-        full_name = PyUnicode_Concat(module_dot, name);
-        if (unlikely(!full_name)) { goto modbad; }
+        module_name = PYOBJECT_UNICODE_FROM_STRING(module_name_str);
+        if (unlikely(API_IS_NULL(module_name))) { goto modbad; }
+        PYOBJECT_TYPE load_fullstop = PYOBJECT_GLOBAL_LOAD(PYUNICODE("."));
+        module_dot = HPY_LEGACY_OBJECT_FROM(PyUnicode_Concat(HPY_LEGACY_OBJECT_AS(module_name), HPY_LEGACY_OBJECT_AS(load_fullstop)));
+        if (unlikely(API_IS_NULL(module_dot))) { goto modbad; }
+        PYOBJECT_GLOBAL_CLOSEREF(load_fullstop);
+        full_name = HPY_LEGACY_OBJECT_FROM(PyUnicode_Concat(HPY_LEGACY_OBJECT_AS(module_dot), HPY_LEGACY_OBJECT_AS(name)));
+        if (unlikely(API_IS_NULL(full_name))) { goto modbad; }
         #if CYTHON_COMPILING_IN_PYPY && PYPY_VERSION_NUM  < 0x07030400
         {
             PyObject *modules = PyImport_GetModuleDict();
@@ -242,15 +248,15 @@ static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
             value = PyObject_GetItem(modules, full_name);
         }
         #else
-        value = PyImport_GetModule(full_name);
+        value = HPY_LEGACY_OBJECT_FROM(PyImport_GetModule(HPY_LEGACY_OBJECT_AS(full_name)));
         #endif
 
       modbad:
-        Py_XDECREF(full_name);
-        Py_XDECREF(module_dot);
-        Py_XDECREF(module_name);
+        PYOBJECT_XCLOSEREF(full_name);
+        PYOBJECT_XCLOSEREF(module_dot);
+        PYOBJECT_XCLOSEREF(module_name);
     }
-    if (unlikely(!value)) {
+    if (unlikely(API_IS_NULL(value))) {
         PyErr_Format(PyExc_ImportError, "cannot import name %S", name);
     }
     return value;

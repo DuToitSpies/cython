@@ -279,7 +279,7 @@ builtin_types_table = [
 # resulting in unintuitive runtime behavior and segfaults.
 #    ("bool",   "&PyBool_Type",     []),
 
-    ("int",     "&PyLong_Type",     []),
+    ("int",     "API_LONG_TYPE_DEREF", []),
     ("float",   "&PyFloat_Type",   []),
 
     ("complex", "&PyComplex_Type", [BuiltinAttribute('cval', field_type_name = 'Py_complex'),

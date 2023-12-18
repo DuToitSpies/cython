@@ -1476,6 +1476,7 @@ class GlobalState:
             prefix = Naming.interned_prefixes[prefix]
         else:
             prefix = Naming.const_prefix
+        self.const_cname_array.append("%s%s" % (prefix, name_suffix))
         return "%s%s" % (prefix, name_suffix)
 
     def get_cached_unbound_method(self, type_cname, method_name):
