@@ -1567,7 +1567,7 @@ class BuiltinObjectType(PyObjectType):
         elif type_name == 'frozenset':
             type_check = 'PyFrozenSet_Check'
         elif type_name == 'int':
-            type_check = 'PyLong_Check'
+            type_check = 'LONG_CHECK'
         elif type_name == "memoryview":
             # captialize doesn't catch the 'V'
             type_check = "PyMemoryView_Check"
@@ -1584,12 +1584,12 @@ class BuiltinObjectType(PyObjectType):
         type_check = self.type_check_function(exact=exact)
         check = 'likely(%s(%s))' % (type_check, arg)
         if not notnone:
-            check += '||((%s) == Py_None)' % arg
+            check += '|| API_IS_EQUAL(%s, API_NONE_VALUE)' % arg
         if self.name == 'basestring':
             name = '(PY_MAJOR_VERSION < 3 ? "basestring" : "str")'
         else:
             name = '"%s"' % self.name
-        return check + ' || __Pyx_RaiseUnexpectedTypeError(%s, %s)' % (name, arg)
+        return check + ' || __Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_CALL %s, %s)' % (name, arg)
 
     def declaration_code(self, entity_code,
             for_display = 0, dll_linkage = None, pyrex = 0):
