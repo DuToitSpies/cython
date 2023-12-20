@@ -5646,7 +5646,7 @@ class SliceIndexNode(ExprNode):
             (has_c_start, has_c_stop, c_start, c_stop,
              py_start, py_stop, py_slice) = self.get_slice_config()
             code.putln(
-                "%s = HPY_LEGACY_OBJECT_FROM(__Pyx_PyObject_GetSlice(HPY_LEGACY_OBJECT_AS(%s), %s, %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, %d, %d)); %s" % (
+                "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %d, %d, %d); %s" % (
                     result,
                     self.base.py_result(),
                     c_start, c_stop,
