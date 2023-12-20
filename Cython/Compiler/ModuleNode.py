@@ -3152,8 +3152,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             Naming.empty_tuple, code.error_goto_if_null_object("TUPLE_CREATE_EMPTY()", self.pos)))
         code.putln("PYOBJECT_GLOBAL_STORE(%s, BYTES_FROM_STR_AND_SIZE(\"\", 0)); %s" % (
             Naming.empty_bytes, code.error_goto_if_null_object("BYTES_FROM_STR_AND_SIZE(\"\", 0)", self.pos)))
-        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))); %s" % (
-            Naming.empty_unicode, code.error_goto_if_null_object("HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))", self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, PYOBJECT_UNICODE_FROM_STRING(\"\")); %s" % (
+            Naming.empty_unicode, code.error_goto_if_null_object("PYOBJECT_UNICODE_FROM_STRING(\"\")", self.pos)))
 
         for ext_type in ('CyFunction', 'FusedFunction', 'Coroutine', 'Generator', 'AsyncGen', 'StopAsyncIteration'):
             code.putln("#ifdef __Pyx_%s_USED" % ext_type)
