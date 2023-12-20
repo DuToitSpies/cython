@@ -673,14 +673,84 @@ static CYTHON_INLINE int __Pyx_DelItemInt_Fast(PyObject *o, Py_ssize_t i,
     return __Pyx_DelItem_Generic(o, PyInt_FromSsize_t(i));
 }
 
+/////////////// SliceObjectInternal.proto ///////////////
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+
+/////////////// SliceObjectInternal ///////////////
+
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
+        int has_cstart, int has_cstop, int wraparound) {
+    const char *obj_type_name;
+#if CYTHON_USE_TYPE_SLOTS
+    PyMappingMethods* mp = Py_TYPE(obj)->tp_as_mapping;
+    CYTHON_UNUSED_VAR(wraparound);
+    if (likely(mp && mp->mp_subscript))
+#endif
+    {
+        PyObject* result;
+        PyObject *py_slice, *py_start, *py_stop;
+        if (_py_slice) {
+            py_slice = *_py_slice;
+        } else {
+            PyObject* owned_start = NULL;
+            PyObject* owned_stop = NULL;
+            if (_py_start) {
+                py_start = *_py_start;
+            } else {
+                if (has_cstart) {
+                    owned_start = py_start = PyLong_FromSsize_t(cstart);
+                    if (unlikely(!py_start)) goto bad;
+                } else
+                    py_start = Py_None;
+            }
+            if (_py_stop) {
+                py_stop = *_py_stop;
+            } else {
+                if (has_cstop) {
+                    owned_stop = py_stop = PyLong_FromSsize_t(cstop);
+                    if (unlikely(!py_stop)) {
+                        Py_XDECREF(owned_start);
+                        goto bad;
+                    }
+                } else
+                    py_stop = Py_None;
+            }
+            py_slice = PySlice_New(py_start, py_stop, Py_None);
+            Py_XDECREF(owned_start);
+            Py_XDECREF(owned_stop);
+            if (unlikely(!py_slice)) goto bad;
+        }
+#if CYTHON_USE_TYPE_SLOTS
+        result = mp->mp_subscript(obj, py_slice);
+#else
+        result = PyObject_GetItem(obj, py_slice);
+#endif
+        if (!_py_slice) {
+            Py_DECREF(py_slice);
+        }
+        return result;
+    }
+    obj_type_name = (Py_TYPE(obj)->tp_name);
+    PyErr_Format(PyExc_TypeError,
+        "'" __Pyx_FMT_TYPENAME "' object is unsliceable", obj_type_name);
+    Py_XDECREF(obj_type_name);
+
+bad:
+    return NULL;
+}
 
 /////////////// SliceObject.proto ///////////////
 
 // we pass pointer addresses to show the C compiler what is NULL and what isn't
 {{if access == 'Get'}}
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(
-        PyObject* obj, Py_ssize_t cstart, Py_ssize_t cstop,
-        PyObject** py_start, PyObject** py_stop, PyObject** py_slice,
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF
+        PYOBJECT_TYPE obj, API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* py_start,PYOBJECT_TYPEPyObject* py_stop, PYOBJECT_TYPE* py_slice,
         int has_cstart, int has_cstop, int wraparound);
 {{else}}
 #define __Pyx_PyObject_DelSlice(obj, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound) \
@@ -694,9 +764,10 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(
 {{endif}}
 
 /////////////// SliceObject ///////////////
+//@requires: SliceObjectInternal
 
 {{if access == 'Get'}}
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(PyObject* obj,
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
 {{else}}
 static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
 {{endif}}
@@ -775,6 +846,37 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
 
 bad:
     return {{if access == 'Get'}}NULL{{else}}-1{{endif}};
+}
+
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* _start, PYOBJECT_TYPE* _stop, PYOBJECT_TYPE* _slice,
+        int has_cstart, int has_cstop, int wraparound) {
+
+#if CYTHON_USING_HPY
+    PyObject* py_obj = HPY_LEGACY_OBJECT_AS(obj);
+    PyObject* py_start = HPY_LEGACY_OBJECT_AS(*_start);
+    PyObject* py_stop = HPY_LEGACY_OBJECT_AS(*_stop);
+    PyObject* py_slice = HPY_LEGACY_OBJECT_AS(*_slice);
+    PyObject* py_res;
+    PYOBJECT_TYPE res;
+
+    py_res = __Pyx_PyObject_GetSliceInternal(py_obj, cstart, cstop, &py_start, &py_stop, &py_slice, has_cstart, has_cstop, wraparound);
+    Py_DECREF(py_obj);
+
+    *_start = HPY_LEGACY_OBJECT_FROM(py_start);
+    *_stop = HPY_LEGACY_OBJECT_FROM(py_stop);
+    *_slice = HPY_LEGACY_OBJECT_FROM(py_slice);
+    Py_XDECREF(py_start);
+    Py_XDECREF(py_stop);
+    Py_XDECREF(py_slice);
+
+    res = HPY_LEGACY_OBJECT_FROM(py_res);
+    Py_XDECREF(py_res);
+    return res;
+#else
+    return __Pyx_PyObject_GetSliceInternal(obj, cstart, cstop, _start, _stop, _slice, has_cstart, has_cstop, wraparound);
+#endif
 }
 
 
