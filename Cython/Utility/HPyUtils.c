@@ -189,6 +189,9 @@
   //Function Macros
   #define PYMETHODDEF_TYPE HPyDef
 
+  //Sequence Type
+  #define API_SLICE_NEW(start, stop, step) HPySlice_New(HPY_CONTEXT_CNAME, start, stop, step)
+
 #else
   //HPy Context Macros
   #define HPY_CONTEXT_CNAME
@@ -377,6 +380,9 @@
   //Function Macros
   #define PYMETHODDEF_TYPE PyMethodDef
 
+  //Sequence Type
+  #define API_SLICE_NEW(start, stop, step) PySlice_New(start, stop, step)
+
 #endif
 
 //////////////////// HPyHelperFuncs.proto ////////////////////
@@ -462,6 +468,22 @@ static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField fi
     } else {
         h_item = HPy_NULL;
     }
+}
+
+static inline HPy
+HPySlice_New(HPyContext *ctx, HPy start, HPy stop, HPy step)
+{
+    HPy res;
+    PyObject *py_start = HPy_AsPyObject(ctx, start);
+    PyObject *py_stop = HPy_AsPyObject(ctx, stop);
+    PyObject *py_step = HPy_AsPyObject(ctx, step);
+    PyObject *py_res = PySlice_New(py_start, py_stop, py_step);
+    Py_XDECREF(py_start);
+    Py_XDECREF(py_stop);
+    Py_XDECREF(py_step);
+    res = HPy_FromPyObject(ctx, py_res);
+    Py_XDECREF(py_res);
+    return res;
 }
 
 #endif

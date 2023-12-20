@@ -5909,7 +5909,7 @@ class SliceNode(ExprNode):
         load_stop.allocate(code, needs_decl=True)
         load_step.allocate(code, needs_decl=True)
         code.putln(
-            "%s = HPY_LEGACY_OBJECT_FROM(PySlice_New(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s))); %s" % (
+            "%s = API_SLICE_NEW(%s, %s, %s); %s" % (
                 self.result(),
                 load_start.temp_cname,
                 load_stop.temp_cname,
