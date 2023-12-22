@@ -2306,11 +2306,7 @@ static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJE
 #if !(CYTHON_VECTORCALL && __PYX_LIMITED_VERSION_HEX >= 0x030C00A2)
 static PYOBJECT_TYPE __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE method, PYOBJECT_TYPE arg) {
     // Separate function to avoid excessive inlining.
-    PYOBJECT_TYPE result = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
-#if !CYTHON_USING_HPY
-    Py_DECREF(method);
-#endif
-    return result;
+    return __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
 }
 #endif
 
@@ -2332,7 +2328,9 @@ static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJE
         return result;
     }
     if (unlikely(API_IS_NULL(method))) return API_NULL_VALUE;
-    return __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
+    result = __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
+    PYOBJECT_CLOSEREF(method);
+    return result;
 #endif
 }
 
