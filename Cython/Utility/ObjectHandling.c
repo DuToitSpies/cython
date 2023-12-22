@@ -655,6 +655,11 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
         PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
         int has_cstart, int has_cstop, int wraparound);
 
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+
 /////////////// SliceObjectInternal ///////////////
 
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
@@ -720,33 +725,7 @@ bad:
     return NULL;
 }
 
-/////////////// SliceObject.proto ///////////////
-
-// we pass pointer addresses to show the C compiler what is NULL and what isn't
-{{if access == 'Get'}}
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF
-        PYOBJECT_TYPE obj, API_SSIZE_T cstart, API_SSIZE_T cstop,
-        PYOBJECT_TYPE* py_start,PYOBJECT_TYPEPyObject* py_stop, PYOBJECT_TYPE* py_slice,
-        int has_cstart, int has_cstop, int wraparound);
-{{else}}
-#define __Pyx_PyObject_DelSlice(obj, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound) \
-    __Pyx_PyObject_SetSlice(obj, (PyObject*)NULL, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound)
-
-// we pass pointer addresses to show the C compiler what is NULL and what isn't
-static CYTHON_INLINE int __Pyx_PyObject_SetSlice(
-        PyObject* obj, PyObject* value, Py_ssize_t cstart, Py_ssize_t cstop,
-        PyObject** py_start, PyObject** py_stop, PyObject** py_slice,
-        int has_cstart, int has_cstop, int wraparound);
-{{endif}}
-
-/////////////// SliceObject ///////////////
-//@requires: SliceObjectInternal
-
-{{if access == 'Get'}}
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
-{{else}}
-static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
-{{endif}}
+static CYTHON_INLINE int __Pyx_PyObject_SetSliceInternal(PyObject* obj, PyObject* value,
         Py_ssize_t cstart, Py_ssize_t cstop,
         PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
         int has_cstart, int has_cstop, int wraparound) {
@@ -754,14 +733,10 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
 #if CYTHON_USE_TYPE_SLOTS
     PyMappingMethods* mp = Py_TYPE(obj)->tp_as_mapping;
     CYTHON_UNUSED_VAR(wraparound);
-{{if access == 'Get'}}
-    if (likely(mp && mp->mp_subscript))
-{{else}}
     if (likely(mp && mp->mp_ass_subscript))
-{{endif}}
 #endif
     {
-        {{if access == 'Get'}}PyObject*{{else}}int{{endif}} result;
+        int result;
         PyObject *py_slice, *py_start, *py_stop;
         if (_py_slice) {
             py_slice = *_py_slice;
@@ -795,15 +770,9 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
             if (unlikely(!py_slice)) goto bad;
         }
 #if CYTHON_USE_TYPE_SLOTS
-{{if access == 'Get'}}
-        result = mp->mp_subscript(obj, py_slice);
-#else
-        result = PyObject_GetItem(obj, py_slice);
-{{else}}
         result = mp->mp_ass_subscript(obj, py_slice, value);
 #else
         result = value ? PyObject_SetItem(obj, py_slice, value) : PyObject_DelItem(obj, py_slice);
-{{endif}}
 #endif
         if (!_py_slice) {
             Py_DECREF(py_slice);
@@ -812,46 +781,90 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
     }
     obj_type_name = (Py_TYPE(obj)->tp_name);
     PyErr_Format(PyExc_TypeError,
-{{if access == 'Get'}}
-        "'" __Pyx_FMT_TYPENAME "' object is unsliceable", obj_type_name);
-{{else}}
         "'" __Pyx_FMT_TYPENAME "' object does not support slice %.10s",
         obj_type_name, value ? "assignment" : "deletion");
-{{endif}}
     Py_XDECREF(obj_type_name);
 
 bad:
-    return {{if access == 'Get'}}NULL{{else}}-1{{endif}};
+    return -1;
 }
 
+/////////////// SliceObject.proto ///////////////
+
+// we pass pointer addresses to show the C compiler what is NULL and what isn't
+{{if access == 'Get'}}
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* py_start, PYOBJECT_TYPE* py_stop, PYOBJECT_TYPE* py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+{{else}}
+#define __Pyx_PyObject_DelSlice(obj, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound) \
+    __Pyx_PyObject_SetSlice(obj, (PyObject*)NULL, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound)
+
+// we pass pointer addresses to show the C compiler what is NULL and what isn't
+static CYTHON_INLINE int __Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE value,
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* py_start, PYOBJECT_TYPE* py_stop, PYOBJECT_TYPE* py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+{{endif}}
+
+/////////////// SliceObject ///////////////
+//@requires: SliceObjectInternal
+
+{{if access == 'Get'}}
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
+{{else}}
+static CYTHON_INLINE int __Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE value,
+{{endif}}
         API_SSIZE_T cstart, API_SSIZE_T cstop,
         PYOBJECT_TYPE* _start, PYOBJECT_TYPE* _stop, PYOBJECT_TYPE* _slice,
         int has_cstart, int has_cstop, int wraparound) {
 
 #if CYTHON_USING_HPY
     PyObject* py_obj = HPY_LEGACY_OBJECT_AS(obj);
-    PyObject* py_start = HPY_LEGACY_OBJECT_AS(*_start);
-    PyObject* py_stop = HPY_LEGACY_OBJECT_AS(*_stop);
-    PyObject* py_slice = HPY_LEGACY_OBJECT_AS(*_slice);
+    PyObject* py_start = _start ? HPY_LEGACY_OBJECT_AS(*_start) : NULL;
+    PyObject* py_stop = _stop ? HPY_LEGACY_OBJECT_AS(*_stop) : NULL;
+    PyObject* py_slice = _slice ? HPY_LEGACY_OBJECT_AS(*_slice) : NULL;
+
+#define LIF(_c, _x) ((_c) ? &(_x) : NULL)
+
+{{if access == 'Get'}}
     PyObject* py_res;
     PYOBJECT_TYPE res;
-
-    py_res = __Pyx_PyObject_GetSliceInternal(py_obj, cstart, cstop, &py_start, &py_stop, &py_slice, has_cstart, has_cstop, wraparound);
+    py_res = __Pyx_PyObject_GetSliceInternal(py_obj, cstart, cstop, LIF(_start, py_start), LIF(_stop, py_stop), LIF(_slice, py_slice), has_cstart, has_cstop, wraparound);
+{{else}}
+    PyObject* py_value = HPY_LEGACY_OBJECT_AS(value);
+    int res = __Pyx_PyObject_SetSliceInternal(py_obj, py_value, cstart, cstop, LIF(_start, py_start), LIF(_stop, py_stop), LIF(_slice, py_slice), has_cstart, has_cstop, wraparound);
+    Py_DECREF(py_value);
+{{endif}}
     Py_DECREF(py_obj);
 
-    *_start = HPY_LEGACY_OBJECT_FROM(py_start);
-    *_stop = HPY_LEGACY_OBJECT_FROM(py_stop);
-    *_slice = HPY_LEGACY_OBJECT_FROM(py_slice);
-    Py_XDECREF(py_start);
-    Py_XDECREF(py_stop);
-    Py_XDECREF(py_slice);
+#undef LIF
 
+    if (_start) {
+        *_start = HPY_LEGACY_OBJECT_FROM(py_start);
+        Py_XDECREF(py_start);
+    }
+    if (_stop) {
+        *_stop = HPY_LEGACY_OBJECT_FROM(py_stop);
+        Py_XDECREF(py_stop);
+    }
+    if (_slice) {
+        *_slice = HPY_LEGACY_OBJECT_FROM(py_slice);
+        Py_XDECREF(py_slice);
+    }
+
+{{if access == 'Get'}}
     res = HPY_LEGACY_OBJECT_FROM(py_res);
     Py_XDECREF(py_res);
+{{endif}}
     return res;
 #else
+{{if access == 'Get'}}
     return __Pyx_PyObject_GetSliceInternal(obj, cstart, cstop, _start, _stop, _slice, has_cstart, has_cstop, wraparound);
+{{else}}
+    return __Pyx_PyObject_SetSliceInternal(obj, value, cstart, cstop, _start, _stop, _slice, has_cstart, has_cstop, wraparound);
+{{endif}}
 #endif
 }
 

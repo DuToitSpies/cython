@@ -5682,7 +5682,7 @@ class SliceIndexNode(ExprNode):
             code.globalstate.use_utility_code(self.set_slice_utility_code)
             has_c_start, has_c_stop, c_start, c_stop, py_start, py_stop, py_slice = self.get_slice_config()
             code.put_error_if_neg(self.pos,
-                "__Pyx_PyObject_SetSlice(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %s, %s, HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %d, %d, %d)" % (
+                "__Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %s, %d, %d, %d)" % (
                     self.base.py_result(),
                     rhs.py_result(),
                     c_start, c_stop,
@@ -5729,21 +5729,21 @@ class SliceIndexNode(ExprNode):
         self.free_subexpr_temps(code)
 
     def get_slice_config(self):
-        has_c_start, c_start, py_start = False, '0', 'API_NULL_VALUE'
+        has_c_start, c_start, py_start = False, '0', 'NULL'
         if self.start:
             has_c_start = not self.start.type.is_pyobject
             if has_c_start:
                 c_start = self.start.result()
             else:
                 py_start = '&%s' % self.start.py_result()
-        has_c_stop, c_stop, py_stop = False, '0', 'API_NULL_VALUE'
+        has_c_stop, c_stop, py_stop = False, '0', 'NULL'
         if self.stop:
             has_c_stop = not self.stop.type.is_pyobject
             if has_c_stop:
                 c_stop = self.stop.result()
             else:
                 py_stop = '&%s' % self.stop.py_result()
-        py_slice = self.slice and '&%s' % self.slice.py_result() or 'API_NULL_VALUE'
+        py_slice = self.slice and '&%s' % self.slice.py_result() or 'NULL'
         return (has_c_start, has_c_stop, c_start, c_stop,
                 py_start, py_stop, py_slice)
 
