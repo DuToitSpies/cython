@@ -73,7 +73,7 @@
   //Type Checks
   #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
   #define LONG_CHECK_EXACT(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
-  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
+  #define FLOAT_CHECK_EXACT(f) HPyFloat_CheckExact(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
@@ -468,6 +468,15 @@ static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField fi
     } else {
         h_item = HPy_NULL;
     }
+}
+
+static inline int
+HPyFloat_CheckExact(HPyContext *ctx, HPy obj)
+{
+    HPy tp = HPy_Type(ctx, obj);
+    int res = HPy_Is(ctx, ctx->h_FloatType, tp);
+    HPy_Close(ctx, tp);
+    return res;
 }
 
 static inline HPy
