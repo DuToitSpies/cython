@@ -5661,9 +5661,9 @@ class SliceIndexNode(ExprNode):
                     TempitaUtilityCode.load_cached("SliceTupleAndList", "ObjectHandling.c"))
                 cfunc = '__Pyx_PyTuple_GetSlice'
             else:
-                cfunc = 'PySequence_GetSlice'
+                cfunc = 'SEQUENCE_GET_SLICE'
             code.putln(
-                "%s = HPY_LEGACY_OBJECT_FROM(%s(HPY_LEGACY_OBJECT_AS(%s), %s, %s)); %s" % (
+                "%s = %s(%s, %s, %s); %s" % (
                     result,
                     cfunc,
                     self.base.py_result(),

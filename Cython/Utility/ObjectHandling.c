@@ -952,8 +952,8 @@ __Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n)
 static CYTHON_INLINE PyObject* __Pyx_PyList_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
 static CYTHON_INLINE PyObject* __Pyx_PyTuple_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
 #else
-#define __Pyx_PyList_GetSlice(seq, start, stop)   PySequence_GetSlice(seq, start, stop)
-#define __Pyx_PyTuple_GetSlice(seq, start, stop)  PySequence_GetSlice(seq, start, stop)
+#define __Pyx_PyList_GetSlice   SEQUENCE_GET_SLICE
+#define __Pyx_PyTuple_GetSlice  SEQUENCE_GET_SLICE
 #endif
 
 /////////////// SliceTupleAndList ///////////////
