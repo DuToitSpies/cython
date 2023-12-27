@@ -43,19 +43,19 @@
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
   #define API_IS_NULL(h) HPy_IsNull(h)
-  #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
-  #define API_NONE_VALUE HPY_CONTEXT_CNAME->h_None
+  #define API_IS_NOT_NULL(h) (!HPy_IsNull(h))
+  #define API_NONE_VALUE (HPY_CONTEXT_CNAME->h_None)
   #define API_ASSIGN_NONE HPy_Dup(HPY_CONTEXT_CNAME, HPY_CONTEXT_CNAME->h_None)
 
   //Boolean Values and Functions
-  #define API_TRUE HPY_CONTEXT_CNAME->h_True
-  #define API_FALSE HPY_CONTEXT_CNAME->h_False
+  #define API_TRUE (HPY_CONTEXT_CNAME->h_True)
+  #define API_FALSE (HPY_CONTEXT_CNAME->h_False)
   #define API_IS_TRUE(h) HPy_IsTrue(HPY_CONTEXT_CNAME, h)
-  #define API_IS_FALSE(h) !HPy_IsTrue(HPY_CONTEXT_CNAME, h)
+  #define API_IS_FALSE(h) (!HPy_IsTrue(HPY_CONTEXT_CNAME, h))
 
   //General Methods
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
-  #define API_IS_NOT_EQUAL(a, b) !HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_IS_NOT_EQUAL(a, b) (!HPy_Is(HPY_CONTEXT_CNAME, a, b))
   #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) HPy_RichCompareBool(HPY_CONTEXT_CNAME, h1, h2, op)
 
@@ -232,7 +232,7 @@
 
   //NULL/None Values and functions
   #define API_NULL_VALUE NULL
-  #define API_DEFAULT_VALUE 0
+  #define API_DEFAULT_VALUE (0)
   #define API_IS_NULL(h) !h
   #define API_IS_NOT_NULL(h) h
   #define API_NONE_VALUE Py_None
@@ -242,11 +242,11 @@
   #define API_TRUE Py_True
   #define API_FALSE Py_False
   #define API_IS_TRUE(h) PyObject_IsTrue(h)
-  #define API_IS_FALSE(h) !PyObject_Not(h)
+  #define API_IS_FALSE(h) (!PyObject_Not(h))
 
   //General Methods
-  #define API_IS_EQUAL(a, b) a==b
-  #define API_IS_NOT_EQUAL(a, b) a!=b
+  #define API_IS_EQUAL(a, b) (a==b)
+  #define API_IS_NOT_EQUAL(a, b) (a!=b)
   #define API_RICH_COMPARE(h1, h2, op) PyObject_RichCompare(h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 
