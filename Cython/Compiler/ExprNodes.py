@@ -3634,7 +3634,7 @@ class LoadGlobalNode(TempNode):
     def release(self, code):
         if self.var_name in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % self.temp_cname)
-        super(self.__class__, self).release(code)
+        super(LoadGlobalNode, self).release(code)
 
 class RawCNameExprNode(ExprNode):
     subexprs = []
