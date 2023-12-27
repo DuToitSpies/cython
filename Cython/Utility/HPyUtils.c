@@ -130,6 +130,7 @@
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) HPy_SetItem_i(HPY_CONTEXT_CNAME, h, pos, o)
+  #define SEQUENCE_GET_SLICE(h, i1, i2) HPy_GetSlice(HPY_CONTEXT_CNAME, h, (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
@@ -321,6 +322,7 @@
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) PySequence_SetItem(h, pos, o)
+  #define SEQUENCE_GET_SLICE(h, i1, i2) PySequence_GetSlice(h, (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
@@ -482,16 +484,42 @@ HPyFloat_CheckExact(HPyContext *ctx, HPy obj)
 static inline HPy
 HPySlice_New(HPyContext *ctx, HPy start, HPy stop, HPy step)
 {
+    HPy args[3] = {start, stop, step};
+    return HPy_Call(ctx, ctx->h_SliceType, args, 3, HPy_NULL);
+}
+
+static inline HPy
+HPy_GetSlice(HPyContext *ctx, HPy h, HPy_ssize_t i1, HPy_ssize_t i2)
+{
+    HPy start, stop, step, slice;
     HPy res;
-    PyObject *py_start = HPy_AsPyObject(ctx, start);
-    PyObject *py_stop = HPy_AsPyObject(ctx, stop);
-    PyObject *py_step = HPy_AsPyObject(ctx, step);
-    PyObject *py_res = PySlice_New(py_start, py_stop, py_step);
-    Py_XDECREF(py_start);
-    Py_XDECREF(py_stop);
-    Py_XDECREF(py_step);
-    res = HPy_FromPyObject(ctx, py_res);
-    Py_XDECREF(py_res);
+
+    start = HPyLong_FromSsize_t(ctx, i1);
+    if (HPy_IsNull(start)) {
+        return HPy_NULL;
+    }
+
+    stop = HPyLong_FromSsize_t(ctx, i2);
+    if (HPy_IsNull(stop)) {
+        step = HPy_NULL;
+        goto finish;
+    }
+
+    step = HPyLong_FromSsize_t(ctx, 1);
+    if (HPy_IsNull(step)) {
+        goto finish;
+    }
+
+    slice = HPySlice_New(ctx, start, stop, step);
+    if (HPy_IsNull(slice)) {
+        goto finish;
+    }
+    res = HPy_GetItem(ctx, h, slice);
+    HPy_Close(ctx, slice);
+finish:
+    HPy_Close(ctx, start);
+    HPy_Close(ctx, stop);
+    HPy_Close(ctx, step);
     return res;
 }
 
