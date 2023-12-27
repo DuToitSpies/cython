@@ -650,7 +650,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
 #if CYTHON_USING_HPY
             return load_is_coroutine_temp;
 #else
-            __Pyx_NewRef(load_is_coroutine_temp);
+            return __Pyx_NewRef(load_is_coroutine_temp);
 #endif
         }
 ignore:
@@ -661,7 +661,7 @@ ignore:
 #if CYTHON_USING_HPY
     return PYOBJECT_FIELD_LOAD(op, struct_op->func_is_coroutine);
 #else
-    __Pyx_NewRef(struct_op->func_is_coroutine);
+    return __Pyx_NewRef(struct_op->func_is_coroutine);
 #endif
 }
 
