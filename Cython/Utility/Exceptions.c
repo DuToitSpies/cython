@@ -852,7 +852,7 @@ static PYOBJECT_TYPE __Pyx_PyCode_Replace_For_AddTraceback(HPY_CONTEXT_FIRST_ARG
     if (likely(API_IS_NOT_NULL(replace))) {
         PYOBJECT_TYPE result;
         PYOBJECT_TYPE temp_empty_tuple = PYOBJECT_GLOBAL_LOAD($empty_tuple);
-        result = API_CALL_FUNC(replace, &temp_empty_tuple, 0, scratch_dict);
+        result = API_CALL_TUPLE_DICT(replace, temp_empty_tuple, scratch_dict);
         PYOBJECT_CLOSEREF(replace);
         PYOBJECT_CLOSEREF(temp_empty_tuple);
         return result;

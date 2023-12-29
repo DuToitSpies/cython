@@ -61,6 +61,7 @@
 
   //API Call Macros
   #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
+  #define API_CALL_TUPLE_DICT(callable, args, kw) HPy_CallTupleDict(HPY_CONTEXT_CNAME, callable, args, kw)
 
   //Type Objects
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
@@ -251,7 +252,8 @@
   #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 
   //API Call Macros
-  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(callable, args, kwnames)
+  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Vectorcall(callable, args, nargs, kwnames)
+  #define API_CALL_TUPLE_DICT(callable, args, kw) PyObject_Call(callable, args, kw)
 
   //Type Objects
   #define API_LONG_TYPE PyLong_Type

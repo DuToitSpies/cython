@@ -747,7 +747,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
             if (API_IS_NULL(kwds)) goto limited_bad;
             if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(API_TRUE))) goto limited_bad;
         }
-        result = API_CALL_FUNC(from_bytes, &arg_tuple, 2, kwds);
+        result = API_CALL_TUPLE_DICT(from_bytes, arg_tuple, kwds);
 #else
         order_str = PyUnicode_FromString(little ? "little" : "big");
         if (!order_str) goto limited_bad;
