@@ -906,7 +906,7 @@ class __Pyx_FakeReference {
   #define __Pyx_PyCFunction_FastCallWithKeywords PyCFunctionWithKeywords
 #endif
 
-#if CYTHON_VECTORCALL
+#if CYTHON_VECTORCALL || CYTHON_METH_FASTCALL
   #define __pyx_vectorcallfunc vectorcallfunc
   #define __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET  PY_VECTORCALL_ARGUMENTS_OFFSET
   #define __Pyx_PyVectorcall_NARGS(n)  PyVectorcall_NARGS((size_t)(n))
