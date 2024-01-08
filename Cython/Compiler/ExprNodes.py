@@ -2619,7 +2619,11 @@ class NameNode(AtomicExprNode):
                     if rhs.result_as(self.ctype()) in code.globalstate.const_cname_array:
                         code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_rhs, rhs.result_as(self.ctype())))
                     else:
-                        code.putln("%s = %s;" % (load_rhs, rhs.result_as(self.ctype())))
+                        code.putln("#if CYTHON_USING_HPY")
+                        code.putln("%s = PYOBJECT_NEWREF(%s);" % (load_rhs, rhs.result_as(self.ctype())))
+                        code.putln("#else")
+                        code.putln("%s = PYOBJECT_NEWREF(%s);" % (load_rhs, rhs.result_as(self.ctype())))
+                        code.putln("#endif")
                     if entry.is_cglobal:
                         self.generate_decref_set(code, load_rhs)
                     else:
