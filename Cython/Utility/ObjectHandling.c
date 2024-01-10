@@ -1277,7 +1277,11 @@ static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     PYOBJECT_TYPE ns;
     if (API_IS_NOT_NULL(metaclass)) {
         PYOBJECT_TYPE loaded_prepare = PYOBJECT_GLOBAL_LOAD(PYIDENT("__prepare__"));
+#if CYTHON_USING_HPY
+        PYOBJECT_TYPE prep = PYOBJECT_GET_ATTR(metaclass, loaded_prepare);
+#else
         PYOBJECT_TYPE prep = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL metaclass, loaded_prepare);
+#endif
         PYOBJECT_GLOBAL_CLOSEREF(loaded_prepare);
         if (API_IS_NOT_NULL(prep)) {
 #if CYTHON_USING_HPY
@@ -3018,7 +3022,6 @@ static CYTHON_INLINE PyObject* __Pyx_PySequence_Multiply(PyObject *seq, Py_ssize
 typedef PYOBJECT_TYPE __Pyx_TypeName;
 #define __Pyx_FMT_TYPENAME "%U"
 static __Pyx_TypeName __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp); /*proto*/
-#define __Pyx_PyType_GetName_legacy(tp) ((tp)->tp_name)
 #define __Pyx_DECREF_TypeName(obj) PYOBJECT_XCLOSEREF(obj)
 #else
 typedef const char *__Pyx_TypeName;
@@ -3052,14 +3055,14 @@ __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp)
 
 /////////////// RaiseUnexpectedTypeError.proto ///////////////
 
-static int __Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj); /*proto*/
+static int __Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj); /*proto*/
 
 /////////////// RaiseUnexpectedTypeError ///////////////
 
 static int
-__Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj)
+__Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj)
 {
-    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(obj));
+    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
     PyErr_Format(PyExc_TypeError, "Expected %s, got " __Pyx_FMT_TYPENAME,
                  expected, obj_type_name);
     __Pyx_DECREF_TypeName(obj_type_name);

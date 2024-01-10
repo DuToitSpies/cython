@@ -3072,13 +3072,10 @@ class IteratorNode(ScopedExprNode):
                     self.sequence.py_result()))
 
         if is_builtin_sequence or self.may_be_a_sequence:
-            code.putln("#if !CYTHON_USING_HPY")
-            code.putln("%s = %s; __Pyx_INCREF(%s);" % (
+            code.putln("%s = PYOBJECT_NEWREF(%s);" % (
                 self.result(),
                 self.sequence.py_result(),
-                self.result(),
             ))
-            code.putln("#endif")
             self.counter_cname = code.funcstate.allocate_temp(
                 PyrexTypes.c_py_ssize_t_type, manage_ref=False)
             if self.reversed:
@@ -3095,16 +3092,11 @@ class IteratorNode(ScopedExprNode):
                 init_value = '0'
             temp_result = LoadGlobalNode(self.pos, self.sequence.py_result())
             temp_result.allocate(code)
-            code.putln("#if !CYTHON_USING_HPY")
-            code.putln("%s = __Pyx_NewRef(%s);" % (
+            code.putln("%s = PYOBJECT_NEWREF(%s);" % (
                 temp_result.temp_cname,
                 self.sequence.py_result()))
-            code.putln("#else")
-            code.putln("#endif")
             code.putln("%s = %s;" % (self.result(), temp_result.temp_cname))
-            code.putln("#if CYTHON_USING_HPY")
-            temp_result.release(code)       
-            code.putln("#endif")     
+            temp_result.release(code)    
             code.putln("%s = 0;" % self.counter_cname)
 
         if not is_builtin_sequence:
@@ -3204,11 +3196,18 @@ class IteratorNode(ScopedExprNode):
             code.put("} else ")
 
         code.putln("{")
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln(
             "%s = %s(%s);" % (
                 result_name,
                 self.iter_func_ptr,
                 self.py_result()))
+        code.putln("#else")
+        code.putln(
+            "%s = HPY_LEGACY_OBJECT_FROM(PyIter_Next(HPY_LEGACY_OBJECT_AS(%s)));" % (
+                result_name,
+                self.py_result()))
+        code.putln("#endif")
         code.putln("if (unlikely(API_IS_NULL(%s))) {" % result_name)
         code.putln("PyObject* exc_type = PyErr_Occurred();")
         code.putln("if (exc_type) {")
@@ -3636,7 +3635,7 @@ class LoadGlobalNode(TempNode):
         else:
             code.putln("%s = %s;" % (self.temp_cname, self.var_name))
 
-    def release_global(self, code):
+    def release(self, code):
         if self.var_name_stripped in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % self.temp_cname)
         super(LoadGlobalNode, self).release(code)
@@ -3698,10 +3697,16 @@ class JoinedStrNode(ExprNode):
         code.putln("{")
 
         code.putln("TUPLE_BUILDER_TYPE builder;")
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln('TUPLE_CREATE_START(%s, builder, %s);' % (
+            list_var,
+            num_items))
+        code.putln("#else")
         code.putln('TUPLE_CREATE_START(%s, builder, %s); %s' % (
             list_var,
             num_items,
             code.error_goto_if_null_object(list_var, self.pos)))
+        code.putln("#endif")
         code.put_gotref(list_var, py_object_type)
         code.putln("%s = 0;" % ulength_var)
         code.putln("%s = 127;" % max_char_var)  # at least ASCII character range
@@ -3747,7 +3752,7 @@ class JoinedStrNode(ExprNode):
             code.putln("#if CYTHON_USING_HPY")
             load_node_result = LoadGlobalNode(self.pos, node.py_result())
             load_node_result.allocate(code)
-            code.putln("%s += HPy_Length(HPY_CONTEXT_CNAME, %s)" % (ulength_var, load_node_result.temp_cname))
+            code.putln("%s += HPy_Length(HPY_CONTEXT_CNAME, %s);" % (ulength_var, load_node_result.temp_cname))
             load_node_result.release(code)
             code.putln("#else")
             code.putln("%s += %s;" % (ulength_var, ulength))
@@ -5687,6 +5692,17 @@ class SliceIndexNode(ExprNode):
              py_start, py_stop, py_slice) = self.get_slice_config()
             load_pyslice = LoadGlobalNode(self.pos, py_slice)
             load_pyslice.allocate(code)
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln(
+                "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, &%s, &%s, &%s, %d, %d, %d); %s" % (
+                    result,
+                    self.base.py_result(),
+                    c_start, c_stop,
+                    py_start, py_stop, load_pyslice.temp_cname,
+                    has_c_start, has_c_stop,
+                    bool(code.globalstate.directives['wraparound']),
+                    code.error_goto_if_null_object(result, self.pos)))
+            code.putln("#else")
             code.putln(
                 "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %d, %d, %d); %s" % (
                     result,
@@ -5696,6 +5712,7 @@ class SliceIndexNode(ExprNode):
                     has_c_start, has_c_stop,
                     bool(code.globalstate.directives['wraparound']),
                     code.error_goto_if_null_object(result, self.pos)))
+            code.putln("#endif")
             load_pyslice.release(code)
         else:
             if self.base.type is list_type:
@@ -5960,7 +5977,7 @@ class SliceNode(ExprNode):
         load_stop.allocate(code, needs_decl=True)
         load_step.allocate(code, needs_decl=True)
         code.putln(
-            "%s = API_SLICE_NEW(%s, %s, %s); %s" % (
+            "PYOBJECT_GLOBAL_STORE(%s, API_SLICE_NEW(%s, %s, %s)); %s" % (
                 self.result(),
                 load_start.temp_cname,
                 load_stop.temp_cname,
