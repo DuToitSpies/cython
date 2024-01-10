@@ -3055,14 +3055,14 @@ __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp)
 
 /////////////// RaiseUnexpectedTypeError.proto ///////////////
 
-static int __Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj); /*proto*/
+static int __Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj); /*proto*/
 
 /////////////// RaiseUnexpectedTypeError ///////////////
 
 static int
-__Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj)
+__Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj)
 {
-    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(obj));
     PyErr_Format(PyExc_TypeError, "Expected %s, got " __Pyx_FMT_TYPENAME,
                  expected, obj_type_name);
     __Pyx_DECREF_TypeName(obj_type_name);

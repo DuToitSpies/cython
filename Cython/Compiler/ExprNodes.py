@@ -5726,7 +5726,7 @@ class SliceIndexNode(ExprNode):
             else:
                 cfunc = 'SEQUENCE_GET_SLICE'
             code.putln(
-                "%s = HPY_LEGACY_OBJECT_FROM(%s(HPY_LEGACY_OBJECT_AS(%s), %s, %s)); %s" % (
+                "%s = %s(%s, %s, %s); %s" % (
                     result,
                     cfunc,
                     self.base.py_result(),
@@ -5794,21 +5794,21 @@ class SliceIndexNode(ExprNode):
         self.free_subexpr_temps(code)
 
     def get_slice_config(self):
-        has_c_start, c_start, py_start = False, '0', 'API_NULL_VALUE'
+        has_c_start, c_start, py_start = False, '0', 'NULL'
         if self.start:
             has_c_start = not self.start.type.is_pyobject
             if has_c_start:
                 c_start = self.start.result()
             else:
                 py_start = 'CAPI_NEEDS_DEREFERENCE %s' % self.start.py_result()
-        has_c_stop, c_stop, py_stop = False, '0', 'API_NULL_VALUE'
+        has_c_stop, c_stop, py_stop = False, '0', 'NULL'
         if self.stop:
             has_c_stop = not self.stop.type.is_pyobject
             if has_c_stop:
                 c_stop = self.stop.result()
             else:
                 py_stop = 'CAPI_NEEDS_DEREFERENCE %s' % self.stop.py_result()
-        py_slice = self.slice and 'CAPI_NEEDS_DEREFERENCE %s' % self.slice.py_result() or 'API_NULL_VALUE'
+        py_slice = self.slice and 'CAPI_NEEDS_DEREFERENCE %s' % self.slice.py_result() or 'NULL'
         return (has_c_start, has_c_stop, c_start, c_stop,
                 py_start, py_stop, py_slice)
 
