@@ -606,10 +606,8 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
         return SEQUENCE_SET_ITEM(o, i, v);
     }
 #endif
-    PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
     PYOBJECT_TYPE i_obj = PYOBJECT_LONG_FROM_SSIZE_T(i);
-    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, tmp_load_v);
-    PYOBJECT_CLOSEREF(tmp_load_v);
+    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, v);
 #if CYTHON_USING_HPY
     PYOBJECT_CLOSEREF(i_obj);
 #endif
