@@ -4724,22 +4724,33 @@ class IndexNode(_IndexingBaseNode):
             else:
                 function = "PYOBJECT_SET_ITEM"
 
-        temp_load_index = LoadGlobalNode(self.pos, index_code)
-        temp_load_index.allocate(code)
-
         temp_load_value = LoadGlobalNode(self.pos, value_code)
         temp_load_value.allocate(code)
 
-        code.putln(code.error_goto_if_neg(
+        code.putln("//%s" % index_code)
+        if self.index.type.is_int:
+            code.putln(code.error_goto_if_neg(
             "%s(%s, %s, %s%s)" % (
                 function,
                 self.base.py_result(),
-                temp_load_index.temp_cname,
+                index_code,
                 temp_load_value.temp_cname,
                 self.extra_index_params(code)),
             self.pos))
+        else:
+            temp_load_index = LoadGlobalNode(self.pos, index_code)
+            temp_load_index.allocate(code)
 
-        temp_load_index.release(code)
+            code.putln(code.error_goto_if_neg(
+                "%s(%s, %s, %s%s)" % (
+                    function,
+                    self.base.py_result(),
+                    temp_load_index.temp_cname,
+                    temp_load_value.temp_cname,
+                    self.extra_index_params(code)),
+                self.pos))
+            temp_load_index.release(code)
+
         temp_load_value.release(code)
 
     def generate_assignment_code(self, rhs, code, overloaded_assignment=False,
@@ -5690,29 +5701,23 @@ class SliceIndexNode(ExprNode):
             code.globalstate.use_utility_code(self.get_slice_utility_code)
             (has_c_start, has_c_stop, c_start, c_stop,
              py_start, py_stop, py_slice) = self.get_slice_config()
-            load_pyslice = LoadGlobalNode(self.pos, py_slice)
-            load_pyslice.allocate(code)
-            code.putln("#if CYTHON_USING_HPY")
-            code.putln(
-                "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, &%s, &%s, &%s, %d, %d, %d); %s" % (
-                    result,
-                    self.base.py_result(),
-                    c_start, c_stop,
-                    py_start, py_stop, load_pyslice.temp_cname,
-                    has_c_start, has_c_stop,
-                    bool(code.globalstate.directives['wraparound']),
-                    code.error_goto_if_null_object(result, self.pos)))
-            code.putln("#else")
+            if not py_slice == "NULL":
+                load_pyslice = LoadGlobalNode(self.pos, py_slice[1:])
+                load_pyslice.allocate(code)
+                pyslice_maybe_deref = "&" + load_pyslice.temp_cname
+            else:
+                load_pyslice = LoadGlobalNode(self.pos, py_slice)
+                load_pyslice.allocate(code)
+                pyslice_maybe_deref = load_pyslice.temp_cname
             code.putln(
                 "%s = __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %d, %d, %d); %s" % (
                     result,
                     self.base.py_result(),
                     c_start, c_stop,
-                    py_start, py_stop, load_pyslice.temp_cname,
+                    py_start, py_stop, pyslice_maybe_deref,
                     has_c_start, has_c_stop,
                     bool(code.globalstate.directives['wraparound']),
                     code.error_goto_if_null_object(result, self.pos)))
-            code.putln("#endif")
             load_pyslice.release(code)
         else:
             if self.base.type is list_type:
@@ -5800,15 +5805,15 @@ class SliceIndexNode(ExprNode):
             if has_c_start:
                 c_start = self.start.result()
             else:
-                py_start = 'CAPI_NEEDS_DEREFERENCE %s' % self.start.py_result()
+                py_start = '&%s' % self.start.py_result()
         has_c_stop, c_stop, py_stop = False, '0', 'NULL'
         if self.stop:
             has_c_stop = not self.stop.type.is_pyobject
             if has_c_stop:
                 c_stop = self.stop.result()
             else:
-                py_stop = 'CAPI_NEEDS_DEREFERENCE %s' % self.stop.py_result()
-        py_slice = self.slice and 'CAPI_NEEDS_DEREFERENCE %s' % self.slice.py_result() or 'NULL'
+                py_stop = '&%s' % self.stop.py_result()
+        py_slice = self.slice and '&%s' % self.slice.py_result() or 'NULL'
         return (has_c_start, has_c_stop, c_start, c_stop,
                 py_start, py_stop, py_slice)
 
@@ -8410,13 +8415,13 @@ class SequenceNode(ExprNode):
                 tmp_load_arg.release(code)
                 code.putln("}")
 
-            code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
-            code.funcstate.release_temp(tmp_builder)
-
             if c_mult:
                 code.putln('}')
                 #code.funcstate.release_temp(counter)
                 code.putln('}')
+            
+            code.putln("%s(%s, %s);" % (build_func, target, tmp_builder))
+            code.funcstate.release_temp(tmp_builder)
 
         if mult_factor is not None and mult_factor.type.is_pyobject:
             code.putln('{ PYOBJECT_TYPE %s = NUMBER_INPLACE_MULTIPLY(%s, %s); %s' % (
