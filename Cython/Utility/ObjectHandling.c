@@ -2366,7 +2366,7 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 #if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw); /*proto*/
 #else
-#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_FUNC(func, arg, 0, kw)
+#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_TUPLE_DICT(func, arg, kw)
 #endif
 
 /////////////// PyObjectCall ///////////////
