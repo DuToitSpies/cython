@@ -154,7 +154,7 @@
   #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
-  #define LIST_INSERT(list, index, h) PyList_Insert(HPY_LEGACY_OBJECT_AS(list), index, HPY_LEGACY_OBJECT_AS(h))
+  #define LIST_INSERT(list, index, h) HPyList_Insert(HPY_CONTEXT_CNAME, list, index, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
