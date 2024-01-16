@@ -148,7 +148,7 @@
   //List Type
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
   #define LIST_NEW(i) HPyList_New(HPY_CONTEXT_CNAME, i)
-  #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define LIST_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
