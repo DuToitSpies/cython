@@ -132,6 +132,8 @@
   #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) HPy_SetItem_i(HPY_CONTEXT_CNAME, h, pos, o)
   #define SEQUENCE_GET_SLICE(h, i1, i2) HPy_GetSlice(HPY_CONTEXT_CNAME, h, (i1), (i2))
+  #define SEQUENCE_SET_SLICE(h, i1, i2, v) HPy_SetSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2), (v))
+  #define SEQUENCE_DEL_SLICE(h, i1, i2) HPy_DelSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
@@ -325,6 +327,8 @@
   #define SEQUENCE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) PySequence_SetItem(h, pos, o)
   #define SEQUENCE_GET_SLICE(h, i1, i2) PySequence_GetSlice(h, (i1), (i2))
+  #define SEQUENCE_SET_SLICE(h, i1, i2, v) PySequence_SetSlice((h), (i1), (i2), (v))
+  #define SEQUENCE_DEL_SLICE(h, i1, i2) PySequence_DelSlice((h), (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
