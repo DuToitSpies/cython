@@ -175,11 +175,7 @@ static PyObject* __Pyx__PyList_PopIndex(PyObject* L, PyObject* py_ix, Py_ssize_t
 /////////////// pop_index ///////////////
 //@requires: ObjectHandling.c::PyObjectCallMethod1
 
-#if CYTHON_USING_HPY
-static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPyContext *HPY_CONTEXT_CNAME, PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
-#else
-static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
-#endif
+static PYOBJECT_TYPE __Pyx__PyObject_PopNewIndex(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE L, PYOBJECT_TYPE py_ix) {
     PYOBJECT_TYPE r;
     if (unlikely(API_IS_NULL(py_ix))) return API_NULL_VALUE;
     r = __Pyx__PyObject_PopIndex(HPY_CONTEXT_FIRST_ARG_CALL L, py_ix);
