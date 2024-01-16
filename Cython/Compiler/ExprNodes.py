@@ -5682,14 +5682,19 @@ class SliceIndexNode(ExprNode):
         if self.type.is_pyobject:
             code.globalstate.use_utility_code(self.set_slice_utility_code)
             has_c_start, has_c_stop, c_start, c_stop, py_start, py_stop, py_slice = self.get_slice_config()
-            code.put_error_if_neg(self.pos,
-                "__Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %s, %d, %d, %d)" % (
-                    self.base.py_result(),
-                    rhs.py_result(),
-                    c_start, c_stop,
-                    py_start, py_stop, py_slice,
-                    has_c_start, has_c_stop,
-                    bool(code.globalstate.directives['wraparound'])))
+            if py_start == 'NULL' and py_stop == 'NULL' and py_slice == 'NULL':
+                code.put_error_if_neg(self.pos,
+                                      "SEQUENCE_SET_SLICE(%s, %s, %s, %s)" % (
+                                          self.base.py_result(), c_start, c_stop, rhs.py_result()))
+            else:
+                code.put_error_if_neg(self.pos,
+                                      "__Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %s, %d, %d, %d)" % (
+                                          self.base.py_result(),
+                                          rhs.py_result(),
+                                          c_start, c_stop,
+                                          py_start, py_stop, py_slice,
+                                          has_c_start, has_c_stop,
+                                          bool(code.globalstate.directives['wraparound'])))
         else:
             start_offset = self.start_code() if self.start else '0'
             if rhs.type.is_array:
