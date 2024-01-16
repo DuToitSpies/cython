@@ -487,46 +487,4 @@ HPyFloat_CheckExact(HPyContext *ctx, HPy obj)
     return res;
 }
 
-static inline HPy
-HPySlice_New(HPyContext *ctx, HPy start, HPy stop, HPy step)
-{
-    HPy args[3] = {start, stop, step};
-    return HPy_Call(ctx, ctx->h_SliceType, args, 3, HPy_NULL);
-}
-
-static inline HPy
-HPy_GetSlice(HPyContext *ctx, HPy h, HPy_ssize_t i1, HPy_ssize_t i2)
-{
-    HPy start, stop, step, slice;
-    HPy res;
-
-    start = HPyLong_FromSsize_t(ctx, i1);
-    if (HPy_IsNull(start)) {
-        return HPy_NULL;
-    }
-
-    stop = HPyLong_FromSsize_t(ctx, i2);
-    if (HPy_IsNull(stop)) {
-        step = HPy_NULL;
-        goto finish;
-    }
-
-    step = HPyLong_FromSsize_t(ctx, 1);
-    if (HPy_IsNull(step)) {
-        goto finish;
-    }
-
-    slice = HPySlice_New(ctx, start, stop, step);
-    if (HPy_IsNull(slice)) {
-        goto finish;
-    }
-    res = HPy_GetItem(ctx, h, slice);
-    HPy_Close(ctx, slice);
-finish:
-    HPy_Close(ctx, start);
-    HPy_Close(ctx, stop);
-    HPy_Close(ctx, step);
-    return res;
-}
-
 #endif
