@@ -135,8 +135,8 @@
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
-  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
-  #define TUPLE_GET_ITEM_SAFE(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
+  #define TUPLE_GET_ITEM_SAFE(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define TUPLE_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
