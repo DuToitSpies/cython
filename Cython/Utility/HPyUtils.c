@@ -202,6 +202,9 @@
   //Sequence Type
   #define API_SLICE_NEW(start, stop, step) HPySlice_New(HPY_CONTEXT_CNAME, start, stop, step)
 
+  //Iterators
+  #define API_ITER_NEXT(it) HPyIter_Next(HPY_CONTEXT_CNAME, (it))
+
 #else
   //HPy Context Macros
   #define HPY_CONTEXT_CNAME
@@ -402,6 +405,9 @@
 
   //Sequence Type
   #define API_SLICE_NEW(start, stop, step) PySlice_New(start, stop, step)
+
+  //Iterators
+  #define API_ITER_NEXT(it) PyIter_Next(it)
 
 #endif
 

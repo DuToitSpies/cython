@@ -3204,14 +3204,13 @@ class IteratorNode(ScopedExprNode):
                 self.py_result()))
         code.putln("#else")
         code.putln(
-            "%s = HPY_LEGACY_OBJECT_FROM(PyIter_Next(HPY_LEGACY_OBJECT_AS(%s)));" % (
+            "%s = API_ITER_NEXT(%s);" % (
                 result_name,
                 self.py_result()))
         code.putln("#endif")
         code.putln("if (unlikely(API_IS_NULL(%s))) {" % result_name)
-        code.putln("PyObject* exc_type = PyErr_Occurred();")
-        code.putln("if (exc_type) {")
-        code.putln("if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();")
+        code.putln("if (PYERR_OCCURRED()) {")
+        code.putln("if (likely(PYERR_EXCEPTIONMATCHES(API_EXC(StopIteration)))) PYERR_CLEAR();")
         code.putln("else %s" % code.error_goto(self.pos))
         code.putln("}")
         code.putln("break;")
