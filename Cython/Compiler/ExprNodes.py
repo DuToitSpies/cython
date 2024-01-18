@@ -3565,11 +3565,11 @@ class TempNode(ExprNode):
     def analyse_target_declaration(self, env):
         self.is_target = True
 
-    def generate_result_code(self, code, ref_managed=True):
+    def generate_result_code(self, code):
         pass
 
     def allocate(self, code):
-        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=ref_managed)
+        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=True)
 
     def release(self, code):
         code.funcstate.release_temp(self.temp_cname)
@@ -3602,7 +3602,7 @@ class LoadGlobalNode(TempNode):
         self.var_name = var_name
 
     def allocate(self, code, needs_decl=False):
-        super(self.__class__, self).allocate(code, False)
+        super(self.__class__, self).allocate(code)
         if needs_decl:
             code.putln("PYOBJECT_TYPE %s;" % self.temp_cname)
         if self.var_name in code.globalstate.const_cname_array:
