@@ -199,11 +199,7 @@ __Pyx_CyFunction_doc_get(HPyContext *HPY_CONTEXT_CNAME, __pyx_CyFunctionObject_F
     CYTHON_UNUSED_VAR(closure);
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     HPy h_doc;
-    if (!HPyField_IsNull(struct_op->func_doc)) {
-        h_doc = HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_doc);
-    } else {
-        h_doc = HPy_NULL;
-    }
+    HPyField_XLoad(HPY_CONTEXT_CNAME, h_doc, struct_op->func_doc, op);
     if (HPy_IsNull(h_doc) && struct_op->func->meth.doc != NULL) {
         h_doc = HPyUnicode_FromString(HPY_CONTEXT_CNAME, struct_op->func->meth.doc);
     }

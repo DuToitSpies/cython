@@ -437,4 +437,13 @@ static CYTHON_INLINE HPy HPyDict_GetItem_s(HPyContext *ctx, HPy mp, const char *
     return res;
 }
 
+static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField field, HPy owner) 
+{
+    if (!HPyField_IsNull(field)) {
+        h_item = HPyField_Load(HPY_CONTEXT_CNAME, owner, field);
+    } else {
+        h_item = HPy_NULL;
+    }
+}
+
 #endif
