@@ -896,12 +896,7 @@ static PYOBJECT_TYPE __Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOB
         metaclass = CAPI_NEEDS_DEREFERENCE __Pyx_DefaultClassType;
     }
     // make owned reference
-#if !CYTHON_USING_HPY
-    Py_INCREF((PyObject*) metaclass);
-    return (PyObject*) metaclass;
-#else
-    return metaclass;
-#endif
+    return PYOBJECT_NEWREF(CAST_IF_CAPI(PyObject*) metaclass);
 }
 
 
@@ -1162,7 +1157,7 @@ static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
         if (API_IS_NOT_NULL(prep)) {
 #if CYTHON_USING_HPY
             HPy pargs[2] = {name, bases};
-            ns = HPy_Call(HPY_CONTEXT_CNAME, prep, pargs, 2, mkw);
+            ns = HPy_CallTupleDict(HPY_CONTEXT_CNAME, prep, pargs, mkw);
 #else
             PyObject *pargs[3] = {NULL, name, bases};
             ns = __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL prep, pargs+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, mkw);

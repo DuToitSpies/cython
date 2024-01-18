@@ -3565,11 +3565,11 @@ class TempNode(ExprNode):
     def analyse_target_declaration(self, env):
         self.is_target = True
 
-    def generate_result_code(self, code):
+    def generate_result_code(self, code, ref_managed=True):
         pass
 
     def allocate(self, code):
-        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=True)
+        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=ref_managed)
 
     def release(self, code):
         code.funcstate.release_temp(self.temp_cname)
@@ -3602,7 +3602,7 @@ class LoadGlobalNode(TempNode):
         self.var_name = var_name
 
     def allocate(self, code, needs_decl=False):
-        super(self.__class__, self).allocate(code)
+        super(self.__class__, self).allocate(code, False)
         if needs_decl:
             code.putln("PYOBJECT_TYPE %s;" % self.temp_cname)
         if self.var_name in code.globalstate.const_cname_array:
@@ -3610,7 +3610,7 @@ class LoadGlobalNode(TempNode):
         else:
             code.putln("%s = %s;" % (self.temp_cname, self.var_name))
 
-    def release_global(self, code):
+    def release(self, code):
         if self.var_name in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % self.temp_cname)
         super(self.__class__, self).release(code)
@@ -6746,21 +6746,16 @@ class PyMethodCallNode(SimpleCallNode):
         loaded_vars = []
         for arg in args:
             arg_result = arg.py_result()
-            load_tmp = code.funcstate.allocate_temp(py_object_type, False)
+            load_tmp = LoadGlobalNode(self.pos, arg_result)
+            load_tmp.allocate(code)
             loaded_vars.append(load_tmp)
-            if arg_result in code.globalstate.const_cname_array:
-                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (load_tmp, arg_result))
-            else:
-                code.putln("%s = %s;" % (load_tmp, arg_result))
         code.putln("PYOBJECT_TYPE __pyx_callargs[%d] = {%s, %s};" % (
             (len(args) + 1) if args else 2,
             self_arg,
-            ', '.join(tmp for tmp in loaded_vars) if args else "NULL",
+            ', '.join(load_tmp.temp_cname for load_tmp in loaded_vars) if args else "NULL",
         ))
         for tmp in loaded_vars:
-            if arg_result in code.globalstate.const_cname_array:
-                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % load_tmp)
-            code.funcstate.release_temp(tmp)
+            tmp.release(code)
         code.putln("%s = __Pyx_PyObject_FastCall(%s, __pyx_callargs+1-%s, %d+%s);" % (
             self.result(),
             function,
