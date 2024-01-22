@@ -2539,6 +2539,9 @@ class NameNode(AtomicExprNode):
                 n = "SetNewInClass" if self.name == "__new__" else "SetNameInClass"
                 code.globalstate.use_utility_code(UtilityCode.load_cached(n, "ObjectHandling.c"))
                 setter = '__Pyx_' + n
+                load_result_temp = LoadGlobalNode(self.pos, rhs_result)
+                load_result_temp.allocate(code)
+                load_result_value = load_result_temp.temp_cname
             else:
                 assert False, repr(entry)
             code.putln("#if CYTHON_USING_HPY") 
@@ -2557,7 +2560,7 @@ class NameNode(AtomicExprNode):
                     load_result_value))
             load_namespace_temp.release(code)
             load_cname_temp.release(code)
-            if entry.scope.is_module_scope:
+            if not entry.is_member and (entry.scope.is_module_scope or entry.is_pyclass_attr):
                 load_result_temp.release(code)
             code.putln("#else")
             code.put_error_if_neg(
@@ -3565,8 +3568,8 @@ class TempNode(ExprNode):
     def generate_result_code(self, code):
         pass
 
-    def allocate(self, code):
-        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=True)
+    def allocate(self, code, ref_managed=True):
+        self.temp_cname = code.funcstate.allocate_temp(self.type, manage_ref=ref_managed)
 
     def release(self, code):
         code.funcstate.release_temp(self.temp_cname)
@@ -3599,7 +3602,7 @@ class LoadGlobalNode(TempNode):
         self.var_name = var_name
 
     def allocate(self, code, needs_decl=False):
-        super(self.__class__, self).allocate(code)
+        super(self.__class__, self).allocate(code, False)
         if needs_decl:
             code.putln("PYOBJECT_TYPE %s;" % self.temp_cname)
         if self.var_name in code.globalstate.const_cname_array:
@@ -3607,7 +3610,7 @@ class LoadGlobalNode(TempNode):
         else:
             code.putln("%s = %s;" % (self.temp_cname, self.var_name))
 
-    def release_global(self, code):
+    def release(self, code):
         if self.var_name in code.globalstate.const_cname_array:
             code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % self.temp_cname)
         super(self.__class__, self).release(code)
@@ -6744,12 +6747,12 @@ class PyMethodCallNode(SimpleCallNode):
         for arg in args:
             arg_result = arg.py_result()
             load_tmp = LoadGlobalNode(self.pos, arg_result)
-            loaded_vars.append(load_tmp)
             load_tmp.allocate(code)
+            loaded_vars.append(load_tmp)
         code.putln("PYOBJECT_TYPE __pyx_callargs[%d] = {%s, %s};" % (
             (len(args) + 1) if args else 2,
             self_arg,
-            ', '.join(tmp.temp_cname for tmp in loaded_vars) if args else "NULL",
+            ', '.join(load_tmp.temp_cname for load_tmp in loaded_vars) if args else "NULL",
         ))
         for tmp in loaded_vars:
             tmp.release(code)
@@ -7929,11 +7932,38 @@ class AttributeNode(ExprNode):
         if self.is_py_attr:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("PyObjectSetAttrStr", "ObjectHandling.c"))
+            self_result = self.obj.py_result()
+            tmp_load_self = code.funcstate.allocate_temp(py_object_type, False)
+            if self_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_self, self_result))
+            else:
+                code.putln("%s = %s;" % (tmp_load_self, self_result))
+            attr_ident = code.intern_identifier(self.attribute)
+            tmp_load_attr = code.funcstate.allocate_temp(py_object_type, False)
+            if attr_ident in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_attr, attr_ident))
+            else:
+                code.putln("%s = %s;" % (tmp_load_attr, attr_ident))
+            rhs_result = rhs.py_result()
+            tmp_load_rhs = code.funcstate.allocate_temp(py_object_type, False)
+            if rhs_result in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_rhs, rhs_result))
+            else:
+                code.putln("%s = %s;" % (tmp_load_rhs, rhs_result))
             code.put_error_if_neg(self.pos,
                 '__Pyx_PyObject_SetAttrStr(%s, %s, %s)' % (
-                    self.obj.py_result(),
-                    code.intern_identifier(self.attribute),
-                    rhs.py_result()))
+                    tmp_load_self,
+                    tmp_load_attr,
+                    tmp_load_rhs))
+            if self_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_self)
+            code.funcstate.release_temp(tmp_load_self)
+            if attr_ident in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_attr)
+            code.funcstate.release_temp(tmp_load_attr)
+            if rhs_result in code.globalstate.const_cname_array:
+                code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_rhs)
+            code.funcstate.release_temp(tmp_load_rhs)
             rhs.generate_disposal_code(code)
             rhs.free_temps(code)
         elif self.obj.type.is_complex:
@@ -9721,26 +9751,70 @@ class Py3ClassNode(ExprNode):
     def generate_result_code(self, code):
         code.globalstate.use_utility_code(UtilityCode.load_cached("Py3ClassCreate", "ObjectHandling.c"))
         cname = code.intern_identifier(self.name)
+        tmp_load_cname = code.funcstate.allocate_temp(py_object_type, False)
+        if cname in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_cname, cname))
+        else:
+            code.putln("%s = %s;" % (tmp_load_cname, cname))
         class_def_node = self.class_def_node
+        tmp_load_bases = code.funcstate.allocate_temp(py_object_type, False)
+        if class_def_node.bases.py_result() in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_bases, class_def_node.bases.py_result()))
+        else:
+            code.putln("%s = %s;" % (tmp_load_bases, class_def_node.bases.py_result()))
+        tmp_load_dict = code.funcstate.allocate_temp(py_object_type, False)
+        if class_def_node.dict.py_result() in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_dict, class_def_node.dict.py_result()))
+        else:
+            code.putln("%s = %s;" % (tmp_load_dict, class_def_node.dict.py_result()))
         mkw = class_def_node.mkw.py_result() if class_def_node.mkw else 'NULL'
+        tmp_load_mkw = code.funcstate.allocate_temp(py_object_type, False)
+        if mkw in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_mkw, mkw))
+        else:
+            if mkw == 'NULL':
+                mkw = 'API_NULL_VALUE'
+            code.putln("%s = %s;" % (tmp_load_mkw, mkw))
+        tmp_load_metaclass = code.funcstate.allocate_temp(py_object_type, False)
         if class_def_node.metaclass:
             metaclass = class_def_node.metaclass.py_result()
+            if metaclass in code.globalstate.const_cname_array:
+                code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_metaclass, metaclass))
+            else:
+                code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
         elif self.force_type:
-            metaclass = "((PyObject*)&PyType_Type)"
+            metaclass = "(CAST_IF_CAPI(PYOBJECT_TYPE)CAPI_NEEDS_DEREFERENCE __Pyx_DefaultClassType)"
+            code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
         else:
-            metaclass = "((PyObject*)&__Pyx_DefaultClassType)"
+            metaclass = "(CAST_IF_CAPI(PYOBJECT_TYPE)CAPI_NEEDS_DEREFERENCE __Pyx_DefaultClassType)"
+            code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
         code.putln(
-            '%s = __Pyx_Py3ClassCreate(%s, %s, %s, %s, %s, %d, %d); %s' % (
+            '%s = __Pyx_Py3ClassCreate(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %d, %d); %s' % (
                 self.result(),
-                metaclass,
-                cname,
-                class_def_node.bases.py_result(),
-                class_def_node.dict.py_result(),
-                mkw,
+                tmp_load_metaclass,
+                tmp_load_cname,
+                tmp_load_bases,
+                tmp_load_dict,
+                tmp_load_mkw,
                 self.calculate_metaclass,
                 self.allow_py2_metaclass,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
         self.generate_gotref(code)
+        if cname in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_cname)
+        code.funcstate.release_temp(tmp_load_cname)
+        if class_def_node.bases.py_result() in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_bases)
+        code.funcstate.release_temp(tmp_load_bases)
+        if class_def_node.dict.py_result() in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_dict)
+        code.funcstate.release_temp(tmp_load_dict)
+        if mkw in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_mkw)
+        code.funcstate.release_temp(tmp_load_mkw)
+        if metaclass in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_metaclass)
+        code.funcstate.release_temp(tmp_load_metaclass)
 
 
 class PyClassMetaclassNode(ExprNode):
@@ -9770,12 +9844,12 @@ class PyClassMetaclassNode(ExprNode):
         else:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("CalculateMetaclass", "ObjectHandling.c"))
-            call = "__Pyx_CalculateMetaclass(NULL, %s)" % (
+            call = "__Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_CALL API_NULL_VALUE, %s)" % (
                 bases.result())
         code.putln(
             "%s = %s; %s" % (
                 self.result(), call,
-                code.error_goto_if_null(self.result(), self.pos)))
+                code.error_goto_if_null_object(self.result(), self.pos)))
         self.generate_gotref(code)
 
 
@@ -9800,24 +9874,80 @@ class PyClassNamespaceNode(ExprNode, ModuleNameMixin):
 
     def generate_result_code(self, code):
         cname = code.intern_identifier(self.name)
+        tmp_load_cname = code.funcstate.allocate_temp(py_object_type, False)
+        if cname in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_cname, cname))
+        else:
+            code.putln("%s = %s;" % (tmp_load_cname, cname))
         py_mod_name = self.get_py_mod_name(code)
+        tmp_load_modname = code.funcstate.allocate_temp(py_object_type, False)
+        if py_mod_name in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_modname, py_mod_name))
+        else:
+            code.putln("%s = %s;" % (tmp_load_modname, py_mod_name))
         qualname = self.get_py_qualified_name(code)
+        tmp_load_qualname = code.funcstate.allocate_temp(py_object_type, False)
+        if qualname in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_qualname, qualname))
+        else:
+            code.putln("%s = %s;" % (tmp_load_qualname, qualname))
         class_def_node = self.class_def_node
-        null = "(PyObject *) NULL"
+        tmp_load_defnode = code.funcstate.allocate_temp(py_object_type, False)
+        if class_def_node.bases.result() in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_defnode, class_def_node.bases.result()))
+        else:
+            code.putln("%s = %s;" % (tmp_load_defnode, class_def_node.bases.result()))
+        null = "(PYOBJECT_TYPE) API_NULL_VALUE"
         doc_code = self.doc.result() if self.doc else null
+        tmp_load_doccode = code.funcstate.allocate_temp(py_object_type, False)
+        if doc_code in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_doccode, doc_code))
+        else:
+            code.putln("%s = %s;" % (tmp_load_doccode, doc_code))
         mkw = class_def_node.mkw.py_result() if class_def_node.mkw else null
+        tmp_load_mkw = code.funcstate.allocate_temp(py_object_type, False)
+        if mkw in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_mkw, mkw))
+        else:
+            code.putln("%s = %s;" % (tmp_load_mkw, mkw))
         metaclass = class_def_node.metaclass.py_result() if class_def_node.metaclass else null
+        tmp_load_metaclass = code.funcstate.allocate_temp(py_object_type, False)
+        if metaclass in code.globalstate.const_cname_array:
+            code.putln("%s = PYOBJECT_GLOBAL_LOAD(%s);" % (tmp_load_metaclass, metaclass))
+        else:
+            code.putln("%s = %s;" % (tmp_load_metaclass, metaclass))
         code.putln(
-            "%s = __Pyx_Py3MetaclassPrepare(%s, %s, %s, %s, %s, %s, %s); %s" % (
+            "%s = __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s, %s, %s, %s, %s); %s" % (
                 self.result(),
-                metaclass,
-                class_def_node.bases.result(),
-                cname,
-                qualname,
-                mkw,
-                py_mod_name,
-                doc_code,
-                code.error_goto_if_null(self.result(), self.pos)))
+                tmp_load_metaclass,
+                tmp_load_defnode,
+                tmp_load_cname,
+                tmp_load_qualname,
+                tmp_load_mkw,
+                tmp_load_modname,
+                tmp_load_doccode,
+                code.error_goto_if_null_object(self.result(), self.pos)))
+        if cname in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_cname)
+        code.funcstate.release_temp(tmp_load_cname)
+        if py_mod_name in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_modname)
+        code.funcstate.release_temp(tmp_load_modname)
+        if qualname in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_qualname)
+        code.funcstate.release_temp(tmp_load_qualname)
+        if class_def_node in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_defnode)
+        code.funcstate.release_temp(tmp_load_defnode)
+        if doc_code in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_doccode)
+        code.funcstate.release_temp(tmp_load_doccode)
+        if mkw in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_mkw)
+        code.funcstate.release_temp(tmp_load_mkw)
+        if metaclass in code.globalstate.const_cname_array:
+            code.putln("PYOBJECT_GLOBAL_CLOSEREF(%s);" % tmp_load_metaclass)
+        code.funcstate.release_temp(tmp_load_metaclass)
         self.generate_gotref(code)
 
 

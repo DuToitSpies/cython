@@ -849,34 +849,38 @@ static CYTHON_INLINE PyObject* __Pyx_Py{{type}}_GetSlice(
 
 /////////////// CalculateMetaclass.proto ///////////////
 
-static PyObject *__Pyx_CalculateMetaclass(PyTypeObject *metaclass, PyObject *bases);
+static PYOBJECT_TYPE __Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE metaclass, PYOBJECT_TYPE bases);
 
 /////////////// CalculateMetaclass ///////////////
 
-static PyObject *__Pyx_CalculateMetaclass(PyTypeObject *metaclass, PyObject *bases) {
-    Py_ssize_t i, nbases;
+static PYOBJECT_TYPE __Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE metaclass, PYOBJECT_TYPE bases) {
+    API_SSIZE_T i, nbases;
 #if CYTHON_ASSUME_SAFE_MACROS
     nbases = PyTuple_GET_SIZE(bases);
 #else
-    nbases = PyTuple_Size(bases);
-    if (nbases < 0) return NULL;
+    nbases = TUPLE_GET_SIZE(bases);
+    if (nbases < 0) return API_NULL_VALUE;
 #endif
     for (i=0; i < nbases; i++) {
-        PyTypeObject *tmptype;
+        PYTYPEOBJECT_TYPE tmptype;
 #if CYTHON_ASSUME_SAFE_MACROS
         PyObject *tmp = PyTuple_GET_ITEM(bases, i);
 #else
-        PyObject *tmp = PyTuple_GetItem(bases, i);
-        if (!tmp) return NULL;
+        PYOBJECT_TYPE tmp = TUPLE_GET_ITEM(bases, i);
+        if (API_IS_NULL(tmp)) return API_NULL_VALUE;
 #endif
-        tmptype = Py_TYPE(tmp);
-        if (!metaclass) {
+        tmptype = GET_TYPE(tmp);
+#if PY_MAJOR_VERSION < 3
+        if (tmptype == &PyClass_Type)
+            continue;
+#endif
+        if (API_IS_NULL(metaclass)) {
             metaclass = tmptype;
             continue;
         }
-        if (PyType_IsSubtype(metaclass, tmptype))
+        if (TYPE_IS_SUBTYPE(metaclass, tmptype))
             continue;
-        if (PyType_IsSubtype(tmptype, metaclass)) {
+        if (TYPE_IS_SUBTYPE(tmptype, metaclass)) {
             metaclass = tmptype;
             continue;
         }
@@ -886,14 +890,13 @@ static PyObject *__Pyx_CalculateMetaclass(PyTypeObject *metaclass, PyObject *bas
                         "the metaclass of a derived class "
                         "must be a (non-strict) subclass "
                         "of the metaclasses of all its bases");
-        return NULL;
+        return API_NULL_VALUE;
     }
-    if (!metaclass) {
-        metaclass = &PyType_Type;
+    if (API_IS_NULL(metaclass)) {
+        metaclass = CAPI_NEEDS_DEREFERENCE __Pyx_DefaultClassType;
     }
     // make owned reference
-    Py_INCREF((PyObject*) metaclass);
-    return (PyObject*) metaclass;
+    return PYOBJECT_NEWREF(CAST_IF_CAPI(PyObject*) metaclass);
 }
 
 
@@ -993,45 +996,46 @@ static PyObject *__Pyx_CreateClass(PyObject *bases, PyObject *dict, PyObject *na
 
 /////////////// Py3UpdateBases.proto ///////////////
 
-static PyObject* __Pyx_PEP560_update_bases(PyObject *bases); /* proto */
+static PYOBJECT_TYPE __Pyx_PEP560_update_bases(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE bases); /* proto */
 
 /////////////// Py3UpdateBases /////////////////////
 //@requires: PyObjectCallOneArg
 //@requires: PyObjectGetAttrStrNoError
 
 /* Shamelessly adapted from cpython/bltinmodule.c update_bases */
-static PyObject*
-__Pyx_PEP560_update_bases(PyObject *bases)
+static PYOBJECT_TYPE
+__Pyx_PEP560_update_bases(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE bases)
 {
-    Py_ssize_t i, j, size_bases;
-    PyObject *base = NULL, *meth, *new_base, *result, *new_bases = NULL;
+    API_SSIZE_T i, j, size_bases;
+    PYOBJECT_TYPE base = API_NULL_VALUE, CAPI_IS_POINTER meth, CAPI_IS_POINTER new_base;
+    PYOBJECT_TYPE result, CAPI_IS_POINTER new_bases = API_NULL_VALUE;
     /*assert(PyTuple_Check(bases));*/
 
 #if CYTHON_ASSUME_SAFE_MACROS
     size_bases = PyTuple_GET_SIZE(bases);
 #else
-    size_bases = PyTuple_Size(bases);
-    if (size_bases < 0) return NULL;
+    size_bases = TUPLE_GET_SIZE_SAFE(bases);
+    if (size_bases < 0) return API_NULL_VALUE;
 #endif
     for (i = 0; i < size_bases; i++) {
         // original code in CPython: base  = args[i];
 #if CYTHON_AVOID_BORROWED_REFS
-        Py_CLEAR(base);
+        PYOBJECT_CLEAR(base);
 #endif
 #if CYTHON_ASSUME_SAFE_MACROS
         base = PyTuple_GET_ITEM(bases, i);
 #else
-        base = PyTuple_GetItem(bases, i);
-        if (!base) goto error;
+        base = TUPLE_GET_ITEM(bases, i);
+        if (API_IS_NULL(base)) goto error;
 #endif
-#if CYTHON_AVOID_BORROWED_REFS
+#if CYTHON_AVOID_BORROWED_REFS && !CYTHON_USING_HPY
         Py_INCREF(base);
 #endif
-        if (PyType_Check(base)) {
-            if (new_bases) {
+        if (TYPE_CHECK(base)) {
+            if (API_IS_NOT_NULL(new_bases)) {
                 // If we already have made a replacement, then we append every normal base,
                 // otherwise just skip it.
-                if (PyList_Append(new_bases, base) < 0) {
+                if (LIST_APPEND(new_bases, base) < 0) {
                     goto error;
                 }
             }
@@ -1039,88 +1043,99 @@ __Pyx_PEP560_update_bases(PyObject *bases)
         }
         // original code in CPython:
         // if (_PyObject_LookupAttrId(base, &PyId___mro_entries__, &meth) < 0) {
-        meth = __Pyx_PyObject_GetAttrStrNoError(base, PYIDENT("__mro_entries__"));
-        if (!meth && PyErr_Occurred()) {
+        PYOBJECT_TYPE loaded_mro_entries = PYOBJECT_GLOBAL_LOAD(PYIDENT("__mro_entries__"));
+        meth = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL base, loaded_mro_entries);
+        PYOBJECT_GLOBAL_CLOSEREF(loaded_mro_entries);
+        if (API_IS_NULL(meth) && PyErr_Occurred()) {
             goto error;
         }
-        if (!meth) {
-            if (new_bases) {
-                if (PyList_Append(new_bases, base) < 0) {
+        if (API_IS_NULL(meth)) {
+            if (API_IS_NOT_NULL(new_bases)) {
+                if (LIST_APPEND(new_bases, base) < 0) {
                     goto error;
                 }
             }
             continue;
         }
-        new_base = __Pyx_PyObject_CallOneArg(meth, bases);
-        Py_DECREF(meth);
-        if (!new_base) {
+        new_base = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL meth, bases);
+        PYOBJECT_CLOSEREF(meth);
+        if (API_IS_NULL(new_base)) {
             goto error;
         }
-        if (!PyTuple_Check(new_base)) {
+        if (!TUPLE_CHECK(new_base)) {
             PyErr_SetString(PyExc_TypeError,
                             "__mro_entries__ must return a tuple");
-            Py_DECREF(new_base);
+            PYOBJECT_CLOSEREF(new_base);
             goto error;
         }
-        if (!new_bases) {
+        if (API_IS_NULL(new_bases)) {
             // If this is a first successful replacement, create new_bases list and
             // copy previously encountered bases.
-            if (!(new_bases = PyList_New(i))) {
+            new_bases = LIST_NEW(i);
+            if (API_IS_NULL(new_bases)) {
                 goto error;
             }
             for (j = 0; j < i; j++) {
                 // original code in CPython: base = args[j];
                 // We use a different name here to keep refcounting separate from base
-                PyObject *base_from_list;
+                PYOBJECT_TYPE base_from_list;
 #if CYTHON_ASSUME_SAFE_MACROS
                 base_from_list = PyTuple_GET_ITEM(bases, j);
                 PyList_SET_ITEM(new_bases, j, base_from_list);
                 Py_INCREF(base_from_list);
 #else
-                base_from_list = PyTuple_GetItem(bases, j);
-                if (!base_from_list) goto error;
+                base_from_list = TUPLE_GET_ITEM_SAFE(bases, j);
+                if (API_IS_NULL(base_from_list)) goto error;
+#if !CYTHON_USING_HPY
                 Py_INCREF(base_from_list);
-                if (PyList_SetItem(new_bases, j, base_from_list) < 0) goto error;
+#endif
+                if (SEQUENCE_SET_ITEM(new_bases, j, base_from_list) < 0) goto error;
 #endif
             }
         }
 #if CYTHON_ASSUME_SAFE_MACROS
         j = PyList_GET_SIZE(new_bases);
 #else
-        j = PyList_Size(new_bases);
+        j = LIST_GET_SIZE_SAFE(new_bases);
         if (j < 0) goto error;
 #endif
-        if (PyList_SetSlice(new_bases, j, j, new_base) < 0) {
+        if (PyList_SetSlice(HPY_LEGACY_OBJECT_AS(new_bases), j, j, HPY_LEGACY_OBJECT_AS(new_base)) < 0) {
             goto error;
         }
-        Py_DECREF(new_base);
+        PYOBJECT_CLOSEREF(new_base);
     }
-    if (!new_bases) {
+    if (API_IS_NULL(new_bases)) {
         // unlike the CPython implementation, always return a new reference
+#if CYTHON_USING_HPY
+        return PYOBJECT_NEWREF(bases);
+#else
         Py_INCREF(bases);
         return bases;
+#endif
     }
-    result = PyList_AsTuple(new_bases);
-    Py_DECREF(new_bases);
+    result = HPY_LEGACY_OBJECT_FROM(PyList_AsTuple(HPY_LEGACY_OBJECT_AS(new_bases)));
+    PYOBJECT_CLOSEREF(new_bases);
 #if CYTHON_AVOID_BORROWED_REFS
-    Py_XDECREF(base);
+    PYOBJECT_XCLOSEREF(base);
 #endif
     return result;
 
 error:
-    Py_XDECREF(new_bases);
+    PYOBJECT_XCLOSEREF(new_bases);
 #if CYTHON_AVOID_BORROWED_REFS
-    Py_XDECREF(base);
+    PYOBJECT_XCLOSEREF(base);
 #endif
-    return NULL;
+    return API_NULL_VALUE;
 }
 
 /////////////// Py3ClassCreate.proto ///////////////
 
-static PyObject *__Pyx_Py3MetaclassPrepare(PyObject *metaclass, PyObject *bases, PyObject *name, PyObject *qualname,
-                                           PyObject *mkw, PyObject *modname, PyObject *doc); /*proto*/
-static PyObject *__Pyx_Py3ClassCreate(PyObject *metaclass, PyObject *name, PyObject *bases, PyObject *dict,
-                                      PyObject *mkw, int calculate_metaclass, int allow_py2_metaclass); /*proto*/
+static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE metaclass, PYOBJECT_TYPE bases,
+                                           PYOBJECT_TYPE name, PYOBJECT_TYPE qualname, PYOBJECT_TYPE mkw,
+                                           PYOBJECT_TYPE modname, PYOBJECT_TYPE doc); /*proto*/
+static PYOBJECT_TYPE __Pyx_Py3ClassCreate(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE metaclass, PYOBJECT_TYPE name,
+                                      PYOBJECT_TYPE bases, PYOBJECT_TYPE dict, PYOBJECT_TYPE mkw,
+                                      int calculate_metaclass, int allow_py2_metaclass); /*proto*/
 
 /////////////// Py3ClassCreate ///////////////
 //@substitute: naming
@@ -1131,63 +1146,89 @@ static PyObject *__Pyx_Py3ClassCreate(PyObject *metaclass, PyObject *name, PyObj
 //@requires: PyObjectLookupSpecial
 // only in fallback code:
 
-static PyObject *__Pyx_Py3MetaclassPrepare(PyObject *metaclass, PyObject *bases, PyObject *name,
-                                           PyObject *qualname, PyObject *mkw, PyObject *modname, PyObject *doc) {
-    PyObject *ns;
-    if (metaclass) {
-        PyObject *prep = __Pyx_PyObject_GetAttrStrNoError(metaclass, PYIDENT("__prepare__"));
-        if (prep) {
+static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE metaclass, PYOBJECT_TYPE bases,
+                                           PYOBJECT_TYPE name, PYOBJECT_TYPE qualname, PYOBJECT_TYPE mkw,
+                                           PYOBJECT_TYPE modname, PYOBJECT_TYPE doc) {
+    PYOBJECT_TYPE ns;
+    if (API_IS_NOT_NULL(metaclass)) {
+        PYOBJECT_TYPE loaded_prepare = PYOBJECT_GLOBAL_LOAD(PYIDENT("__prepare__"));
+        PYOBJECT_TYPE prep = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL metaclass, loaded_prepare);
+        PYOBJECT_GLOBAL_CLOSEREF(loaded_prepare);
+        if (API_IS_NOT_NULL(prep)) {
+#if CYTHON_USING_HPY
+            HPyTupleBuilder pargs_builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, 2);
+            HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, pargs_builder, 0, name);
+            HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, pargs_builder, 1, bases);
+            HPy pargs = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, pargs_builder);
+            ns = HPy_CallTupleDict(HPY_CONTEXT_CNAME, prep, pargs, mkw);
+#else
             PyObject *pargs[3] = {NULL, name, bases};
-            ns = __Pyx_PyObject_FastCallDict(prep, pargs+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, mkw);
-            Py_DECREF(prep);
+            ns = __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL prep, pargs+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, mkw);
+#endif
+            PYOBJECT_CLOSEREF(prep);
         } else {
             if (unlikely(PyErr_Occurred()))
-                return NULL;
-            ns = PyDict_New();
+                return API_NULL_VALUE;
+            ns = DICT_NEW();
         }
     } else {
-        ns = PyDict_New();
+        ns = DICT_NEW();
     }
 
-    if (unlikely(!ns))
-        return NULL;
+    if (unlikely(API_IS_NULL(ns)))
+        return API_NULL_VALUE;
 
     /* Required here to emulate assignment order */
-    if (unlikely(PyObject_SetItem(ns, PYIDENT("__module__"), modname) < 0)) goto bad;
-    if (unlikely(PyObject_SetItem(ns, PYIDENT("__qualname__"), qualname) < 0)) goto bad;
-    if (unlikely(doc && PyObject_SetItem(ns, PYIDENT("__doc__"), doc) < 0)) goto bad;
+    PYOBJECT_TYPE loaded_module = PYOBJECT_GLOBAL_LOAD(PYIDENT("__module__"));
+    if (unlikely(PYOBJECT_SET_ITEM(ns, loaded_module, modname) < 0)) goto bad;
+    PYOBJECT_GLOBAL_CLOSEREF(loaded_module);
+    PYOBJECT_TYPE loaded_qualname = PYOBJECT_GLOBAL_LOAD(PYIDENT("__qualname__"));
+    if (unlikely(PYOBJECT_SET_ITEM(ns, loaded_qualname, qualname) < 0)) goto bad;
+    PYOBJECT_GLOBAL_CLOSEREF(loaded_qualname);
+    PYOBJECT_TYPE loaded_doc = PYOBJECT_GLOBAL_LOAD(PYIDENT("__doc__"));
+    if (unlikely(API_IS_NOT_NULL(doc) && PYOBJECT_SET_ITEM(ns, loaded_doc, doc) < 0)) goto bad;
+    PYOBJECT_GLOBAL_CLOSEREF(loaded_doc);
     return ns;
 bad:
-    Py_DECREF(ns);
-    return NULL;
+    PYOBJECT_CLOSEREF(ns);
+    return API_NULL_VALUE;
 }
 
-static PyObject *__Pyx_Py3ClassCreate(PyObject *metaclass, PyObject *name, PyObject *bases,
-                                      PyObject *dict, PyObject *mkw,
+static PYOBJECT_TYPE __Pyx_Py3ClassCreate(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE metaclass, PYOBJECT_TYPE name,
+                                      PYOBJECT_TYPE bases, PYOBJECT_TYPE dict, PYOBJECT_TYPE mkw,
                                       int calculate_metaclass, int allow_py2_metaclass) {
-    PyObject *result;
-    PyObject *owned_metaclass = NULL;
-    PyObject *margs[4] = {NULL, name, bases, dict};
+    PYOBJECT_TYPE result;
+    PYOBJECT_TYPE owned_metaclass = API_NULL_VALUE;
+    PYOBJECT_TYPE margs[4] = {API_NULL_VALUE, name, bases, dict};
     if (allow_py2_metaclass) {
-        /* honour Python2 __metaclass__ for backward compatibility */
-        owned_metaclass = PyObject_GetItem(dict, PYIDENT("__metaclass__"));
-        if (owned_metaclass) {
+        PYOBJECT_TYPE loaded_metaclass = PYOBJECT_GLOBAL_LOAD(PYIDENT("__metaclass__"));
+        owned_metaclass = PYOBJECT_GET_ITEM(dict, loaded_metaclass);
+        PYOBJECT_GLOBAL_CLOSEREF(loaded_metaclass);
+        if (API_IS_NOT_NULL(owned_metaclass)) {
             metaclass = owned_metaclass;
         } else if (likely(PyErr_ExceptionMatches(PyExc_KeyError))) {
             PyErr_Clear();
         } else {
-            return NULL;
+            return API_NULL_VALUE;
         }
     }
-    if (calculate_metaclass && (!metaclass || PyType_Check(metaclass))) {
+    if (calculate_metaclass && (API_IS_NULL(metaclass) || TYPE_CHECK(metaclass))) {
+#if CYTHON_USING_HPY
+        metaclass = __Pyx_CalculateMetaclass(HPY_CONTEXT_FIRST_ARG_CALL metaclass, bases);
+#else
         metaclass = __Pyx_CalculateMetaclass((PyTypeObject*) metaclass, bases);
         Py_XDECREF(owned_metaclass);
-        if (unlikely(!metaclass))
-            return NULL;
+#endif
+        if (unlikely(API_IS_NULL(metaclass)))
+            return API_NULL_VALUE;
         owned_metaclass = metaclass;
     }
+#if !CYTHON_USING_HPY
     result = __Pyx_PyObject_FastCallDict(metaclass, margs+1, 3 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, mkw);
-    Py_XDECREF(owned_metaclass);
+#else
+    result = API_CALL_FUNC(metaclass, margs+1, 3, mkw);
+#endif
+    PYOBJECT_XCLOSEREF(owned_metaclass);
     return result;
 }
 
@@ -1325,15 +1366,15 @@ static PyObject *__Pyx__GetNameInClass(PyObject *nmspace, PyObject *name) {
 
 /////////////// SetNameInClass.proto ///////////////
 
-#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030d0000 && !CYTHON_USING_HPY
 // Identifier names are always interned and have a pre-calculated hash value.
 #define __Pyx_SetNameInClass(ns, name, value) \
     (likely(PyDict_CheckExact(ns)) ? _PyDict_SetItem_KnownHash(ns, name, value, ((PyASCIIObject *) name)->hash) : PyObject_SetItem(ns, name, value))
-#elif CYTHON_COMPILING_IN_CPYTHON
+#elif CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 #define __Pyx_SetNameInClass(ns, name, value) \
     (likely(PyDict_CheckExact(ns)) ? PyDict_SetItem(ns, name, value) : PyObject_SetItem(ns, name, value))
 #else
-#define __Pyx_SetNameInClass(ns, name, value)  PyObject_SetItem(ns, name, value)
+#define __Pyx_SetNameInClass(ns, name, value)  PYOBJECT_SET_ITEM(ns, name, value)
 #endif
 
 /////////////// SetNewInClass.proto ///////////////
@@ -1548,7 +1589,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 #if !CYTHON_USING_HPY
     result = __Pyx_PyObject_GetAttrStr(obj, attr_name);
 #else
-    result = PYOBJECT_GET_ITEM(obj, attr_name);
+    result = PYOBJECT_GET_ATTR(obj, attr_name);
 #endif
     if (unlikely(API_IS_NULL(result))) {
         __Pyx_PyObject_GetAttrStr_ClearAttributeError();
@@ -1577,9 +1618,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
     if (likely(tp->tp_getattro))
         return tp->tp_getattro(obj, attr_name);
 #endif
-    PYOBJECT_TYPE item = DICT_GET_ITEM(obj, attr_name);
-
-    return item;
+    return PYOBJECT_GET_ATTR_STR(obj, attr_name);
 }
 #endif
 
@@ -1591,7 +1630,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
 static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value);/*proto*/
 #else
 #define __Pyx_PyObject_DelAttrStr(o,n)   PyObject_DelAttr(o,n)
-#define __Pyx_PyObject_SetAttrStr(o,n,v) PyObject_SetAttr(o,n,v)
+#define __Pyx_PyObject_SetAttrStr(o,n,v) PYOBJECT_SET_ATTR(o,n,v)
 #endif
 
 /////////////// PyObjectSetAttrStr ///////////////
@@ -2044,8 +2083,8 @@ bad:
 #if CYTHON_USING_HPY
 #define __Pyx_PyObject_FastCall(func, args, nargs)  API_CALL_FUNC(func, args, (size_t)(nargs), API_NULL_VALUE)
 #else
-#define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(func, args, (size_t)(nargs), API_NULL_VALUE)
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t nargs, PYOBJECT_TYPE kwargs); /*proto*/
+#define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL func, args, (size_t)(nargs), API_NULL_VALUE)
+static CYTHON_INLINE PyObject *__Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs); /*proto*/
 #endif
 
 /////////////// PyObjectFastCall ///////////////
@@ -2054,7 +2093,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST
 //@requires: PyObjectCallMethO
 //@substitute: naming
 
-#if !CYTHON_USING_HPY && PY_VERSION_HEX < 0x03090000 || CYTHON_COMPILING_IN_LIMITED_API
+#if !CYTHON_USING_HPY && (PY_VERSION_HEX < 0x03090000 || CYTHON_COMPILING_IN_LIMITED_API)
 static PyObject* __Pyx_PyObject_FastCall_fallback(PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs) {
     PyObject *argstuple;
     PyObject *result = 0;
@@ -2073,22 +2112,19 @@ static PyObject* __Pyx_PyObject_FastCall_fallback(PyObject *func, PyObject **arg
 }
 #endif
 
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t _nargs, PYOBJECT_TYPE kwargs) {
+#if !CYTHON_USING_HPY
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t _nargs, PYOBJECT_TYPE kwargs) {
     // Special fast paths for 0 and 1 arguments
     // NOTE: in many cases, this is called with a constant value for nargs
     // which is known at compile-time. So the branches below will typically
     // be optimized away.
-#if CYTHON_USING_HPY
-    API_SSIZE_T nargs = _nargs
-#else
     API_SSIZE_T nargs = __Pyx_PyVectorcall_NARGS(_nargs);
-#endif
 #if CYTHON_COMPILING_IN_CPYTHON
     if (nargs == 0 && API_IS_NULL(kwargs)) {
         if (__Pyx_CyOrPyCFunction_Check(func) && likely( __Pyx_CyOrPyCFunction_GET_FLAGS(func) & METH_NOARGS))
             return __Pyx_PyObject_CallMethO(func, NULL);
     }
-    else if (nargs == 1 && API_IS_NULL(kwargs)) {
+    else if (nargs == 1 && !kwargs) {
         if (__Pyx_CyOrPyCFunction_Check(func) && likely( __Pyx_CyOrPyCFunction_GET_FLAGS(func) & METH_O))
             return __Pyx_PyObject_CallMethO(func, args[0]);
     }
@@ -2114,8 +2150,8 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST
     #endif
     #endif
 
-    if (kwargs == NULL) {
-        #if CYTHON_VECTORCALL
+    if (!kwargs) {
+        #if CYTHON_VECTORCALL 
         #if PY_VERSION_HEX < 0x03090000
         vectorcallfunc f = _PyVectorcall_Function(func);
         #else
@@ -2134,7 +2170,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST
     }
 
     if (nargs == 0) {
-        return __Pyx_PyObject_Call(func, PyTuple_New(0), kwargs); //TODO(HPy): Must be changed back to $empty_tuple when context is available
+        return __Pyx_PyObject_Call(func, $empty_tuple, kwargs);
     }
     #if PY_VERSION_HEX >= 0x03090000 && !CYTHON_COMPILING_IN_LIMITED_API
     return PyObject_VectorcallDict(func, args, (size_t)nargs, kwargs);
@@ -2142,7 +2178,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST
     return __Pyx_PyObject_FastCall_fallback(func, args, (size_t)nargs, kwargs);
     #endif
 }
-
+#endif
 
 /////////////// PyObjectCallMethod0.proto ///////////////
 
@@ -2227,10 +2263,10 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 #else
 #define __Pyx_PyObject_Call_h(func, arg, kw) __Pyx_PyObject_Call(func, arg, kw)
 #endif
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw); /*proto*/
 #else
-#define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
+#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_FUNC(func, arg, 0, kw)
 #endif
 
 /////////////// PyObjectCall ///////////////
@@ -2486,8 +2522,13 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_Call2Args(HPY_CONTEXT_FIRST_AR
 //@requires: PyObjectFastCall
 
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_Call2Args(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE function, PYOBJECT_TYPE arg1, PYOBJECT_TYPE arg2) {
-    PYOBJECT_TYPE args[3] = {API_NULL_VALUE, arg1, arg2};
+#if CYTHON_USING_HPY
+    HPy args[2] = {arg1, arg2};
+    return __Pyx_PyObject_FastCall(function, args, 2);
+#else
+    PyObject *args[3] = {NULL, arg1, arg2};
     return __Pyx_PyObject_FastCall(function, args+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
+#endif
 }
 
 
@@ -2499,10 +2540,11 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_A
 //@requires: PyObjectFastCall
 
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE arg) {
-    PYOBJECT_TYPE args[2] = {API_NULL_VALUE, arg};
 #if CYTHON_USING_HPY
-    return __Pyx_PyObject_FastCall(func, args+1, 1);
+    PYOBJECT_TYPE args[1] = {arg};
+    return __Pyx_PyObject_FastCall(func, args, 1);
 #else
+    PYOBJECT_TYPE args[2] = {API_NULL_VALUE, arg};
     return __Pyx_PyObject_FastCall(func, args+1, 1 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET);
 #endif
 }

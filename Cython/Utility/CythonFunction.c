@@ -198,8 +198,9 @@ __Pyx_CyFunction_doc_get(HPyContext *HPY_CONTEXT_CNAME, __pyx_CyFunctionObject_F
 {
     CYTHON_UNUSED_VAR(closure);
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
-    HPy h_doc = HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_doc);
-    if (HPy_IsNull(h_doc)) {
+    HPy h_doc;
+    HPyField_XLoad(HPY_CONTEXT_CNAME, h_doc, struct_op->func_doc, op);
+    if (HPy_IsNull(h_doc) && struct_op->func->meth.doc != NULL) {
         h_doc = HPyUnicode_FromString(HPY_CONTEXT_CNAME, struct_op->func->meth.doc);
     }
     if (HPy_IsNull(h_doc)) {
@@ -1046,7 +1047,7 @@ __Pyx_CyFunction_repr_impl(HPyContext *HPY_CONTEXT_CNAME, HPy op)
 {
     __pyx_CyFunctionObject *struct_op = __pyx_CyFunctionObject_AsStruct(HPY_CONTEXT_CNAME, op);
     HPy qualname_field = HPyField_Load(HPY_CONTEXT_CNAME, op, struct_op->func_qualname);
-    HPy result = HPyUnicode_FromFormat(HPY_CONTEXT_CNAME, "<cyfunction %U at %R>", qualname_field, op);
+    HPy result = HPyUnicode_FromFormat(HPY_CONTEXT_CNAME, "<cyfunction %U at %p>", qualname_field, struct_op);
     HPy_Close(HPY_CONTEXT_CNAME, qualname_field);
     return result;
 }
@@ -1463,7 +1464,7 @@ static HPy __Pyx_CyFunction_call_impl(HPyContext *HPY_CONTEXT_CNAME, HPy func, c
 
 HPyDef_SLOT(__pyx_CyFunction_descr_get, HPy_tp_descr_get)
 static HPy __pyx_CyFunction_descr_get_impl(HPyContext *ctx, HPy func, HPy self, HPy typ) {
-    __Pyx_PyMethod_New(ctx, func, self, typ);
+    return __Pyx_PyMethod_New(ctx, func, self, typ);
 }
 
 static HPyDef *__pyx_CyFunctionType_HPyDefines[] = {

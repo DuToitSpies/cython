@@ -23,13 +23,14 @@
   #define PYOBJECT_GLOBAL_LOAD(global) HPyGlobal_Load(HPY_CONTEXT_CNAME, global)
   #define CAPI_IS_POINTER
   #define CAPI_NEEDS_DEREFERENCE
-  #define CAST_IF_CAPI(type) 
+  #define CAST_IF_CAPI(type)
 
   //Create New and Close References
   #define PYOBJECT_NEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XNEWREF(h) HPy_Dup(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_CLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_XCLOSEREF(h) HPy_Close(HPY_CONTEXT_CNAME, h)
+  #define PYOBJECT_CLEAR(h) HPy_Close(HPY_CONTEXT_CNAME, h)
   #define PYOBJECT_GLOBAL_CLOSEREF(ref) HPy_Close(HPY_CONTEXT_CNAME, ref)
   #define REFNANNY_CLOSEREF(func, h) PYOBJECT_CLOSEREF(h)
 
@@ -54,6 +55,7 @@
 
   //General Methods
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_IS_NOT_EQUAL(a, b) !HPy_Is(HPY_CONTEXT_CNAME, a, b)
   #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) HPy_RichCompareBool(HPY_CONTEXT_CNAME, h1, h2, op)
 
@@ -64,9 +66,9 @@
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
   #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
-  #define API_STRING_TYPE_DEREF API_STRING_TYPE 
+  #define API_STRING_TYPE_DEREF API_STRING_TYPE
   #define API_DICT_TYPE HPY_CONTEXT_CNAME->h_DictType
-  #define API_DICT_TYPE_DEREF API_DICT_TYPE 
+  #define API_DICT_TYPE_DEREF API_DICT_TYPE
 
   //Type Checks
   #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
@@ -131,7 +133,9 @@
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
   #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
-  #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, (h))
+  #define TUPLE_GET_ITEM_SAFE(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
+  #define TUPLE_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
   #define TUPLE_CREATE_START(target, builder, size) builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -140,7 +144,10 @@
 
   //List Type
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
+  #define LIST_NEW(i) HPyList_New(HPY_CONTEXT_CNAME, i)
   #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
+  #define LIST_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
@@ -164,6 +171,7 @@
   #define TYPE_AS_PYOBJECT(t) t
   #define GET_TYPE(o) HPy_Type(HPY_CONTEXT_CNAME, o)
   #define OBJ_IS_TYPE(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
+  #define TYPE_IS_SUBTYPE(sub, t) HPyType_IsSubtype(HPY_CONTEXT_CNAME, sub, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() HPyErr_Occurred(HPY_CONTEXT_CNAME)
@@ -207,6 +215,7 @@
   #define PYOBJECT_CLOSEREF(h) Py_DECREF(h)
   #define PYOBJECT_XCLOSEREF(h) Py_XDECREF(h)
   #define PYOBJECT_GLOBAL_CLOSEREF(ref) /* nop */
+  #define PYOBJECT_CLEAR(h) Py_CLEAR(h)
   #define REFNANNY_CLOSEREF(func, h) func(h)
 
   //HPy to/from PyObject Functions
@@ -309,7 +318,9 @@
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
   #define TUPLE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
+  #define TUPLE_GET_ITEM_SAFE(h, pos) PyTuple_GetItem(h, pos)
   #define TUPLE_GET_SIZE(h) PyTuple_GET_SIZE(h)
+  #define TUPLE_GET_SIZE_SAFE(h) PyTuple_Size(h)
   #define TUPLE_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define TUPLE_CREATE_START(target, builder, size) target=PyTuple_New(size)
   #define TUPLE_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyTuple_SET_ITEM(tuple, index, item)
@@ -318,8 +329,11 @@
 
   //List Type
   #define LIST_CREATE_EMPTY() PyList_New(0)
+  #define LIST_NEW(i) PyList_New(i)
   #define LIST_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
   #define LIST_APPEND(list, h) PyList_Append(list, h)
+  #define LIST_GET_SIZE(h) PyList_GET_SIZE(h)
+  #define LIST_GET_SIZE_SAFE(h) PyList_Size(h)
   #define LIST_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
   #define LIST_CREATE_START(target, builder, size) target=PyList_New(size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyList_SET_ITEM(tuple, index, item)
@@ -342,6 +356,7 @@
   #define TYPE_AS_PYOBJECT(t) (PyObject*)&##t
   #define GET_TYPE(o) Py_TYPE(o)
   #define OBJ_IS_TYPE(o, t) Py_IS_TYPE(o, t)
+  #define TYPE_IS_SUBTYPE(sub, t) PyType_IsSubtype(sub, t)
 
   //Error & Exception Macros
   #define PYERR_OCCURRED() (!!PyErr_Occurred())
@@ -420,6 +435,15 @@ static CYTHON_INLINE HPy HPyDict_GetItem_s(HPyContext *ctx, HPy mp, const char *
         HPyErr_Clear(ctx);
     }
     return res;
+}
+
+static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField field, HPy owner) 
+{
+    if (!HPyField_IsNull(field)) {
+        h_item = HPyField_Load(ctx, owner, field);
+    } else {
+        h_item = HPy_NULL;
+    }
 }
 
 #endif
