@@ -1187,7 +1187,10 @@ static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
         PYOBJECT_GLOBAL_CLOSEREF(loaded_prepare);
         if (API_IS_NOT_NULL(prep)) {
 #if CYTHON_USING_HPY
-            HPy pargs[2] = {name, bases};
+            HPyTupleBuilder pargs_builder = HPyTupleBuilder_New(HPY_CONTEXT_CNAME, 2);
+            HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, pargs_builder, 0, name);
+            HPyTupleBuilder_Set(HPY_CONTEXT_CNAME, pargs_builder, 1, bases);
+            HPy pargs = HPyTupleBuilder_Build(HPY_CONTEXT_CNAME, pargs_builder);
             ns = HPy_CallTupleDict(HPY_CONTEXT_CNAME, prep, pargs, mkw);
 #else
             PyObject *pargs[3] = {NULL, name, bases};
