@@ -803,15 +803,15 @@ static CYTHON_INLINE PyObject* __Pyx_PyBytes_Join(PyObject* sep, PyObject* value
 
 /////////////// JoinPyUnicode.proto ///////////////
 
-static PyObject* __Pyx_PyUnicode_Join(PyObject** values, Py_ssize_t value_count, Py_ssize_t result_ulength,
-                                      Py_UCS4 max_char);
+static PYOBJECT_TYPE __Pyx_PyUnicode_Join(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE *values, API_SSIZE_T value_count,
+                                          API_SSIZE_T result_ulength, Py_UCS4 max_char);
 
 /////////////// JoinPyUnicode ///////////////
 //@requires: IncludeStringH
 //@substitute: naming
 
-static PyObject* __Pyx_PyUnicode_Join(PyObject** values, Py_ssize_t value_count, Py_ssize_t result_ulength,
-                                      Py_UCS4 max_char) {
+static PYOBJECT_TYPE __Pyx_PyUnicode_Join(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE *values, API_SSIZE_T value_count,
+                                          API_SSIZE_T result_ulength, Py_UCS4 max_char) {
 #if CYTHON_USE_UNICODE_INTERNALS && CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     PyObject *result_uval;
     int result_ukind, kind_shift;
@@ -874,9 +874,16 @@ bad:
     return NULL;
 #else
     // non-CPython fallback
-    Py_ssize_t i;
-    PyObject *result = NULL;
-    PyObject *value_tuple = PyTuple_New(value_count);
+    API_SSIZE_T i;
+#if CYTHON_USING_HPY
+    PYOBJECT_TYPE result = PYOBJECT_GLOBAL_LOAD($empty_unicode);
+    PYOBJECT_TYPE value_tuple = API_NULL_VALUE;
+    for (i=0; i<value_count; i++) {
+        result = HPy_Add(HPY_CONTEXT_CNAME, result, values[i]);
+    }
+#else
+    PYOBJECT_TYPE result = API_NULL_VALUE;
+    PYOBJECT_TYPE value_tuple = PyTuple_New(value_count);
     if (unlikely(!value_tuple)) return NULL;
     CYTHON_UNUSED_VAR(max_char);
     CYTHON_UNUSED_VAR(result_ulength);
@@ -886,10 +893,15 @@ bad:
         Py_INCREF(values[i]);
     }
 
-    result = PyUnicode_Join($empty_unicode, value_tuple);
+    HPy load_empty_unicode = PYOBJECT_GLOBAL_LOAD($empty_unicode);
+
+    result = HPY_LEGACY_OBJECT_FROM(PyUnicode_Join(HPY_LEGACY_OBJECT_AS(load_empty_unicode), HPY_LEGACY_OBJECT_AS(value_tuple)));
+
+    PYOBJECT_GLOBAL_CLOSEREF(load_empty_unicode);
+#endif
 
 bad:
-    Py_DECREF(value_tuple);
+    PYOBJECT_CLOSEREF(value_tuple);
     return result;
 #endif
 }

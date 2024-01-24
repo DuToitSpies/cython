@@ -1236,7 +1236,7 @@ static PYOBJECT_TYPE __Pyx_CyFunction_CallAsMethod(HPY_CONTEXT_FIRST_ARG_DEF PYO
 }
 #endif /* CYTHON_USING_HPY  */
 
-#if CYTHON_METH_FASTCALL && (CYTHON_VECTORCALL || CYTHON_BACKPORT_VECTORCALL)
+#if CYTHON_METH_FASTCALL && (CYTHON_VECTORCALL || CYTHON_BACKPORT_VECTORCALL || CYTHON_USING_HPY)
 // Check that kwnames is empty (if you want to allow keyword arguments,
 // simply pass kwnames=NULL) and figure out what to do with "self".
 // Return value:
@@ -1255,7 +1255,7 @@ static CYTHON_INLINE int __Pyx_CyFunction_Vectorcall_CheckArgs(HPY_CONTEXT_FIRST
         }
         ret = 1;
     }
-    if (unlikely(API_IS_NOT_NULL(kwnames)) && unlikely(__Pyx_TUPLE_GET_SIZE(kwnames))) {
+    if (unlikely(API_IS_NOT_NULL(kwnames)) && unlikely(TUPLE_GET_SIZE(kwnames))) {
         PyErr_Format(PyExc_TypeError,
                      "%.200s() takes no keyword arguments",
                      "");

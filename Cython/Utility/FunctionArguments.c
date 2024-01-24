@@ -18,7 +18,7 @@ static int __Pyx__ArgTypeTest(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYTYP
     __Pyx_TypeName obj_type_name;
     PYOBJECT_TYPE extra_info = PYOBJECT_GLOBAL_LOAD($empty_unicode);
     int from_annotation_subclass = 0;
-    if (unlikely(!type)) {
+    if (unlikely(API_IS_NULL(type))) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
         return 0;
     }
@@ -28,7 +28,7 @@ static int __Pyx__ArgTypeTest(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYTYP
         // type from annotation
         if (__Pyx_TypeCheck(obj, type)) {
             from_annotation_subclass = 1;
-            extra_info = PYUNICODE("Note that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the 'annotation_typing' directive to False.");
+            extra_info = PYOBJECT_GLOBAL_LOAD(PYUNICODE("Note that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the 'annotation_typing' directive to False."));
         }
     }
     type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL type);
@@ -60,6 +60,7 @@ static int __Pyx__ArgTypeTest(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYTYP
 #endif
     __Pyx_DECREF_TypeName(type_name);
     __Pyx_DECREF_TypeName(obj_type_name);
+    PYOBJECT_GLOBAL_CLOSEREF(extra_info);
     return 0;
 }
 

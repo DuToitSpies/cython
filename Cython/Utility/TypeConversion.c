@@ -132,7 +132,7 @@ static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject*);
 #define __Pyx_PyFloat_AS_DOUBLE(x) PyFloat_AS_DOUBLE(x)
 #else
 #define __Pyx_PyFloat_AsDouble(x) PYOBJECT_FLOAT_AS_DOUBLE(x)
-#define __Pyx_PyFloat_AS_DOUBLE(x) PyFloat_AsDouble(x)
+#define __Pyx_PyFloat_AS_DOUBLE(x) __Pyx_PyFloat_AsDouble(x)
 #endif
 #define __Pyx_PyFloat_AsFloat(x) ((float) __Pyx_PyFloat_AsDouble(x))
 

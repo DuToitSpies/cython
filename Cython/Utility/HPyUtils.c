@@ -166,6 +166,9 @@
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
   #define LIST_CREATE_FINALISE(target, builder) target = HPyListBuilder_Build(HPY_CONTEXT_CNAME, builder);
 
+  //Unicode Type
+  #define UNICODE_GET_LENGTH(s) HPy_Length(HPY_CONTEXT_CNAME, s)
+
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
@@ -369,6 +372,9 @@
   #define LIST_CREATE_START(target, builder, size) target=PyList_New(size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) __Pyx_PyList_SET_ITEM(tuple, index, item)
   #define LIST_CREATE_FINALISE(target, null)
+
+  //Unicode Type
+  #define UNICODE_GET_LENGTH(s) PyUnicode_GetLength(s)
 
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(o, attr_name)

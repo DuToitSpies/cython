@@ -464,6 +464,8 @@
   #define CYTHON_REFNANNY 0
   #undef CYTHON_METH_FASTCALL
   #define CYTHON_METH_FASTCALL 1
+  #undef CYTHON_ASSUME_SAFE_SIZE
+  #define CYTHON_ASSUME_SAFE_SIZE 0
   #undef CYTHON_CLINE_IN_TRACEBACK
   #define CYTHON_CLINE_IN_TRACEBACK 0 //Is disabled for the Limited API - probably safest to disable it for HPy then
 #else

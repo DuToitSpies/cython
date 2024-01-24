@@ -3721,7 +3721,7 @@ class JoinedStrNode(ExprNode):
                 length_parts.append(str(len(node.value)))
             else:
                 # TODO: add exception handling for these macro calls if not ASSUME_SAFE_SIZE/MACROS
-                length_parts.append("__Pyx_PyUnicode_GET_LENGTH(%s)" % node.py_result())
+                length_parts.append("UNICODE_GET_LENGTH(%s)" % node.py_result())
                 if node in unknown_nodes:
                     charval_parts.append("__Pyx_PyUnicode_MAX_CHAR_VALUE(%s)" % node.py_result())
 
@@ -3736,8 +3736,12 @@ class JoinedStrNode(ExprNode):
             code.putln("PyErr_NoMemory(); %s" % code.error_goto(self.pos))
             code.putln("}")
 
+        global_temp_arr = []
         for i, node in enumerate(self.values):
-            code.putln('%s[%d] = %s;' % (values_array, i, node.py_result()))
+            temp = LoadGlobalNode(self.pos, node.py_result())
+            temp.allocate(code)
+            global_temp_arr.append(temp)
+            code.putln('%s[%d] = %s;' % (values_array, i, temp.temp_cname))
 
         code.mark_pos(self.pos)
         self.allocate_temp_result(code)
@@ -3751,6 +3755,9 @@ class JoinedStrNode(ExprNode):
             # but we crop that in __Pyx_PyUnicode_Join().
             ' | '.join(charval_parts),
         ))
+
+        for temp in global_temp_arr:
+            temp.release(code)
 
         if not use_stack_memory:
             code.putln("PyMem_Free(%s);" % values_array)

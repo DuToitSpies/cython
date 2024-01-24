@@ -1391,7 +1391,7 @@ static {{c_ret_type}} {{cfunc_name}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE op1
     {{if c_op in '+-*' or op in ('TrueDivide', 'Eq', 'Ne')}}
     if (FLOAT_CHECK_EXACT({{pyval}})) {
         const long {{'a' if order == 'CObj' else 'b'}} = intval;
-        double {{ival}} = __Pyx_PyFloat_AS_DOUBLE(HPY_LEGACY_OBJECT_AS({{pyval}}));
+        double {{ival}} = __Pyx_PyFloat_AS_DOUBLE({{pyval}});
         {{if op in ('Eq', 'Ne')}}
             if ((double)a {{c_op}} (double)b) {
                 {{return_true}};
