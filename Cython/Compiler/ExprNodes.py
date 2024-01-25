@@ -7524,7 +7524,7 @@ class MergedDictNode(ExprNode):
                 # For the fairly plausible special case where item is a temporary
                 # with a refcount of 1 (so created specifically for us),
                 # avoid making a copy
-                code.putln("#if CYTHON_COMPILING_IN_CPYTHON")
+                code.putln("#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY")
                 code.putln("if (Py_REFCNT(%s) == 1) {" % item.py_result())
                 code.putln("%s = %s;" % (self.result(), item.py_result()))
                 item.generate_post_assignment_code(code)

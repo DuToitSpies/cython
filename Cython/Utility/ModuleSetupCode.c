@@ -422,9 +422,6 @@
   #ifndef CYTHON_UPDATE_DESCRIPTOR_DOC
     #define CYTHON_UPDATE_DESCRIPTOR_DOC 1
   #endif
-  #ifndef CYTHON_USE_FREELISTS
-    #define CYTHON_USE_FREELISTS 1
-  #endif
 #endif
 
 #if defined(HPY)
