@@ -279,7 +279,7 @@ builtin_types_table = [
 # resulting in unintuitive runtime behavior and segfaults.
 #    ("bool",   "&PyBool_Type",     []),
 
-    ("int",     "&PyLong_Type",     []),
+    ("int",     "API_LONG_TYPE_DEREF", []),
     ("float",   "&PyFloat_Type",   []),
 
     ("complex", "&PyComplex_Type", [BuiltinAttribute('cval', field_type_name = 'Py_complex'),
@@ -318,7 +318,7 @@ builtin_types_table = [
                                                   utility_code=UtilityCode.load("PySequenceMultiply", "ObjectHandling.c")),
                                     ]),
 
-    ("list",   "&PyList_Type",     [BuiltinMethod("insert",  "TzO",  "r", "PyList_Insert"),
+    ("list",   "&PyList_Type",     [BuiltinMethod("insert",  "TzO",  "r", "LIST_INSERT"),
                                     BuiltinMethod("reverse", "T",    "r", "PyList_Reverse"),
                                     BuiltinMethod("append",  "TO",   "r", "__Pyx_PyList_Append",
                                                   utility_code=UtilityCode.load("ListAppend", "Optimize.c")),

@@ -2445,9 +2445,9 @@ class FuncDefNode(StatNode, BlockNode):
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("ArgTypeTest", "FunctionArguments.c"))
             typeptr_cname = arg.type.typeptr_cname
-            arg_code = "((PyObject *)%s)" % arg.entry.cname
+            arg_code = "(CAST_IF_CAPI(PyObject *)%s)" % arg.entry.cname
             code.putln(
-                'if (unlikely(!__Pyx_ArgTypeTest(%s, %s, %d, %s, %s))) %s' % (
+                'if (unlikely(!(__Pyx_ArgTypeTest(%s, %s, %d, %s, %s)))) %s' % (
                     arg_code,
                     typeptr_cname,
                     arg.accept_none,
@@ -5224,12 +5224,19 @@ class PyClassDefNode(ClassDefNode):
         self.dict.generate_evaluation_code(code)
         if self.orig_bases:
             # update __orig_bases__ if needed
-            code.putln("if (API_IS_NOT_EQUAL(%s, %s)) {" % (self.bases.result(), self.orig_bases.result()))
+            from .ExprNodes import LoadGlobalNode
+            load_bases = LoadGlobalNode(self.pos, self.bases.result())
+            load_orig_bases = LoadGlobalNode(self.pos, self.orig_bases.result())
+            load_bases.allocate(code)
+            load_orig_bases.allocate(code)
+            code.putln("if (API_IS_NOT_EQUAL(%s, %s)) {" % (load_bases.temp_cname, load_orig_bases.temp_cname))
             code.putln(
                 code.error_goto_if_neg('DICT_SET_ITEM_STR(%s, "__orig_bases__", %s)' % (
-                    self.dict.result(), self.orig_bases.result()),
+                    self.dict.result(), load_orig_bases.temp_cname),
                     self.pos
             ))
+            load_bases.release(code)
+            load_orig_bases.release(code)
             code.putln("}")
             self.orig_bases.generate_disposal_code(code)
             self.orig_bases.free_temps(code)
@@ -9064,13 +9071,22 @@ class FromImportStatNode(StatNode):
         if self.interned_items:
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("ImportFrom", "ImportExport.c"))
+
+        from . import ExprNodes    
+        
         for name, target, coerced_item in self.interned_items:
+            load_module_result = ExprNodes.LoadGlobalNode(self.pos, self.module.py_result())
+            load_intern_id = ExprNodes.LoadGlobalNode(self.pos, code.intern_identifier(name))
+            load_module_result.allocate(code)
+            load_intern_id.allocate(code)
             code.putln(
-                '%s = __Pyx_ImportFrom(%s, %s); %s' % (
+                '%s = __Pyx_ImportFrom(HPY_CONTEXT_FIRST_ARG_CALL %s, %s); %s' % (
                     item_temp,
-                    self.module.py_result(),
-                    code.intern_identifier(name),
-                    code.error_goto_if_null(item_temp, self.pos)))
+                    load_module_result.temp_cname,
+                    load_intern_id.temp_cname,
+                    code.error_goto_if_null_object(item_temp, self.pos)))
+            load_module_result.release(code)
+            load_intern_id.release(code)
             code.put_gotref(item_temp, py_object_type)
             if coerced_item is None:
                 target.generate_assignment_code(self.item, code)

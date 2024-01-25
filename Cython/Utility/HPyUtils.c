@@ -43,27 +43,29 @@
   #define API_NULL_VALUE HPy_NULL
   #define API_DEFAULT_VALUE HPy_NULL
   #define API_IS_NULL(h) HPy_IsNull(h)
-  #define API_IS_NOT_NULL(h) !HPy_IsNull(h)
-  #define API_NONE_VALUE HPY_CONTEXT_CNAME->h_None
+  #define API_IS_NOT_NULL(h) (!HPy_IsNull(h))
+  #define API_NONE_VALUE (HPY_CONTEXT_CNAME->h_None)
   #define API_ASSIGN_NONE HPy_Dup(HPY_CONTEXT_CNAME, HPY_CONTEXT_CNAME->h_None)
 
   //Boolean Values and Functions
-  #define API_TRUE HPY_CONTEXT_CNAME->h_True
-  #define API_FALSE HPY_CONTEXT_CNAME->h_False
+  #define API_TRUE (HPY_CONTEXT_CNAME->h_True)
+  #define API_FALSE (HPY_CONTEXT_CNAME->h_False)
   #define API_IS_TRUE(h) HPy_IsTrue(HPY_CONTEXT_CNAME, h)
-  #define API_IS_FALSE(h) !HPy_IsTrue(HPY_CONTEXT_CNAME, h)
+  #define API_IS_FALSE(h) (!HPy_IsTrue(HPY_CONTEXT_CNAME, h))
 
   //General Methods
   #define API_IS_EQUAL(a, b) HPy_Is(HPY_CONTEXT_CNAME, a, b)
-  #define API_IS_NOT_EQUAL(a, b) !HPy_Is(HPY_CONTEXT_CNAME, a, b)
+  #define API_IS_NOT_EQUAL(a, b) (!HPy_Is(HPY_CONTEXT_CNAME, a, b))
   #define API_RICH_COMPARE(h1, h2, op) HPy_RichCompare(HPY_CONTEXT_CNAME, h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) HPy_RichCompareBool(HPY_CONTEXT_CNAME, h1, h2, op)
 
   //API Call Macros
   #define API_CALL_FUNC(callable, args, nargs, kwnames) HPy_Call(HPY_CONTEXT_CNAME, callable, args, nargs, kwnames)
+  #define API_CALL_TUPLE_DICT(callable, args, kw) HPy_CallTupleDict(HPY_CONTEXT_CNAME, callable, args, kw)
 
   //Type Objects
   #define API_LONG_TYPE HPY_CONTEXT_CNAME->h_LongType
+  #define API_LONG_TYPE_DEREF HPY_CONTEXT_CNAME->h_LongType
   #define API_SSIZE_T HPy_ssize_t
   #define API_STRING_TYPE HPY_CONTEXT_CNAME->h_UnicodeType
   #define API_STRING_TYPE_DEREF API_STRING_TYPE
@@ -71,12 +73,15 @@
   #define API_DICT_TYPE_DEREF API_DICT_TYPE
 
   //Type Checks
-  #define LONG_CHECK(l) HPyNumber_Check(HPY_CONTEXT_CNAME, l)
-  #define FLOAT_CHECK_EXACT(f) HPyNumber_Check(HPY_CONTEXT_CNAME, f)
+  #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
+  #define LONG_CHECK_EXACT(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
+  #define LONG_CHECKExact(l) HPyLong_Check(HPY_CONTEXT_CNAME, l) //TODO(HPy): Remove
+  #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
+  #define TUPLE_CHECK_EXACT(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_CHECK_EXACT(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
@@ -96,7 +101,7 @@
   #define PYOBJECT_LONG_FROM_SSIZE_T(i) HPyLong_FromSsize_t(HPY_CONTEXT_CNAME, i)
 
   //Long Type - To
-  #define PYOBJECT_LONG_AS_SSIZE(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_LONG_AS_SSIZE_T(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) HPyLong_AsUnsignedLong(HPY_CONTEXT_CNAME, l)
 
   //Float Type - From
@@ -116,6 +121,9 @@
 
   //Bytes Type - To
 
+  //Number Type
+  #define NUMBER_INPLACE_MULTIPLY(h1, h2) HPy_InPlaceMultiply(HPY_CONTEXT_CNAME, h1, h2)
+
   //Dict Type
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_COPY(o) HPyDict_Copy(HPY_CONTEXT_CNAME, o)
@@ -129,11 +137,14 @@
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) HPy_SetItem_i(HPY_CONTEXT_CNAME, h, pos, o)
+  #define SEQUENCE_GET_SLICE(h, i1, i2) HPy_GetSlice(HPY_CONTEXT_CNAME, h, (i1), (i2))
+  #define SEQUENCE_SET_SLICE(h, i1, i2, v) HPy_SetSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2), (v))
+  #define SEQUENCE_DEL_SLICE(h, i1, i2) HPy_DelSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
-  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
-  #define TUPLE_GET_ITEM_SAFE(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define TUPLE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
+  #define TUPLE_GET_ITEM_SAFE(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define TUPLE_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define TUPLE_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define TUPLE_BUILDER_TYPE HPyTupleBuilder
@@ -145,10 +156,11 @@
   //List Type
   #define LIST_CREATE_EMPTY() HPyList_New(HPY_CONTEXT_CNAME, 0)
   #define LIST_NEW(i) HPyList_New(HPY_CONTEXT_CNAME, i)
-  #define LIST_GET_ITEM(h, pos) HPy_GetItem(HPY_CONTEXT_CNAME, h, PYOBJECT_LONG_FROM_LONG(pos))
+  #define LIST_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
   #define LIST_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define LIST_APPEND(list, h) HPyList_Append(HPY_CONTEXT_CNAME, list, h)
+  #define LIST_INSERT(list, index, h) HPyList_Insert(HPY_CONTEXT_CNAME, list, index, h)
   #define LIST_BUILDER_TYPE HPyListBuilder
   #define LIST_CREATE_START(target, builder, size) builder = HPyListBuilder_New(HPY_CONTEXT_CNAME, size)
   #define LIST_CREATE_ASSIGN(tuple, builder, index, item) HPyListBuilder_Set(HPY_CONTEXT_CNAME, builder, index, item)
@@ -157,6 +169,7 @@
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) HPy_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define PYOBJECT_DEL_ITEM(o, attr_name) HPy_DelItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_GET_ATTR(o, attr_name) HPy_GetAttr(HPY_CONTEXT_CNAME, o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) HPy_SetAttr(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) HPy_GetAttr_s(HPY_CONTEXT_CNAME, o, attr_name)
@@ -185,6 +198,12 @@
 
   //Function Macros
   #define PYMETHODDEF_TYPE HPyDef
+
+  //Sequence Type
+  #define API_SLICE_NEW(start, stop, step) HPySlice_New(HPY_CONTEXT_CNAME, start, stop, step)
+
+  //Iterators
+  #define API_ITER_NEXT(it) HPyIter_Next(HPY_CONTEXT_CNAME, (it))
 
 #else
   //HPy Context Macros
@@ -225,7 +244,7 @@
 
   //NULL/None Values and functions
   #define API_NULL_VALUE NULL
-  #define API_DEFAULT_VALUE 0
+  #define API_DEFAULT_VALUE (0)
   #define API_IS_NULL(h) !h
   #define API_IS_NOT_NULL(h) h
   #define API_NONE_VALUE Py_None
@@ -235,19 +254,21 @@
   #define API_TRUE Py_True
   #define API_FALSE Py_False
   #define API_IS_TRUE(h) PyObject_IsTrue(h)
-  #define API_IS_FALSE(h) !PyObject_Not(h)
+  #define API_IS_FALSE(h) (!PyObject_Not(h))
 
   //General Methods
-  #define API_IS_EQUAL(a, b) a==b
-  #define API_IS_NOT_EQUAL(a, b) a!=b
+  #define API_IS_EQUAL(a, b) (a==b)
+  #define API_IS_NOT_EQUAL(a, b) (a!=b)
   #define API_RICH_COMPARE(h1, h2, op) PyObject_RichCompare(h1, h2, op)
   #define API_RICH_COMPARE_BOOL(h1, h2, op) PyObject_RichCompareBool(h1, h2, op)
 
   //API Call Macros
-  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Call(callable, args, kwnames)
+  #define API_CALL_FUNC(callable, args, nargs, kwnames) PyObject_Vectorcall(callable, args, nargs, kwnames)
+  #define API_CALL_TUPLE_DICT(callable, args, kw) PyObject_Call(callable, args, kw)
 
   //Type Objects
   #define API_LONG_TYPE PyLong_Type
+  #define API_LONG_TYPE_DEREF &PyLong_Type
   #define API_SSIZE_T Py_ssize_t
   #define API_STRING_TYPE PyString_Type
   #define API_STRING_TYPE_DEREF &PyString_Type
@@ -256,11 +277,14 @@
 
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)
+  #define LONG_CHECK_EXACT(l) PyLong_CheckExact(l)
+  #define LONG_CHECKExact(l) PyLong_CheckExact(l) //TODO(HPy): Remove
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
   #define UNICODE_CHECK(u) PyUnicode_Check(u)
   #define DICT_CHECK(o) PyDict_Check(o)
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
+  #define TUPLE_CHECK_EXACT(o) PyTuple_CheckExact(o)
   #define PYOBJECT_TYPE_CHECK(o, t) PyObject_TypeCheck(o, t)
   #define LIST_CHECK(h) PyList_Check(h)
   #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
@@ -281,7 +305,7 @@
   #define PYOBJECT_LONG_FROM_SSIZE_T(i) PyLong_FromSsize_t(i)
 
   //Long Type - To
-  #define PYOBJECT_LONG_AS_SSIZE(l) PyLong_AsSsize_t(l)
+  #define PYOBJECT_LONG_AS_SSIZE_T(l) PyLong_AsSsize_t(l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) PyLong_AsUnsignedLong(l)
 
   //Float Type - From
@@ -301,6 +325,9 @@
 
   //Bytes Type - To
 
+  //Number Type
+  #define NUMBER_INPLACE_MULTIPLY(h1, h2) PyNumber_InPlaceMultiply(h1, h2)
+
   //Dict Type
   #define DICT_NEW() PyDict_New()
   #define DICT_COPY(o) PyDict_Copy(o)
@@ -314,6 +341,9 @@
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)
   #define SEQUENCE_SET_ITEM(h, pos, o) PySequence_SetItem(h, pos, o)
+  #define SEQUENCE_GET_SLICE(h, i1, i2) PySequence_GetSlice(h, (i1), (i2))
+  #define SEQUENCE_SET_SLICE(h, i1, i2, v) PySequence_SetSlice((h), (i1), (i2), (v))
+  #define SEQUENCE_DEL_SLICE(h, i1, i2) PySequence_DelSlice((h), (i1), (i2))
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)
@@ -332,6 +362,7 @@
   #define LIST_NEW(i) PyList_New(i)
   #define LIST_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(HPY_CONTEXT_CNAME, h, pos)
   #define LIST_APPEND(list, h) PyList_Append(list, h)
+  #define LIST_INSERT(list, index, h) PyList_Insert(list, index, h)
   #define LIST_GET_SIZE(h) PyList_GET_SIZE(h)
   #define LIST_GET_SIZE_SAFE(h) PyList_Size(h)
   #define LIST_BUILDER_TYPE PyObject * //Not used, just needed to prevent errors
@@ -342,6 +373,7 @@
   //PyObject/HPy Handle Type
   #define PYOBJECT_GET_ITEM(o, attr_name) PyObject_GetItem(o, attr_name)
   #define PYOBJECT_SET_ITEM(o, attr_name, attr_val) PyObject_SetItem(o, attr_name, attr_val)
+  #define PYOBJECT_DEL_ITEM(o, attr_name) PyObject_DelItem(o, attr_name)
   #define PYOBJECT_GET_ATTR(o, attr_name) PyObject_GetAttr(o, attr_name)
   #define PYOBJECT_SET_ATTR(o, attr_name, attr_val) PyObject_SetAttr(o, attr_name, attr_val)
   #define PYOBJECT_GET_ATTR_STR(o, attr_name) PyObject_GetAttrString(o, attr_name)
@@ -370,6 +402,12 @@
 
   //Function Macros
   #define PYMETHODDEF_TYPE PyMethodDef
+
+  //Sequence Type
+  #define API_SLICE_NEW(start, stop, step) PySlice_New(start, stop, step)
+
+  //Iterators
+  #define API_ITER_NEXT(it) PyIter_Next(it)
 
 #endif
 
@@ -437,6 +475,18 @@ static CYTHON_INLINE HPy HPyDict_GetItem_s(HPyContext *ctx, HPy mp, const char *
     return res;
 }
 
+static inline int
+HPyLong_Check(HPyContext *ctx, HPy obj)
+{
+    return HPy_TypeCheck(ctx, obj, ctx->h_LongType);
+}
+
+static inline int
+HPyFloat_Check(HPyContext *ctx, HPy obj)
+{
+    return HPy_TypeCheck(ctx, obj, ctx->h_FloatType);
+}
+
 static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField field, HPy owner) 
 {
     if (!HPyField_IsNull(field)) {
@@ -444,6 +494,15 @@ static CYTHON_INLINE HPy HPyField_XLoad(HPyContext *ctx, HPy h_item, HPyField fi
     } else {
         h_item = HPy_NULL;
     }
+}
+
+static inline int
+HPyFloat_CheckExact(HPyContext *ctx, HPy obj)
+{
+    HPy tp = HPy_Type(ctx, obj);
+    int res = HPy_Is(ctx, ctx->h_FloatType, tp);
+    HPy_Close(ctx, tp);
+    return res;
 }
 
 #endif

@@ -7,13 +7,13 @@
 #define __Pyx_long_cast(x) ((long)x)
 
 #define __Pyx_fits_Py_ssize_t(v, type, is_signed)  (    \
-    (sizeof(type) < sizeof(Py_ssize_t))  ||             \
-    (sizeof(type) > sizeof(Py_ssize_t) &&               \
+    (sizeof(type) < sizeof(API_SSIZE_T))  ||             \
+    (sizeof(type) > sizeof(API_SSIZE_T) &&               \
           likely(v < (type)PY_SSIZE_T_MAX ||            \
                  v == (type)PY_SSIZE_T_MAX)  &&         \
           (!is_signed || likely(v > (type)PY_SSIZE_T_MIN ||       \
                                 v == (type)PY_SSIZE_T_MIN)))  ||  \
-    (sizeof(type) == sizeof(Py_ssize_t) &&              \
+    (sizeof(type) == sizeof(API_SSIZE_T) &&              \
           (is_signed || likely(v < (type)PY_SSIZE_T_MAX ||        \
                                v == (type)PY_SSIZE_T_MAX)))  )
 
@@ -123,7 +123,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DE
 #define __Pyx_PySequence_Tuple(obj) \
     (likely(PyTuple_CheckExact(obj)) ? __Pyx_NewRef(obj) : PySequence_Tuple(obj))
 
-static CYTHON_INLINE Py_ssize_t __Pyx_PyIndex_AsSsize_t(PyObject*);
+static CYTHON_INLINE API_SSIZE_T __Pyx_PyIndex_AsSsize_t(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
 static CYTHON_INLINE PyObject * __Pyx_PyInt_FromSize_t(size_t);
 static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject*);
 
@@ -377,10 +377,10 @@ static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DE
 
 {{py: from Cython.Utility import pylong_join }}
 
-static CYTHON_INLINE Py_ssize_t __Pyx_PyIndex_AsSsize_t(PyObject* b) {
-  Py_ssize_t ival;
-  PyObject *x;
-  if (likely(PyLong_CheckExact(b))) {
+static CYTHON_INLINE API_SSIZE_T __Pyx_PyIndex_AsSsize_t(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE b) {
+  API_SSIZE_T ival;
+  PYOBJECT_TYPE x;
+  if (likely(LONG_CHECK_EXACT(b))) {
     #if CYTHON_USE_PYLONG_INTERNALS
     // handle most common case first to avoid indirect branch and optimise branch prediction
     if (likely(__Pyx_PyLong_IsCompact(b))) {
@@ -401,20 +401,20 @@ static CYTHON_INLINE Py_ssize_t __Pyx_PyIndex_AsSsize_t(PyObject* b) {
       }
     }
     #endif
-    return PyLong_AsSsize_t(b);
+    return PYOBJECT_LONG_AS_SSIZE_T(b);
   }
-  x = PyNumber_Index(b);
-  if (!x) return -1;
+  x = HPY_LEGACY_OBJECT_FROM(PyNumber_Index(HPY_LEGACY_OBJECT_AS(b)));
+  if (API_IS_NULL(x)) return -1;
   ival = PyInt_AsSsize_t(x);
-  Py_DECREF(x);
+  PYOBJECT_CLOSEREF(x);
   return ival;
 }
 
 
 static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject* o) {
-  if (sizeof(Py_hash_t) == sizeof(Py_ssize_t)) {
-    return (Py_hash_t) __Pyx_PyIndex_AsSsize_t(o);
-  } else {
+//  if (sizeof(Py_hash_t) == sizeof(Py_ssize_t)) {
+//    return (Py_hash_t) __Pyx_PyIndex_AsSsize_t(NULL, o);
+//  } else {
     Py_ssize_t ival;
     PyObject *x;
     x = PyNumber_Index(o);
@@ -422,7 +422,7 @@ static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject* o) {
     ival = PyInt_AsLong(x);
     Py_DECREF(x);
     return ival;
-  }
+//  }
 }
 
 
@@ -738,7 +738,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
             if (API_IS_NULL(kwds)) goto limited_bad;
             if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(API_TRUE))) goto limited_bad;
         }
-        result = API_CALL_FUNC(from_bytes, &arg_tuple, 2, kwds);
+        result = API_CALL_TUPLE_DICT(from_bytes, arg_tuple, kwds);
 
         limited_bad:
         PYOBJECT_XCLOSEREF(from_bytes);

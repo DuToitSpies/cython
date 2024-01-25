@@ -2236,7 +2236,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 code.putln("PyObject *ret;")
                 code.putln("ret = %s(o1, o2);" % comp_entry[ordering_source].func_cname)
                 code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-                code.putln("int order_res = __Pyx_PyObject_IsTrue(ret);")
+                code.putln("int order_res = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
                 code.putln("Py_DECREF(ret);")
                 code.putln("if (unlikely(order_res < 0)) return NULL;")
                 # We may need to check equality too. For some combos it's never required.
@@ -2261,7 +2261,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
                     code.putln("ret = %s(o1, o2);" % comp_entry[eq_func].func_cname)
                     code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-                    code.putln("int eq_res = __Pyx_PyObject_IsTrue(ret);")
+                    code.putln("int eq_res = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
                     code.putln("Py_DECREF(ret);")
                     code.putln("if (unlikely(eq_res < 0)) return NULL;")
                     if invert_equals:
@@ -2291,7 +2291,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             #code.putln("if (o1 == o2) return __Pyx_NewRef(Py_False);")
             code.putln("ret = %s(o1, o2);" % comp_entry['__eq__'].func_cname)
             code.putln("if (likely(ret && ret != Py_NotImplemented)) {")
-            code.putln("int b = __Pyx_PyObject_IsTrue(ret);")
+            code.putln("int b = __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_CALL ret);")
             code.putln("Py_DECREF(ret);")
             code.putln("if (unlikely(b < 0)) return NULL;")
             code.putln("ret = (b) ? API_FALSE : API_TRUE;")
@@ -3152,8 +3152,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             Naming.empty_tuple, code.error_goto_if_null_object("TUPLE_CREATE_EMPTY()", self.pos)))
         code.putln("PYOBJECT_GLOBAL_STORE(%s, BYTES_FROM_STR_AND_SIZE(\"\", 0)); %s" % (
             Naming.empty_bytes, code.error_goto_if_null_object("BYTES_FROM_STR_AND_SIZE(\"\", 0)", self.pos)))
-        code.putln("PYOBJECT_GLOBAL_STORE(%s, HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))); %s" % (
-            Naming.empty_unicode, code.error_goto_if_null_object("HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(\"\", 0))", self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, PYOBJECT_UNICODE_FROM_STRING(\"\")); %s" % (
+            Naming.empty_unicode, code.error_goto_if_null_object("PYOBJECT_UNICODE_FROM_STRING(\"\")", self.pos)))
 
         for ext_type in ('CyFunction', 'FusedFunction', 'Coroutine', 'Generator', 'AsyncGen', 'StopAsyncIteration'):
             code.putln("#ifdef __Pyx_%s_USED" % ext_type)

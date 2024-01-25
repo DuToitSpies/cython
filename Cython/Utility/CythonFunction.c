@@ -91,10 +91,11 @@ HPyType_HELPERS(__pyx_CyFunctionObject)
 
 #undef __Pyx_CyOrPyCFunction_Check
 #define __Pyx_CyFunction_Check(obj) __Pyx_TypeCheck(obj, PYOBJECT_GLOBAL_LOAD(__pyx_CyFunctionType))
-#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck2(obj, __pyx_CyFunctionType, &PyCFunction_Type)
 #if !CYTHON_USING_HPY
+#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck2(obj, __pyx_CyFunctionType, &PyCFunction_Type)
 #define __Pyx_CyFunction_CheckExact(obj)  __Pyx_IS_TYPE(obj, __pyx_CyFunctionType)
 #else
+#define __Pyx_CyOrPyCFunction_Check(obj)  __Pyx_TypeCheck(obj, PYOBJECT_GLOBAL_LOAD(__pyx_CyFunctionType)) //TODO(HPy): Loading here is a memory leak
 #define __Pyx_CyFunction_CheckExact(obj)  __Pyx_TypeCheck(obj, __pyx_CyFunctionType)
 #endif
 static CYTHON_INLINE int __Pyx__IsSameCyOrCFunction(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, void *cfunc);/*proto*/
@@ -649,7 +650,7 @@ __Pyx_CyFunction_get_is_coroutine(HPY_CONTEXT_FIRST_ARG_DEF __pyx_CyFunctionObje
 #if CYTHON_USING_HPY
             return load_is_coroutine_temp;
 #else
-            __Pyx_NewRef(load_is_coroutine_temp);
+            return __Pyx_NewRef(load_is_coroutine_temp);
 #endif
         }
 ignore:
@@ -660,7 +661,7 @@ ignore:
 #if CYTHON_USING_HPY
     return PYOBJECT_FIELD_LOAD(op, struct_op->func_is_coroutine);
 #else
-    __Pyx_NewRef(struct_op->func_is_coroutine);
+    return __Pyx_NewRef(struct_op->func_is_coroutine);
 #endif
 }
 
@@ -688,7 +689,7 @@ ignore:
 //    return NULL;
 //}
 
-#if CYTHON_COMPILING_IN_LIMITED_API
+#if CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY
 static PyObject *
 __Pyx_CyFunction_get_module(__pyx_CyFunctionObject *op, void *context) {
     CYTHON_UNUSED_VAR(context);
@@ -722,7 +723,7 @@ static PyGetSetDef __pyx_CyFunction_getsets[] = {
     {"__annotations__", (getter)__Pyx_CyFunction_get_annotations, (setter)__Pyx_CyFunction_set_annotations, 0, 0},
     {"_is_coroutine", (getter)__Pyx_CyFunction_get_is_coroutine, 0, 0, 0},
 //    {"__signature__", (getter)__Pyx_CyFunction_get_signature, 0, 0, 0},
-#if CYTHON_COMPILING_IN_LIMITED_API
+#if CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY
     {"__module__", (getter)__Pyx_CyFunction_get_module, (setter)__Pyx_CyFunction_set_module, 0, 0},
 #endif
     {0, 0, 0, 0, 0}
@@ -1292,7 +1293,7 @@ static HPy __Pyx_CyFunction_hpycall_NOARGS_impl(HPyContext *HPY_CONTEXT_CNAME, H
             def->meth.name, nargs);
         return HPy_NULL;
     }
-    HPyFunc_noargs func_noargs = def->meth.impl;
+    HPyFunc_noargs func_noargs = (HPyFunc_noargs) def->meth.impl;
     result = func_noargs(HPY_CONTEXT_CNAME, self);
     if (self_needs_close) {
         HPy_Close(HPY_CONTEXT_CNAME, self);
@@ -1322,7 +1323,7 @@ static HPy __Pyx_CyFunction_hpycall_KEYWORDS_impl(HPyContext *HPY_CONTEXT_CNAME,
         return HPy_NULL;
     }
 
-    HPyFunc_keywords func_keywords = def->meth.impl;
+    HPyFunc_keywords func_keywords = (HPyFunc_keywords) def->meth.impl;
     result = func_keywords(HPY_CONTEXT_CNAME, self, args, nargs, kwnames);
     if (self_needs_close) {
         HPy_Close(HPY_CONTEXT_CNAME, self);

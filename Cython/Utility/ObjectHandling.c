@@ -381,44 +381,54 @@ static PYOBJECT_TYPE __Pyx_PyDict_GetItem(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYP
 #if CYTHON_USING_HPY
 #define __Pyx_GetItemInt(HPY_CONTEXT_CNAME, o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
-    HPY_LEGACY_OBJECT_FROM(__Pyx_GetItemInt_Fast(HPY_LEGACY_OBJECT_AS(o), (Py_ssize_t)i, is_list, wraparound, boundscheck)) : \
+    __Pyx_GetItemInt_Fast(HPY_CONTEXT_CNAME, o, (API_SSIZE_T)i, is_list, wraparound, boundscheck) : \
     (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), HPy_NULL) : \
-               HPY_LEGACY_OBJECT_FROM(__Pyx_GetItemInt_Generic(HPY_LEGACY_OBJECT_AS(o), HPY_LEGACY_OBJECT_AS(to_py_func(HPY_CONTEXT_CNAME, i))))))
+               __Pyx_GetItemInt_Generic(HPY_CONTEXT_CNAME, o, to_py_func(HPY_CONTEXT_CNAME, i))))
+
+{{for type in ['List', 'Tuple']}}
+#define __Pyx_GetItemInt_{{type}}(HPY_CONTEXT_CNAME, o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
+    __Pyx_GetItemInt_{{type}}_Fast(HPY_CONTEXT_CNAME, o, (API_SSIZE_T)i, wraparound, boundscheck) : \
+    (PyErr_SetString(PyExc_IndexError, "{{ type.lower() }} index out of range"), HPy_NULL))
+
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetItemInt_{{type}}_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o,
+                                                              API_SSIZE_T i, int wraparound, int boundscheck);
+{{endfor}}
 #else
 #define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
     __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) : \
     (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) : \
                __Pyx_GetItemInt_Generic(o, to_py_func(i))))
-#endif
 
 {{for type in ['List', 'Tuple']}}
 #define __Pyx_GetItemInt_{{type}}(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
     __Pyx_GetItemInt_{{type}}_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) : \
     (PyErr_SetString(PyExc_IndexError, "{{ type.lower() }} index out of range"), (PyObject*)NULL))
-
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_{{type}}_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck);
+    
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetItemInt_{{type}}_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o,
+                                                              API_SSIZE_T i, int wraparound, int boundscheck);
 {{endfor}}
+#endif
 
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
+static PYOBJECT_TYPE __Pyx_GetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i,
                                                      int is_list, int wraparound, int boundscheck);
 
 /////////////// GetItemInt ///////////////
 //@substitute: tempita
 
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
-    PyObject *r;
-    if (unlikely(!j)) return NULL;
-    r = PyObject_GetItem(o, j);
-    Py_DECREF(j);
+static PYOBJECT_TYPE __Pyx_GetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE j) {
+    PYOBJECT_TYPE r;
+    if (unlikely(API_IS_NULL(j))) return API_NULL_VALUE;
+    r = PYOBJECT_GET_ITEM(o, j);
+    PYOBJECT_CLOSEREF(j);
     return r;
 }
 
 {{for type in ['List', 'Tuple']}}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_{{type}}_Fast(PyObject *o, Py_ssize_t i,
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetItemInt_{{type}}_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i,
                                                               CYTHON_NCP_UNUSED int wraparound,
                                                               CYTHON_NCP_UNUSED int boundscheck) {
 #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
@@ -433,13 +443,13 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_{{type}}_Fast(PyObject *o, Py_ss
     }
     return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
 #else
-    return PySequence_GetItem(o, i);
+    return SEQUENCE_GET_ITEM(o, i);
 #endif
 }
 {{endfor}}
 
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, int is_list,
-                                                     CYTHON_NCP_UNUSED int wraparound,
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, API_SSIZE_T i,
+                                                     int is_list, CYTHON_NCP_UNUSED int wraparound,
                                                      CYTHON_NCP_UNUSED int boundscheck) {
 #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
     if (is_list || PyList_CheckExact(o)) {
@@ -483,14 +493,14 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
             return sm->sq_item(o, i);
         }
     }
-#else
+#elif !CYTHON_USING_HPY
     // PySequence_GetItem behaves differently to PyObject_GetItem for i<0
     // and possibly some other cases so can't generally be substituted
     if (is_list || !PyMapping_Check(o)) {
         return PySequence_GetItem(o, i);
     }
 #endif
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+    return __Pyx_GetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, PyInt_FromSsize_t(i));
 }
 
 /////////////// SetItemInt.proto ///////////////
@@ -572,10 +582,8 @@ static CYTHON_INLINE int __Pyx_SetItemInt_Fast(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
         return SEQUENCE_SET_ITEM(o, i, v);
     }
 #endif
-    PYOBJECT_TYPE tmp_load_v = PYOBJECT_GLOBAL_LOAD(v);
     PYOBJECT_TYPE i_obj = PYOBJECT_LONG_FROM_SSIZE_T(i);
-    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, tmp_load_v);
-    PYOBJECT_CLOSEREF(tmp_load_v);
+    int retval = __Pyx_SetItemInt_Generic(HPY_CONTEXT_FIRST_ARG_CALL o, i_obj, v);
 #if CYTHON_USING_HPY
     PYOBJECT_CLOSEREF(i_obj);
 #endif
@@ -639,48 +647,31 @@ static CYTHON_INLINE int __Pyx_DelItemInt_Fast(PyObject *o, Py_ssize_t i,
     return __Pyx_DelItem_Generic(o, PyInt_FromSsize_t(i));
 }
 
-
-/////////////// SliceObject.proto ///////////////
-
-// we pass pointer addresses to show the C compiler what is NULL and what isn't
-{{if access == 'Get'}}
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(
-        PyObject* obj, Py_ssize_t cstart, Py_ssize_t cstop,
-        PyObject** py_start, PyObject** py_stop, PyObject** py_slice,
+/////////////// SliceObjectInternal.proto ///////////////
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
         int has_cstart, int has_cstop, int wraparound);
-{{else}}
-#define __Pyx_PyObject_DelSlice(obj, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound) \
-    __Pyx_PyObject_SetSlice(obj, (PyObject*)NULL, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound)
 
-// we pass pointer addresses to show the C compiler what is NULL and what isn't
-static CYTHON_INLINE int __Pyx_PyObject_SetSlice(
-        PyObject* obj, PyObject* value, Py_ssize_t cstart, Py_ssize_t cstop,
-        PyObject** py_start, PyObject** py_stop, PyObject** py_slice,
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
         int has_cstart, int has_cstop, int wraparound);
-{{endif}}
 
-/////////////// SliceObject ///////////////
+/////////////// SliceObjectInternal ///////////////
 
-{{if access == 'Get'}}
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSlice(PyObject* obj,
-{{else}}
-static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
-{{endif}}
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetSliceInternal(PyObject* obj,
         Py_ssize_t cstart, Py_ssize_t cstop,
         PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
         int has_cstart, int has_cstop, int wraparound) {
-    __Pyx_TypeName obj_type_name;
+    const char *obj_type_name;
 #if CYTHON_USE_TYPE_SLOTS
     PyMappingMethods* mp = Py_TYPE(obj)->tp_as_mapping;
     CYTHON_UNUSED_VAR(wraparound);
-{{if access == 'Get'}}
     if (likely(mp && mp->mp_subscript))
-{{else}}
-    if (likely(mp && mp->mp_ass_subscript))
-{{endif}}
 #endif
     {
-        {{if access == 'Get'}}PyObject*{{else}}int{{endif}} result;
+        PyObject* result;
         PyObject *py_slice, *py_start, *py_stop;
         if (_py_slice) {
             py_slice = *_py_slice;
@@ -691,7 +682,7 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
                 py_start = *_py_start;
             } else {
                 if (has_cstart) {
-                    owned_start = py_start = PyInt_FromSsize_t(cstart);
+                    owned_start = py_start = PyLong_FromSsize_t(cstart);
                     if (unlikely(!py_start)) goto bad;
                 } else
                     py_start = Py_None;
@@ -700,7 +691,7 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
                 py_stop = *_py_stop;
             } else {
                 if (has_cstop) {
-                    owned_stop = py_stop = PyInt_FromSsize_t(cstop);
+                    owned_stop = py_stop = PyLong_FromSsize_t(cstop);
                     if (unlikely(!py_stop)) {
                         Py_XDECREF(owned_start);
                         goto bad;
@@ -714,33 +705,165 @@ static CYTHON_INLINE int __Pyx_PyObject_SetSlice(PyObject* obj, PyObject* value,
             if (unlikely(!py_slice)) goto bad;
         }
 #if CYTHON_USE_TYPE_SLOTS
-{{if access == 'Get'}}
         result = mp->mp_subscript(obj, py_slice);
 #else
         result = PyObject_GetItem(obj, py_slice);
-{{else}}
-        result = mp->mp_ass_subscript(obj, py_slice, value);
-#else
-        result = value ? PyObject_SetItem(obj, py_slice, value) : PyObject_DelItem(obj, py_slice);
-{{endif}}
 #endif
         if (!_py_slice) {
             Py_DECREF(py_slice);
         }
         return result;
     }
-    obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    obj_type_name = (Py_TYPE(obj)->tp_name);
     PyErr_Format(PyExc_TypeError,
-{{if access == 'Get'}}
         "'" __Pyx_FMT_TYPENAME "' object is unsliceable", obj_type_name);
-{{else}}
-        "'" __Pyx_FMT_TYPENAME "' object does not support slice %.10s",
-        obj_type_name, value ? "assignment" : "deletion");
-{{endif}}
-    __Pyx_DECREF_TypeName(obj_type_name);
+    Py_XDECREF(obj_type_name);
 
 bad:
-    return {{if access == 'Get'}}NULL{{else}}-1{{endif}};
+    return NULL;
+}
+
+static CYTHON_INLINE int __Pyx_PyObject_SetSliceInternal(PyObject* obj, PyObject* value,
+        Py_ssize_t cstart, Py_ssize_t cstop,
+        PyObject** _py_start, PyObject** _py_stop, PyObject** _py_slice,
+        int has_cstart, int has_cstop, int wraparound) {
+    const char *obj_type_name;
+#if CYTHON_USE_TYPE_SLOTS
+    PyMappingMethods* mp = Py_TYPE(obj)->tp_as_mapping;
+    CYTHON_UNUSED_VAR(wraparound);
+    if (likely(mp && mp->mp_ass_subscript))
+#endif
+    {
+        int result;
+        PyObject *py_slice, *py_start, *py_stop;
+        if (_py_slice) {
+            py_slice = *_py_slice;
+        } else {
+            PyObject* owned_start = NULL;
+            PyObject* owned_stop = NULL;
+            if (_py_start) {
+                py_start = *_py_start;
+            } else {
+                if (has_cstart) {
+                    owned_start = py_start = PyLong_FromSsize_t(cstart);
+                    if (unlikely(!py_start)) goto bad;
+                } else
+                    py_start = Py_None;
+            }
+            if (_py_stop) {
+                py_stop = *_py_stop;
+            } else {
+                if (has_cstop) {
+                    owned_stop = py_stop = PyLong_FromSsize_t(cstop);
+                    if (unlikely(!py_stop)) {
+                        Py_XDECREF(owned_start);
+                        goto bad;
+                    }
+                } else
+                    py_stop = Py_None;
+            }
+            py_slice = PySlice_New(py_start, py_stop, Py_None);
+            Py_XDECREF(owned_start);
+            Py_XDECREF(owned_stop);
+            if (unlikely(!py_slice)) goto bad;
+        }
+#if CYTHON_USE_TYPE_SLOTS
+        result = mp->mp_ass_subscript(obj, py_slice, value);
+#else
+        result = value ? PyObject_SetItem(obj, py_slice, value) : PyObject_DelItem(obj, py_slice);
+#endif
+        if (!_py_slice) {
+            Py_DECREF(py_slice);
+        }
+        return result;
+    }
+    obj_type_name = (Py_TYPE(obj)->tp_name);
+    PyErr_Format(PyExc_TypeError,
+        "'" __Pyx_FMT_TYPENAME "' object does not support slice %.10s",
+        obj_type_name, value ? "assignment" : "deletion");
+    Py_XDECREF(obj_type_name);
+
+bad:
+    return -1;
+}
+
+/////////////// SliceObject.proto ///////////////
+
+// we pass pointer addresses to show the C compiler what is NULL and what isn't
+{{if access == 'Get'}}
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* py_start, PYOBJECT_TYPE* py_stop, PYOBJECT_TYPE* py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+{{else}}
+#define __Pyx_PyObject_DelSlice(obj, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound) \
+    __Pyx_PyObject_SetSlice(obj, (PyObject*)NULL, cstart, cstop, py_start, py_stop, py_slice, has_cstart, has_cstop, wraparound)
+
+// we pass pointer addresses to show the C compiler what is NULL and what isn't
+static CYTHON_INLINE int __Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE value,
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* py_start, PYOBJECT_TYPE* py_stop, PYOBJECT_TYPE* py_slice,
+        int has_cstart, int has_cstop, int wraparound);
+{{endif}}
+
+/////////////// SliceObject ///////////////
+//@requires: SliceObjectInternal
+
+{{if access == 'Get'}}
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj,
+{{else}}
+static CYTHON_INLINE int __Pyx_PyObject_SetSlice(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE value,
+{{endif}}
+        API_SSIZE_T cstart, API_SSIZE_T cstop,
+        PYOBJECT_TYPE* _start, PYOBJECT_TYPE* _stop, PYOBJECT_TYPE* _slice,
+        int has_cstart, int has_cstop, int wraparound) {
+
+#if CYTHON_USING_HPY
+    PyObject* py_obj = HPY_LEGACY_OBJECT_AS(obj);
+    PyObject* py_start = _start ? HPY_LEGACY_OBJECT_AS(*_start) : NULL;
+    PyObject* py_stop = _stop ? HPY_LEGACY_OBJECT_AS(*_stop) : NULL;
+    PyObject* py_slice = _slice ? HPY_LEGACY_OBJECT_AS(*_slice) : NULL;
+
+#define LIF(_c, _x) ((_c) ? &(_x) : NULL)
+
+{{if access == 'Get'}}
+    PyObject* py_res;
+    PYOBJECT_TYPE res;
+    py_res = __Pyx_PyObject_GetSliceInternal(py_obj, cstart, cstop, LIF(_start, py_start), LIF(_stop, py_stop), LIF(_slice, py_slice), has_cstart, has_cstop, wraparound);
+{{else}}
+    PyObject* py_value = HPY_LEGACY_OBJECT_AS(value);
+    int res = __Pyx_PyObject_SetSliceInternal(py_obj, py_value, cstart, cstop, LIF(_start, py_start), LIF(_stop, py_stop), LIF(_slice, py_slice), has_cstart, has_cstop, wraparound);
+    Py_DECREF(py_value);
+{{endif}}
+    Py_DECREF(py_obj);
+
+#undef LIF
+
+    if (_start) {
+        *_start = HPY_LEGACY_OBJECT_FROM(py_start);
+        Py_XDECREF(py_start);
+    }
+    if (_stop) {
+        *_stop = HPY_LEGACY_OBJECT_FROM(py_stop);
+        Py_XDECREF(py_stop);
+    }
+    if (_slice) {
+        *_slice = HPY_LEGACY_OBJECT_FROM(py_slice);
+        Py_XDECREF(py_slice);
+    }
+
+{{if access == 'Get'}}
+    res = HPY_LEGACY_OBJECT_FROM(py_res);
+    Py_XDECREF(py_res);
+{{endif}}
+    return res;
+#else
+{{if access == 'Get'}}
+    return __Pyx_PyObject_GetSliceInternal(obj, cstart, cstop, _start, _stop, _slice, has_cstart, has_cstop, wraparound);
+{{else}}
+    return __Pyx_PyObject_SetSliceInternal(obj, value, cstart, cstop, _start, _stop, _slice, has_cstart, has_cstop, wraparound);
+{{endif}}
+#endif
 }
 
 
@@ -799,19 +922,19 @@ __Pyx_PyList_FromArray(PyObject *const *src, Py_ssize_t n)
 
 /////////////// SliceTupleAndList.proto ///////////////
 
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyList_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
 static CYTHON_INLINE PyObject* __Pyx_PyTuple_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
 #else
-#define __Pyx_PyList_GetSlice(seq, start, stop)   PySequence_GetSlice(seq, start, stop)
-#define __Pyx_PyTuple_GetSlice(seq, start, stop)  PySequence_GetSlice(seq, start, stop)
+#define __Pyx_PyList_GetSlice   SEQUENCE_GET_SLICE
+#define __Pyx_PyTuple_GetSlice  SEQUENCE_GET_SLICE
 #endif
 
 /////////////// SliceTupleAndList ///////////////
 //@requires: TupleAndListFromArray
 //@substitute: tempita
 
-#if CYTHON_COMPILING_IN_CPYTHON
+#if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE void __Pyx_crop_slice(Py_ssize_t* _start, Py_ssize_t* _stop, Py_ssize_t* _length) {
     Py_ssize_t start = *_start, stop = *_stop, length = *_length;
     if (start < 0) {
@@ -1152,7 +1275,11 @@ static PYOBJECT_TYPE __Pyx_Py3MetaclassPrepare(HPY_CONTEXT_FIRST_ARG_DEF PYOBJEC
     PYOBJECT_TYPE ns;
     if (API_IS_NOT_NULL(metaclass)) {
         PYOBJECT_TYPE loaded_prepare = PYOBJECT_GLOBAL_LOAD(PYIDENT("__prepare__"));
+#if CYTHON_USING_HPY
+        PYOBJECT_TYPE prep = PYOBJECT_GET_ATTR(metaclass, loaded_prepare);
+#else
         PYOBJECT_TYPE prep = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL metaclass, loaded_prepare);
+#endif
         PYOBJECT_GLOBAL_CLOSEREF(loaded_prepare);
         if (API_IS_NOT_NULL(prep)) {
 #if CYTHON_USING_HPY
@@ -1589,7 +1716,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_
 #if !CYTHON_USING_HPY
     result = __Pyx_PyObject_GetAttrStr(obj, attr_name);
 #else
-    result = PYOBJECT_GET_ATTR(obj, attr_name);
+    result = PYOBJECT_GET_ITEM(obj, attr_name);
 #endif
     if (unlikely(API_IS_NULL(result))) {
         __Pyx_PyObject_GetAttrStr_ClearAttributeError();
@@ -1618,7 +1745,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_GetAttrStr(HPY_CONTEXT_FIRST_A
     if (likely(tp->tp_getattro))
         return tp->tp_getattro(obj, attr_name);
 #endif
-    return PYOBJECT_GET_ATTR_STR(obj, attr_name);
+    return PYOBJECT_GET_ATTR(obj, attr_name);
 }
 #endif
 
@@ -1944,43 +2071,31 @@ static PYOBJECT_TYPE __Pyx__CallUnboundCMethod1(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_
 #if CYTHON_USING_HPY
     if (unlikely(!(cfunc->func == HPyDef_Kind_Meth) && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
 #else
-    if (unlikely(!cfunc->func && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
+    if (unlikely(!cfunc->func && !cfunc->method) && unlikely(__Pyx_TryUnpackUnboundCMethod(cfunc) < 0)) return NULL;
 #endif
 #if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
     if (cfunc->func && (cfunc->flag & METH_VARARGS)) {
-        TUPLE_BUILDER_TYPE builder;
-        TUPLE_CREATE_START(args, builder, 1);
-        if (unlikely(API_IS_NULL(args))) goto bad;
-#if !CYTHON_USING_HPY
+        args = PyTuple_New(1);
+        if (unlikely(!args)) goto bad;
         Py_INCREF(arg);
-#endif
-        TUPLE_CREATE_ASSIGN(args, builder, 0, arg);
-        TUPLE_CREATE_FINALISE(args, builder);
-#if !CYTHON_USING_HPY
+        PyTuple_SET_ITEM(args, 0, arg);
         if (cfunc->flag & METH_KEYWORDS)
             result = (*(PyCFunctionWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, NULL);
         else
             result = (*cfunc->func)(self, args);
-#else
-        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
-#endif
     } else {
-        TUPLE_BUILDER_TYPE builder;
-        TUPLE_CREATE_START(args, builder, 2);
-        if (unlikely(API_IS_NULL(args))) goto bad;
-#if !CYTHON_USING_HPY
+        args = PyTuple_New(2);
+        if (unlikely(!args)) goto bad;
         Py_INCREF(self);
+        PyTuple_SET_ITEM(args, 0, self);
         Py_INCREF(arg);
-#endif
-        TUPLE_CREATE_ASSIGN(args, builder, 0, self);
-        TUPLE_CREATE_ASSIGN(args, builder, 1, arg);
-        TUPLE_CREATE_FINALISE(args, builder);
-        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+        PyTuple_SET_ITEM(args, 1, arg);
+        result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
     }
 #else
-    args = TUPLE_PACK(2, self, arg);
+    PYOBJECT_TYPE args[2] = {self, arg};
     if (unlikely(API_IS_NULL(args))) goto bad;
-    result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+    result = __Pyx_PyObject_Call_h(cfunc->method, args, 2, API_NULL_VALUE);
 #endif
 bad:
     PYOBJECT_XCLOSEREF(args);
@@ -2017,7 +2132,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_CallUnboundCMethod2(HPY_CONTEXT_FIRST_A
         if (cfunc->flag == (METH_FASTCALL | METH_KEYWORDS))
             return (*(__Pyx_PyCFunctionFastWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, 2, NULL);
 #else
-        return __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+        return __Pyx_PyObject_Call_h(cfunc->method, args, 2, API_NULL_VALUE);
 
 #endif
     }
@@ -2033,44 +2148,32 @@ static PYOBJECT_TYPE __Pyx__CallUnboundCMethod2(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_
     if (unlikely(API_IS_NULL(cfunc->func) && API_IS_NULL(cfunc->method)) && unlikely(__Pyx_TryUnpackUnboundCMethod(HPY_CONTEXT_FIRST_ARG_CALL cfunc) < 0)) return API_NULL_VALUE;
 #endif
 #if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
-    if (API_IS_NOT_NULL(cfunc->func) && (cfunc->flag & METH_VARARGS)) {
-        TUPLE_BUILDER_TYPE builder;
-        TUPLE_CREATE_START(args, builder, 2);
-        if (unlikely(API_IS_NULL(args))) goto bad;
-#if !CYTHON_USING_HPY
+    if (cfunc->func && (cfunc->flag & METH_VARARGS)) {
+        args = PyTuple_New(2);
+        if (unlikely(!args)) goto bad;
         Py_INCREF(arg1);
+        PyTuple_SET_ITEM(args, 0, arg1);
         Py_INCREF(arg2);
-#endif
-        TUPLE_CREATE_ASSIGN(args, builder, 0, arg1);
-        TUPLE_CREATE_ASSIGN(args, builder, 1, arg2);
-        TUPLE_CREATE_FINALISE(args, builder);
-#if !CYTHON_USING_HPY
+        PyTuple_SET_ITEM(args, 1, arg2);
         if (cfunc->flag & METH_KEYWORDS)
             result = (*(PyCFunctionWithKeywords)(void*)(PyCFunction)cfunc->func)(self, args, NULL);
         else
             result = (*cfunc->func)(self, args);
-#else
-        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
-#endif
     } else {
-        TUPLE_BUILDER_TYPE builder;
-        TUPLE_CREATE_START(args, builder, 3);
-        if (unlikely(API_IS_NULL(args))) goto bad;
-#if !CYTHON_USING_HPY
+        args = PyTuple_New(3);
+        if (unlikely(!args)) goto bad;
         Py_INCREF(self);
+        PyTuple_SET_ITEM(args, 0, self);
         Py_INCREF(arg1);
+        PyTuple_SET_ITEM(args, 1, arg1);
         Py_INCREF(arg2);
-#endif
-        TUPLE_CREATE_ASSIGN(args, builder, 0, self);
-        TUPLE_CREATE_ASSIGN(args, builder, 1, arg1);
-        TUPLE_CREATE_ASSIGN(args, builder, 2, arg2);
-        TUPLE_CREATE_FINALISE(args, builder);
-        result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+        PyTuple_SET_ITEM(args, 2, arg2);
+        result = __Pyx_PyObject_Call(cfunc->method, args, NULL);
     }
 #else
-    args = TUPLE_PACK(3, self, arg1, arg2);
+    PYOBJECT_TYPE args[3] = {self, arg1, arg2};
     if (unlikely(API_IS_NULL(args))) goto bad;
-    result = __Pyx_PyObject_Call_h(cfunc->method, args, API_NULL_VALUE);
+    result = __Pyx_PyObject_Call_h(cfunc->method, args, 3, API_NULL_VALUE);
 #endif
 bad:
     PYOBJECT_XCLOSEREF(args);
@@ -2082,6 +2185,7 @@ bad:
 
 #if CYTHON_USING_HPY
 #define __Pyx_PyObject_FastCall(func, args, nargs)  API_CALL_FUNC(func, args, (size_t)(nargs), API_NULL_VALUE)
+#define __Pyx_PyObject_FastCallDict(func, args, nargs)  API_CALL_FUNC(func, args, (size_t)(nargs), API_NULL_VALUE)
 #else
 #define __Pyx_PyObject_FastCall(func, args, nargs)  __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_CALL func, args, (size_t)(nargs), API_NULL_VALUE)
 static CYTHON_INLINE PyObject *__Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PyObject *func, PyObject **args, size_t nargs, PyObject *kwargs); /*proto*/
@@ -2113,7 +2217,7 @@ static PyObject* __Pyx_PyObject_FastCall_fallback(PyObject *func, PyObject **arg
 #endif
 
 #if !CYTHON_USING_HPY
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE func, PYOBJECT_TYPE *args, size_t _nargs, PYOBJECT_TYPE kwargs) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyObject_FastCallDict(PyObject *func, PyObject **args, size_t _nargs, PyObject *kwargs) {
     // Special fast paths for 0 and 1 arguments
     // NOTE: in many cases, this is called with a constant value for nargs
     // which is known at compile-time. So the branches below will typically
@@ -2217,11 +2321,7 @@ static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJE
 #if !(CYTHON_VECTORCALL && __PYX_LIMITED_VERSION_HEX >= 0x030C00A2)
 static PYOBJECT_TYPE __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE method, PYOBJECT_TYPE arg) {
     // Separate function to avoid excessive inlining.
-    PYOBJECT_TYPE result = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
-#if !CYTHON_USING_HPY
-    Py_DECREF(method);
-#endif
-    return result;
+    return __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
 }
 #endif
 
@@ -2243,7 +2343,9 @@ static PYOBJECT_TYPE __Pyx_PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_DEF PYOBJE
         return result;
     }
     if (unlikely(API_IS_NULL(method))) return API_NULL_VALUE;
-    return __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
+    result = __Pyx__PyObject_CallMethod1(HPY_CONTEXT_FIRST_ARG_CALL method, arg);
+    PYOBJECT_CLOSEREF(method);
+    return result;
 #endif
 }
 
@@ -2259,14 +2361,14 @@ static CYTHON_INLINE PyObject* __Pyx_tp_new_kwargs(PyObject* type_obj, PyObject*
 /////////////// PyObjectCall.proto ///////////////
 
 #if CYTHON_USING_HPY
-#define __Pyx_PyObject_Call_h(func, arg, kw) API_CALL_FUNC(func, &arg, TUPLE_GET_SIZE(arg), kw) // Will be removed when no longer needed
+#define __Pyx_PyObject_Call_h(func, arg, len, kw) API_CALL_FUNC(func, arg, len, kw) // Will be removed when no longer needed
 #else
-#define __Pyx_PyObject_Call_h(func, arg, kw) __Pyx_PyObject_Call(func, arg, kw)
+#define __Pyx_PyObject_Call_h(func, arg, len, kw) __Pyx_PyObject_Call(func, arg, kw)
 #endif
 #if CYTHON_COMPILING_IN_CPYTHON && !CYTHON_USING_HPY
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw); /*proto*/
 #else
-#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_FUNC(func, arg, 0, kw)
+#define __Pyx_PyObject_Call(func, arg, kw) API_CALL_TUPLE_DICT(func, arg, kw)
 #endif
 
 /////////////// PyObjectCall ///////////////
@@ -2951,14 +3053,14 @@ __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_DEF PYTYPEOBJECT_TYPE tp)
 
 /////////////// RaiseUnexpectedTypeError.proto ///////////////
 
-static int __Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj); /*proto*/
+static int __Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj); /*proto*/
 
 /////////////// RaiseUnexpectedTypeError ///////////////
 
 static int
-__Pyx_RaiseUnexpectedTypeError(const char *expected, PyObject *obj)
+__Pyx_RaiseUnexpectedTypeError(HPY_CONTEXT_FIRST_ARG_DEF const char *expected, PYOBJECT_TYPE obj)
 {
-    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(Py_TYPE(obj));
+    __Pyx_TypeName obj_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(obj));
     PyErr_Format(PyExc_TypeError, "Expected %s, got " __Pyx_FMT_TYPENAME,
                  expected, obj_type_name);
     __Pyx_DECREF_TypeName(obj_type_name);
