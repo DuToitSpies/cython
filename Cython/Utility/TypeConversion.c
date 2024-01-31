@@ -128,11 +128,13 @@ static CYTHON_INLINE PyObject * __Pyx_PyInt_FromSize_t(size_t);
 static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject*);
 
 #if CYTHON_ASSUME_SAFE_MACROS
-#define __pyx_PyFloat_AsDouble(x) (PyFloat_CheckExact(x) ? PyFloat_AS_DOUBLE(x) : PyFloat_AsDouble(x))
+#define __Pyx_PyFloat_AsDouble(x) (PyFloat_CheckExact(x) ? PyFloat_AS_DOUBLE(x) : PyFloat_AsDouble(x))
+#define __Pyx_PyFloat_AS_DOUBLE(x) PyFloat_AS_DOUBLE(x)
 #else
-#define __pyx_PyFloat_AsDouble(x) PYOBJECT_FLOAT_AS_DOUBLE(x)
+#define __Pyx_PyFloat_AsDouble(x) PYOBJECT_FLOAT_AS_DOUBLE(x)
+#define __Pyx_PyFloat_AS_DOUBLE(x) __Pyx_PyFloat_AsDouble(x)
 #endif
-#define __pyx_PyFloat_AsFloat(x) ((float) __pyx_PyFloat_AsDouble(x))
+#define __Pyx_PyFloat_AsFloat(x) ((float) __Pyx_PyFloat_AsDouble(x))
 
 #define __Pyx_PyNumber_Int(x) (PyLong_CheckExact(x) ? __Pyx_NewRef(x) : PyNumber_Long(x))
 // __Pyx_PyNumber_Float is now in its own section since it has dependencies (needed to make
@@ -168,7 +170,7 @@ static CYTHON_INLINE Py_hash_t __Pyx_PyIndex_AsHash_t(PyObject*);
   typedef Py_ssize_t  __Pyx_compact_pylong;
   typedef size_t  __Pyx_compact_upylong;
 
-  #else  // Py < 3.12
+  #else  /* Py < 3.12 */
   #define __Pyx_PyLong_IsNeg(x)  (Py_SIZE(x) < 0)
   #define __Pyx_PyLong_IsNonNeg(x)  (Py_SIZE(x) >= 0)
   #define __Pyx_PyLong_IsZero(x)  (Py_SIZE(x) == 0)
@@ -512,7 +514,7 @@ static CYTHON_INLINE {{struct_type_decl}} {{funcname}}(PyObject *);
 
 /////////////// FromPyCTupleUtility ///////////////
 
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+#if CYTHON_ASSUME_SAFE_MACROS && CYTHON_ASSUME_SAFE_SIZE && !CYTHON_AVOID_BORROWED_REFS
 static void __Pyx_tuple_{{funcname}}(PyObject * o, {{struct_type_decl}} *result) {
     {{for ix, component in enumerate(components):}}
         {{py:attr = "result->f%s" % ix}}
@@ -567,7 +569,7 @@ bad:
 static CYTHON_INLINE {{struct_type_decl}} {{funcname}}(PyObject * o) {
     {{struct_type_decl}} result;
 
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    #if CYTHON_ASSUME_SAFE_MACROS && CYTHON_ASSUME_SAFE_SIZE && !CYTHON_AVOID_BORROWED_REFS
     if (likely(PyTuple_Check(o) && PyTuple_GET_SIZE(o) == {{size}})) {
         __Pyx_tuple_{{funcname}}(o, &result);
     } else if (likely(PyList_Check(o) && PyList_GET_SIZE(o) == {{size}})) {
@@ -589,15 +591,16 @@ static CYTHON_INLINE Py_UCS4 __Pyx_PyUnicode_AsPy_UCS4(PyObject*);
 /////////////// UnicodeAsUCS4 ///////////////
 
 static CYTHON_INLINE Py_UCS4 __Pyx_PyUnicode_AsPy_UCS4(PyObject* x) {
-   Py_ssize_t length;
-   length = PyUnicode_GET_LENGTH(x);
-   if (likely(length == 1)) {
-       return PyUnicode_READ_CHAR(x, 0);
-   }
-   PyErr_Format(PyExc_ValueError,
-                "only single character unicode strings can be converted to Py_UCS4, "
-                "got length %" CYTHON_FORMAT_SSIZE_T "d", length);
-   return (Py_UCS4)-1;
+    Py_ssize_t length = __Pyx_PyUnicode_GET_LENGTH(x);
+    if (likely(length == 1)) {
+        return __Pyx_PyUnicode_READ_CHAR(x, 0);
+    } else if (likely(length >= 0)) {
+        // "length == -1" indicates an error already.
+        PyErr_Format(PyExc_ValueError,
+                     "only single character unicode strings can be converted to Py_UCS4, "
+                     "got length %" CYTHON_FORMAT_SSIZE_T "d", length);
+    }
+    return (Py_UCS4)-1;
 }
 
 
@@ -646,10 +649,14 @@ static CYTHON_INLINE Py_UNICODE __Pyx_PyObject_AsPy_UNICODE(PyObject* x) {
     const long maxval = 1114111;
   #endif
     if (PyUnicode_Check(x)) {
-        if (unlikely(__Pyx_PyUnicode_GET_LENGTH(x) != 1)) {
-            PyErr_Format(PyExc_ValueError,
-                         "only single character unicode strings can be converted to Py_UNICODE, "
-                         "got length %" CYTHON_FORMAT_SSIZE_T "d", __Pyx_PyUnicode_GET_LENGTH(x));
+        Py_ssize_t length = __Pyx_PyUnicode_GET_LENGTH(x);
+        if (unlikely(length != 1)) {
+            // -1 indicates an error.
+            if (length >= 0) {
+                PyErr_Format(PyExc_ValueError,
+                             "only single character unicode strings can be converted to Py_UNICODE, "
+                             "got length %" CYTHON_FORMAT_SSIZE_T "d", length);
+            }
             return (Py_UNICODE)-1;
         }
         ival = PyUnicode_READ_CHAR(x, 0);
@@ -678,6 +685,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
 
 /////////////// CIntToPy ///////////////
 //@requires: GCCDiagnostics
+//@requires: ObjectHandling.c::PyObjectVectorCallKwBuilder
 
 static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF {{TYPE}} value) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -728,6 +736,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         if (API_IS_NULL(py_bytes)) goto limited_bad;
         // I'm deliberately not using PYIDENT here because this code path is very unlikely
         // to ever run so it seems a pessimization mostly.
+#if CYTHON_USING_HPY
         order_str = PYOBJECT_UNICODE_FROM_STRING(little ? "little" : "big");
         if (API_IS_NULL(order_str)) goto limited_bad;
         arg_tuple = TUPLE_PACK(2, py_bytes, order_str);
@@ -739,6 +748,19 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
             if (DICT_SET_ITEM_STR(kwds, "signed", __Pyx_hNewRef(API_TRUE))) goto limited_bad;
         }
         result = API_CALL_TUPLE_DICT(from_bytes, arg_tuple, kwds);
+#else
+        order_str = PyUnicode_FromString(little ? "little" : "big");
+        if (!order_str) goto limited_bad;
+        {
+            PyObject *args[3+(CYTHON_VECTORCALL ? 1 : 0)] = { NULL, py_bytes, order_str };
+            if (!is_unsigned) {
+                kwds = __Pyx_MakeVectorcallBuilderKwds(1);
+                if (!kwds) goto limited_bad;
+                if (__Pyx_VectorcallBuilder_AddArgStr("signed", __Pyx_NewRef(Py_True), kwds, args+3, 0) < 0) goto limited_bad;
+            }
+            result = __Pyx_Object_Vectorcall_CallFromBuilder(from_bytes, args+1, 2 | __Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET, kwds);
+        }
+#endif
 
         limited_bad:
         PYOBJECT_XCLOSEREF(from_bytes);
