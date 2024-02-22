@@ -3146,8 +3146,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         code.putln("#endif")
         code.putln("PYOBJECT_GLOBAL_STORE(%s, TUPLE_CREATE_EMPTY()); %s" % (
             Naming.empty_tuple, code.error_goto_if_null_object("TUPLE_CREATE_EMPTY()", self.pos)))
-        code.putln("PYOBJECT_GLOBAL_STORE(%s, BYTES_FROM_STR_AND_SIZE(\"\", 0)); %s" % (
-            Naming.empty_bytes, code.error_goto_if_null_object("BYTES_FROM_STR_AND_SIZE(\"\", 0)", self.pos)))
+        code.putln("PYOBJECT_GLOBAL_STORE(%s, PYOBJECT_BYTES_FROM_STR_AND_SIZE(\"\", 0)); %s" % (
+            Naming.empty_bytes, code.error_goto_if_null_object("PYOBJECT_BYTES_FROM_STR_AND_SIZE(\"\", 0)", self.pos)))
         code.putln("PYOBJECT_GLOBAL_STORE(%s, PYOBJECT_UNICODE_FROM_STRING(\"\")); %s" % (
             Naming.empty_unicode, code.error_goto_if_null_object("PYOBJECT_UNICODE_FROM_STRING(\"\")", self.pos)))
 
@@ -3330,8 +3330,8 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                 self.call_code = orig_code.insertion_point()
                 code = function_code
                 code.enter_cfunc_scope(scope)
-                prototypes.putln("static CYTHON_SMALL_CODE int %s(void); /*proto*/" % self.cfunc_name)
-                code.putln("static int %s(void) {" % self.cfunc_name)
+                prototypes.putln("static CYTHON_SMALL_CODE int %s(HPY_CONTEXT_ONLY_ARG_DEF); /*proto*/" % self.cfunc_name)
+                code.putln("static int %s(HPY_CONTEXT_ONLY_ARG_DEF) {" % self.cfunc_name)
                 code.put_declare_refcount_context()
                 self.tempdecl_code = code.insertion_point()
                 code.put_setup_refcount_context(EncodedString(self.cfunc_name))
@@ -3360,9 +3360,9 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
 
                 if needs_error_handling:
                     self.call_code.putln(
-                        self.call_code.error_goto_if_neg("%s()" % self.cfunc_name, pos))
+                        self.call_code.error_goto_if_neg("%s(HPY_CONTEXT_ONLY_ARG_CALL)" % self.cfunc_name, pos))
                 else:
-                    self.call_code.putln("(void)%s();" % self.cfunc_name)
+                    self.call_code.putln("(void)%s(HPY_CONTEXT_ONLY_ARG_CALL);" % self.cfunc_name)
                 self.call_code = None
 
         return ModInitSubfunction

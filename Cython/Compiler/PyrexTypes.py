@@ -1806,10 +1806,16 @@ class CType(PyrexType):
                 func,
                 source_code or 'NULL')
         else:
-            return '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s)' % (
-                result_code,
-                func,
-                source_code or 'NULL')
+            if func in ['PYOBJECT_FLOAT_FROM_DOUBLE', '__Pyx_PyBytes_FromString']: #TODO(HPy): Figure out how to properly handle the context in HPy macros - maybe pass context there as well?
+                return '%s = %s(%s)' % (
+                    result_code,
+                    func,
+                    source_code or 'NULL')
+            else:
+                return '%s = %s(HPY_CONTEXT_FIRST_ARG_CALL %s)' % (
+                    result_code,
+                    func,
+                    source_code or 'NULL')
 
     def from_py_call_code(self, source_code, result_code, error_pos, code,
                           from_py_function=None, error_condition=None,

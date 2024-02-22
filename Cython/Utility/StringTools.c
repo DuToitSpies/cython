@@ -45,7 +45,7 @@ static int __Pyx_InitStrings(HPY_CONTEXT_FIRST_ARG_DEF __Pyx_StringTabEntry *t) 
                 str = HPY_LEGACY_OBJECT_FROM(PyUnicode_FromStringAndSize(t->s, t->n - 1));
             }
         } else {
-            str =  BYTES_FROM_STR_AND_SIZE(t->s, t->n - 1);
+            str =  PYOBJECT_BYTES_FROM_STR_AND_SIZE(t->s, t->n - 1);
         }
         if (!str)
             return -1;

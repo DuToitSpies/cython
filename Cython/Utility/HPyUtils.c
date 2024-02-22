@@ -117,7 +117,8 @@
   //Unicode Type - To
 
   //Bytes Type - From
-  #define BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
+  #define PYOBJECT_BYTES_FROM_STR(str) HPyBytes_FromString(HPY_CONTEXT_CNAME, str)
+  #define PYOBJECT_BYTES_FROM_STR_AND_SIZE(str, size) HPyBytes_FromStringAndSize(HPY_CONTEXT_CNAME, str, size)
 
   //Bytes Type - To
 
@@ -324,7 +325,8 @@
   //Unicode Type - To
 
   //Bytes Type - From
-  #define BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
+  #define PYOBJECT_BYTES_FROM_STR(str) PyBytes_FromString(str)
+  #define PYOBJECT_BYTES_FROM_STR_AND_SIZE(str, size) PyBytes_FromStringAndSize(str, size)
 
   //Bytes Type - To
 

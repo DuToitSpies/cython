@@ -52,8 +52,8 @@ static CYTHON_INLINE const char* __Pyx_PyObject_AsStringAndSize(PyObject*, Py_ss
 
 static CYTHON_INLINE PyObject* __Pyx_PyByteArray_FromString(const char*);
 #define __Pyx_PyByteArray_FromStringAndSize(s, l) PyByteArray_FromStringAndSize((const char*)s, l)
-#define __Pyx_PyBytes_FromString        PyBytes_FromString
-#define __Pyx_PyBytes_FromStringAndSize PyBytes_FromStringAndSize
+#define __Pyx_PyBytes_FromString(str)        PYOBJECT_BYTES_FROM_STR(str)
+#define __Pyx_PyBytes_FromStringAndSize(str, size) PYOBJECT_BYTES_FROM_STR_AND_SIZE(str, size)
 static CYTHON_INLINE PyObject* __Pyx_PyUnicode_FromString(const char*);
 
 // TODO: remove this block
@@ -732,7 +732,7 @@ static CYTHON_INLINE PYOBJECT_TYPE {{TO_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF 
         PYOBJECT_TYPE order_str = API_NULL_VALUE;
         from_bytes = PYOBJECT_GET_ATTR_STR(TYPE_AS_PYOBJECT(API_LONG_TYPE), "from_bytes");
         if (API_IS_NULL(from_bytes)) return API_NULL_VALUE;
-        py_bytes = BYTES_FROM_STR_AND_SIZE((char*)bytes, sizeof({{TYPE}}));
+        py_bytes = PYOBJECT_BYTES_FROM_STR_AND_SIZE((char*)bytes, sizeof({{TYPE}}));
         if (API_IS_NULL(py_bytes)) goto limited_bad;
         // I'm deliberately not using PYIDENT here because this code path is very unlikely
         // to ever run so it seems a pessimization mostly.
