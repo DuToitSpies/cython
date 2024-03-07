@@ -3892,7 +3892,7 @@ class DefNodeWrapper(FuncDefNode):
             code.putln("#else")
             # An error here is very unlikely, but we risk a (conditionally) unused error label,
             # so we just skip the traceback and return immediately.
-            code.putln("%s = PyTuple_Size(%s); if (%s) return %s;" % (
+            code.putln("%s = TUPLE_GET_SIZE_SAFE(%s); if (%s) return %s;" % (
                 Naming.nargs_cname,
                 Naming.args_cname,
                 code.unlikely("%s < 0" % Naming.nargs_cname),
@@ -3966,16 +3966,16 @@ class DefNodeWrapper(FuncDefNode):
 
         if self.starstar_arg:
             if self.star_arg or not self.starstar_arg.entry.cf_used:
-                kwarg_check = "unlikely(%s)" % Naming.kwds_cname
+                kwarg_check = "unlikely(API_IS_NOT_NULL(%s))" % Naming.kwds_cname
             else:
-                kwarg_check = "%s" % Naming.kwds_cname
+                kwarg_check = "API_IS_NOT_NULL(%s)" % Naming.kwds_cname
         else:
-            kwarg_check = "unlikely(%s) && __Pyx_NumKwargs_%s(%s)" % (
+            kwarg_check = "unlikely(API_IS_NOT_NULL(%s)) && __Pyx_NumKwargs_%s(%s)" % (
                 Naming.kwds_cname, self.signature.fastvar, Naming.kwds_cname)
         code.globalstate.use_utility_code(
             UtilityCode.load_cached("KeywordStringCheck", "FunctionArguments.c"))
         code.putln(
-            "if (%s && unlikely(!__Pyx_CheckKeywordStrings(%s, %s, %d))) return %s;" % (
+            "if (%s && unlikely(!__Pyx_CheckKeywordStrings(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %d))) return %s;" % (
                 kwarg_check, Naming.kwds_cname, self.name.as_c_string_literal(),
                 bool(self.starstar_arg), self.error_value()))
 
@@ -4421,8 +4421,12 @@ class DefNodeWrapper(FuncDefNode):
                     
                     tmp_load_pystr = ExprNodes.LoadGlobalNode(self.pos, pystring_cname)
                     tmp_load_pystr.allocate(code)
-                    code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
-                        i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
+                    if self.signature.fastvar in ['VARARGS', 'FASTCALL']:
+                        code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(%s, %s, %s)))) {' % (
+                            i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
+                    else:
+                        code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(cd . %s, %s, %s)))) {' % (
+                            i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
                     tmp_load_pystr.release(code)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
                     code.putln('kw_args--;')

@@ -129,11 +129,14 @@
   #define DICT_NEW() HPyDict_New(HPY_CONTEXT_CNAME)
   #define DICT_COPY(o) HPyDict_Copy(HPY_CONTEXT_CNAME, o)
   #define DICT_CONTAINS(dict, key) HPy_Contains(HPY_CONTEXT_CNAME, dict, key)
+  #define DICT_GET_SIZE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
+  #define DICT_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define DICT_GET_ITEM(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
+  #define DICT_GET_ITEM_STR_WITH_ERROR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
 
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) HPy_GetItem_i(HPY_CONTEXT_CNAME, h, pos)
@@ -337,11 +340,14 @@
   #define DICT_NEW() PyDict_New()
   #define DICT_COPY(o) PyDict_Copy(o)
   #define DICT_CONTAINS(o, key) PyDict_Contains(o, key)
+  #define DICT_GET_SIZE(h) PyDict_GET_SIZE(h)
+  #define DICT_GET_SIZE_SAFE(h) PyDict_Size(h)
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) PyDict_GetItemWithError(o, attr_name)
+  #define DICT_GET_ITEM_STR_WITH_ERROR(o, attr_name) __Pyx_PyDict_GetItemStrWithError(o, attr_name)
 
   //Sequence Type
   #define SEQUENCE_GET_ITEM(h, pos) __Pyx_PySequence_ITEM(h, pos)

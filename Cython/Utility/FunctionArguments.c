@@ -145,7 +145,7 @@ static void __Pyx_RaiseMappingExpectedError(PyObject* arg) {
 
 //////////////////// KeywordStringCheck.proto ////////////////////
 
-static int __Pyx_CheckKeywordStrings(PyObject *kw, const char* function_name, int kw_allowed); /*proto*/
+static int __Pyx_CheckKeywordStrings(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE kw, const char* function_name, int kw_allowed); /*proto*/
 
 //////////////////// KeywordStringCheck ////////////////////
 
@@ -157,24 +157,25 @@ static int __Pyx_CheckKeywordStrings(PyObject *kw, const char* function_name, in
 // (for METH_FASTCALL).
 
 static int __Pyx_CheckKeywordStrings(
-    PyObject *kw,
+    HPY_CONTEXT_FIRST_ARG_DEF
+    PYOBJECT_TYPE kw,
     const char* function_name,
     int kw_allowed)
 {
-    PyObject* key = 0;
-    Py_ssize_t pos = 0;
+    PYOBJECT_TYPE key = API_DEFAULT_VALUE;
+    API_SSIZE_T pos = 0;
 #if CYTHON_COMPILING_IN_PYPY
     /* PyPy appears to check keywords at call time, not at unpacking time => not much to do here */
     if (!kw_allowed && PyDict_Next(kw, &pos, &key, 0))
         goto invalid_keyword;
     return 1;
 #else
-    if (CYTHON_METH_FASTCALL && likely(PyTuple_Check(kw))) {
-        Py_ssize_t kwsize;
+    if (CYTHON_METH_FASTCALL && likely(TUPLE_CHECK(kw))) {
+        API_SSIZE_T kwsize;
 #if CYTHON_ASSUME_SAFE_SIZE
         kwsize = PyTuple_GET_SIZE(kw);
 #else
-        kwsize = PyTuple_Size(kw);
+        kwsize = TUPLE_GET_SIZE(kw);
         if (kwsize < 0) return 0;
 #endif
         if (unlikely(kwsize == 0))
@@ -183,7 +184,7 @@ static int __Pyx_CheckKeywordStrings(
 #if CYTHON_ASSUME_SAFE_MACROS
             key = PyTuple_GET_ITEM(kw, 0);
 #else
-            key = PyTuple_GetItem(kw, pos);
+            key = TUPLE_GET_ITEM(kw, pos);
             if (!key) return 0;
 #endif
             goto invalid_keyword;
@@ -195,21 +196,23 @@ static int __Pyx_CheckKeywordStrings(
 #if CYTHON_ASSUME_SAFE_MACROS
             key = PyTuple_GET_ITEM(kw, pos);
 #else
-            key = PyTuple_GetItem(kw, pos);
+            key = TUPLE_GET_ITEM(kw, pos);
             if (!key) return 0;
 #endif
-            if (unlikely(!PyUnicode_Check(key)))
+            if (unlikely(!UNICODE_CHECK(key)))
                 goto invalid_keyword_type;
         }
 #endif
         return 1;
     }
 
-    while (PyDict_Next(kw, &pos, &key, 0)) {
-        if (unlikely(!PyUnicode_Check(key)))
+    PyObject *legacy_key = NULL;
+
+    while (PyDict_Next(HPY_LEGACY_OBJECT_AS(kw), &HPY_LEGACY_OBJECT_AS(pos), &legacy_key, 0)) {
+        if (unlikely(!UNICODE_CHECK(key)))
             goto invalid_keyword_type;
     }
-    if (!kw_allowed && unlikely(key))
+    if (!kw_allowed && unlikely(API_IS_NOT_NULL(key)))
         goto invalid_keyword;
     return 1;
 invalid_keyword_type:
@@ -464,7 +467,7 @@ bad:
 
 #if CYTHON_AVOID_BORROWED_REFS
     // This is the only case where we request an owned reference.
-    #define __Pyx_Arg_VARARGS(args, i) PySequence_GetItem(args, i)
+    #define __Pyx_Arg_VARARGS(args, i) SEQUENCE_GET_ITEM(args, i)
 #elif CYTHON_ASSUME_SAFE_MACROS
     #define __Pyx_Arg_VARARGS(args, i) PyTuple_GET_ITEM(args, i)
 #else
@@ -477,7 +480,7 @@ bad:
     #define __Pyx_Arg_NewRef_VARARGS(arg) arg  /* no-op */
     #define __Pyx_Arg_XDECREF_VARARGS(arg)     /* no-op - arg is borrowed */
 #endif
-#define __Pyx_NumKwargs_VARARGS(kwds) PyDict_Size(kwds)
+#define __Pyx_NumKwargs_VARARGS(kwds) DICT_GET_SIZE(kwds)
 #define __Pyx_KwValues_VARARGS(args, nargs) NULL
 #define __Pyx_GetKwValue_VARARGS(kw, kwvalues, s) __Pyx_PyDict_GetItemStrWithError(kw, s)
 #define __Pyx_KwargsAsDict_VARARGS(kw, kwvalues) DICT_COPY(kw)

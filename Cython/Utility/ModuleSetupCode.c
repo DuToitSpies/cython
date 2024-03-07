@@ -1088,7 +1088,7 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStr(PyObject *dict, PyObject
     return res;
 }
 #elif !CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07020000
-#define __Pyx_PyDict_GetItemStrWithError  PyDict_GetItemWithError
+#define __Pyx_PyDict_GetItemStrWithError  DICT_GET_ITEM_WITH_ERROR
 #define __Pyx_PyDict_GetItemStr(dict, name)           DICT_GET_ITEM(dict, name)
 #else
 static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict, PyObject *name) {
