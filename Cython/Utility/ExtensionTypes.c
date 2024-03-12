@@ -95,13 +95,13 @@ static int __Pyx_fix_up_extension_type_from_spec(PyType_Spec *spec, PyTypeObject
 /////////////// ValidateBasesTuple.proto ///////////////
 
 #if CYTHON_COMPILING_IN_CPYTHON || CYTHON_COMPILING_IN_LIMITED_API || CYTHON_USE_TYPE_SPECS
-static int __Pyx_validate_bases_tuple(const char *type_name, Py_ssize_t dictoffset, PyObject *bases); /*proto*/
+static int __Pyx_validate_bases_tuple(HPY_CONTEXT_FIRST_ARG_DEF const char *type_name, API_SSIZE_T dictoffset, PYOBJECT_TYPE bases); /*proto*/
 #endif
 
 /////////////// ValidateBasesTuple ///////////////
 
 #if CYTHON_COMPILING_IN_CPYTHON || CYTHON_COMPILING_IN_LIMITED_API || CYTHON_USE_TYPE_SPECS
-static int __Pyx_validate_bases_tuple(const char *type_name, Py_ssize_t dictoffset, PyObject *bases) {
+static int __Pyx_validate_bases_tuple(HPY_CONTEXT_FIRST_ARG_DEF const char *type_name, API_SSIZE_T dictoffset, PYOBJECT_TYPE bases) {
     // Loop over all bases (except the first) and check that those
     // really are heap types. Otherwise, it would not be safe to
     // subclass them.
@@ -112,52 +112,52 @@ static int __Pyx_validate_bases_tuple(const char *type_name, Py_ssize_t dictoffs
     // tp_dictoffset (i.e. there is no __dict__ attribute in the object
     // structure), we need to check that none of the base classes sets
     // it either.
-    Py_ssize_t i, n;
+    API_SSIZE_T i, n;
 #if CYTHON_ASSUME_SAFE_SIZE
     n = PyTuple_GET_SIZE(bases);
 #else
-    n = PyTuple_Size(bases);
+    n = TUPLE_GET_SIZE(bases);
     if (unlikely(n < 0)) return -1;
 #endif
     for (i = 1; i < n; i++)  /* Skip first base */
     {
-        PyTypeObject *b;
+        PYTYPEOBJECT_TYPE b;
 #if CYTHON_AVOID_BORROWED_REFS
-        PyObject *b0 = PySequence_GetItem(bases, i);
-        if (!b0) return -1;
+        PYOBJECT_TYPE b0 = HPY_LEGACY_OBJECT_FROM(PySequence_GetItem(HPY_LEGACY_OBJECT_AS(bases), HPY_LEGACY_OBJECT_AS(i)));
+        if (API_IS_NULL(b0)) return -1;
 #elif CYTHON_ASSUME_SAFE_MACROS
         PyObject *b0 = PyTuple_GET_ITEM(bases, i);
 #else
         PyObject *b0 = PyTuple_GetItem(bases, i);
         if (!b0) return -1;
 #endif
-        b = (PyTypeObject*) b0;
+        b = (PYTYPEOBJECT_TYPE) b0;
         if (!__Pyx_PyType_HasFeature(b, Py_TPFLAGS_HEAPTYPE))
         {
-            __Pyx_TypeName b_name = __Pyx_PyType_GetName(b);
+            __Pyx_TypeName b_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL b);
             PyErr_Format(PyExc_TypeError,
                 "base class '" __Pyx_FMT_TYPENAME "' is not a heap type", b_name);
             __Pyx_DECREF_TypeName(b_name);
 #if CYTHON_AVOID_BORROWED_REFS
-            Py_DECREF(b0);
+            PYOBJECT_CLOSEREF(b0);
 #endif
             return -1;
         }
         if (dictoffset == 0)
         {
-            Py_ssize_t b_dictoffset = 0;
+            API_SSIZE_T b_dictoffset = 0;
 #if CYTHON_USE_TYPE_SLOTS || CYTHON_COMPILING_IN_PYPY
             b_dictoffset = b->tp_dictoffset;
 #else
-            PyObject *py_b_dictoffset = PyObject_GetAttrString((PyObject*)b, "__dictoffset__");
-            if (!py_b_dictoffset) goto dictoffset_return;
-            b_dictoffset = PyLong_AsSsize_t(py_b_dictoffset);
-            Py_DECREF(py_b_dictoffset);
+            PYOBJECT_TYPE py_b_dictoffset = PYOBJECT_GET_ATTR_STR((PyObject*)b, "__dictoffset__");
+            if (API_IS_NULL(py_b_dictoffset)) goto dictoffset_return;
+            b_dictoffset = PYOBJECT_LONG_AS_SSIZE_T(py_b_dictoffset);
+            PYOBJECT_CLOSEREF(py_b_dictoffset);
             if (b_dictoffset == -1 && PyErr_Occurred()) goto dictoffset_return;
 #endif
             if (b_dictoffset) {
                 {
-                    __Pyx_TypeName b_name = __Pyx_PyType_GetName(b);
+                    __Pyx_TypeName b_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL b);
                     PyErr_Format(PyExc_TypeError,
                         "extension type '%.200s' has no __dict__ slot, "
                         "but base type '" __Pyx_FMT_TYPENAME "' has: "
@@ -170,13 +170,13 @@ static int __Pyx_validate_bases_tuple(const char *type_name, Py_ssize_t dictoffs
               dictoffset_return:
 #endif
 #if CYTHON_AVOID_BORROWED_REFS
-                Py_DECREF(b0);
+                PYOBJECT_CLOSEREF(b0);
 #endif
                 return -1;
             }
         }
 #if CYTHON_AVOID_BORROWED_REFS
-        Py_DECREF(b0);
+        PYOBJECT_CLOSEREF(b0);
 #endif
     }
     return 0;
@@ -416,20 +416,22 @@ static void __Pyx_call_next_tp_clear(PyObject* obj, inquiry current_tp_clear) {
 
 /////////////// SetupReduce.proto ///////////////
 
-static int __Pyx_setup_reduce(PyObject* type_obj);
+static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj);
 
 /////////////// SetupReduce ///////////////
 //@requires: ObjectHandling.c::PyObjectGetAttrStrNoError
 //@requires: ObjectHandling.c::PyObjectGetAttrStr
 //@substitute: naming
 
-static int __Pyx_setup_reduce_is_named(PyObject* meth, PyObject* name) {
+static int __Pyx_setup_reduce_is_named(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE meth, PYOBJECT_TYPE name) {
   int ret;
-  PyObject *name_attr;
+  PYOBJECT_TYPE name_attr;
 
-  name_attr = __Pyx_PyObject_GetAttrStrNoError(meth, PYIDENT("__name__"));
-  if (likely(name_attr)) {
-      ret = PyObject_RichCompareBool(name_attr, name, Py_EQ);
+  PYOBJECT_TYPE load_name = PYOBJECT_GLOBAL_LOAD(PYIDENT("__name__"));
+  name_attr = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL meth, load_name);
+  PYOBJECT_GLOBAL_CLOSEREF(load_name);
+  if (likely(API_IS_NOT_NULL(name_attr))) {
+      ret = API_RICH_COMPARE_BOOL(name_attr, name, Py_EQ);
   } else {
       ret = -1;
   }
@@ -439,86 +441,98 @@ static int __Pyx_setup_reduce_is_named(PyObject* meth, PyObject* name) {
       ret = 0;
   }
 
-  Py_XDECREF(name_attr);
+  PYOBJECT_XCLOSEREF(name_attr);
   return ret;
 }
 
-static int __Pyx_setup_reduce(PyObject* type_obj) {
+static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) {
     int ret = 0;
-    PyObject *object_reduce = NULL;
-    PyObject *object_getstate = NULL;
-    PyObject *object_reduce_ex = NULL;
-    PyObject *reduce = NULL;
-    PyObject *reduce_ex = NULL;
-    PyObject *reduce_cython = NULL;
-    PyObject *setstate = NULL;
-    PyObject *setstate_cython = NULL;
-    PyObject *getstate = NULL;
+    PYOBJECT_TYPE object_reduce = API_NULL_VALUE;
+    PYOBJECT_TYPE object_getstate = API_NULL_VALUE;
+    PYOBJECT_TYPE object_reduce_ex = API_NULL_VALUE;
+    PYOBJECT_TYPE reduce = API_NULL_VALUE;
+    PYOBJECT_TYPE reduce_ex = API_NULL_VALUE;
+    PYOBJECT_TYPE reduce_cython = API_NULL_VALUE;
+    PYOBJECT_TYPE setstate = API_NULL_VALUE;
+    PYOBJECT_TYPE setstate_cython = API_NULL_VALUE;
+    PYOBJECT_TYPE getstate = API_NULL_VALUE;
 
+    PYOBJECT_TYPE load_getstate = PYOBJECT_GLOBAL_LOAD(PYIDENT("__getstate__"));
 #if CYTHON_USE_PYTYPE_LOOKUP
-    getstate = _PyType_Lookup((PyTypeObject*)type_obj, PYIDENT("__getstate__"));
+    getstate = _PyType_Lookup((PYTYPEOBJECT_TYPE)type_obj, load_getstate);
 #else
-    getstate = __Pyx_PyObject_GetAttrStrNoError(type_obj, PYIDENT("__getstate__"));
-    if (!getstate && PyErr_Occurred()) {
+    getstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_getstate);
+    if (API_IS_NULL(getstate) && PyErr_Occurred()) {
         goto __PYX_BAD;
     }
 #endif
-    if (getstate) {
+    if (API_IS_NOT_NULL(getstate)) {
         // Python 3.11 introduces object.__getstate__. Because it's version-specific failure to find it should not be an error
 #if CYTHON_USE_PYTYPE_LOOKUP
-        object_getstate = _PyType_Lookup(&PyBaseObject_Type, PYIDENT("__getstate__"));
+        object_getstate = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_getstate);
 #else
-        object_getstate = __Pyx_PyObject_GetAttrStrNoError((PyObject*)&PyBaseObject_Type, PYIDENT("__getstate__"));
-        if (!object_getstate && PyErr_Occurred()) {
+        object_getstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL (PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_getstate);
+        if (API_IS_NULL(object_getstate) && PyErr_Occurred()) {
             goto __PYX_BAD;
         }
 #endif
-        if (object_getstate != getstate) {
+        if (!API_IS_EQUAL(object_getstate, getstate)) {
             goto __PYX_GOOD;
         }
     }
-
+    PYOBJECT_GLOBAL_CLOSEREF(load_getstate);
+    PYOBJECT_TYPE load_reduce_ex = PYOBJECT_GLOBAL_LOAD(PYIDENT("__reduce_ex__"));
 #if CYTHON_USE_PYTYPE_LOOKUP
-    object_reduce_ex = _PyType_Lookup(&PyBaseObject_Type, PYIDENT("__reduce_ex__")); if (!object_reduce_ex) goto __PYX_BAD;
+    object_reduce_ex = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_reduce_ex); if (!object_reduce_ex) goto __PYX_BAD;
 #else
-    object_reduce_ex = __Pyx_PyObject_GetAttrStr((PyObject*)&PyBaseObject_Type, PYIDENT("__reduce_ex__")); if (!object_reduce_ex) goto __PYX_BAD;
+    object_reduce_ex = __Pyx_PyObject_GetAttrStr((PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce_ex); if (API_IS_NULL(object_reduce_ex)) goto __PYX_BAD;
 #endif
 
-    reduce_ex = __Pyx_PyObject_GetAttrStr(type_obj, PYIDENT("__reduce_ex__")); if (unlikely(!reduce_ex)) goto __PYX_BAD;
-    if (reduce_ex == object_reduce_ex) {
+    reduce_ex = __Pyx_PyObject_GetAttrStr(type_obj, load_reduce_ex); if (unlikely(API_IS_NULL(reduce_ex))) goto __PYX_BAD;
+    PYOBJECT_GLOBAL_CLOSEREF(load_reduce_ex);
+    if (API_IS_EQUAL(reduce_ex, object_reduce_ex)) {
 
+        PYOBJECT_TYPE load_reduce = PYOBJECT_GLOBAL_LOAD(PYIDENT("__reduce__"));
 #if CYTHON_USE_PYTYPE_LOOKUP
-        object_reduce = _PyType_Lookup(&PyBaseObject_Type, PYIDENT("__reduce__")); if (!object_reduce) goto __PYX_BAD;
+        object_reduce = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_reduce); if (!object_reduce) goto __PYX_BAD;
 #else
-        object_reduce = __Pyx_PyObject_GetAttrStr((PyObject*)&PyBaseObject_Type, PYIDENT("__reduce__")); if (!object_reduce) goto __PYX_BAD;
+        object_reduce = __Pyx_PyObject_GetAttrStr((PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce); if (API_IS_NULL(object_reduce)) goto __PYX_BAD;
 #endif
-        reduce = __Pyx_PyObject_GetAttrStr(type_obj, PYIDENT("__reduce__")); if (unlikely(!reduce)) goto __PYX_BAD;
+        reduce = __Pyx_PyObject_GetAttrStr(type_obj, load_reduce); if (unlikely(API_IS_NULL(reduce))) goto __PYX_BAD;
 
-        if (reduce == object_reduce || __Pyx_setup_reduce_is_named(reduce, PYIDENT("__reduce_cython__"))) {
-            reduce_cython = __Pyx_PyObject_GetAttrStrNoError(type_obj, PYIDENT("__reduce_cython__"));
-            if (likely(reduce_cython)) {
-                ret = __Pyx_SetItemOnTypeDict((PyTypeObject*)type_obj, PYIDENT("__reduce__"), reduce_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
-                ret = __Pyx_DelItemOnTypeDict((PyTypeObject*)type_obj, PYIDENT("__reduce_cython__")); if (unlikely(ret < 0)) goto __PYX_BAD;
+        PYOBJECT_TYPE load_reduce_cython = PYOBJECT_GLOBAL_LOAD(PYIDENT("__reduce_cython__"));
+        if (API_IS_EQUAL(reduce, object_reduce) || __Pyx_setup_reduce_is_named(reduce, load_reduce_cython)) {
+            reduce_cython = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_reduce_cython);
+            if (likely(API_IS_NOT_NULL(reduce_cython))) {
+                ret = __Pyx_SetItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_reduce, reduce_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
+                ret = __Pyx_DelItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_reduce_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
             } else if (reduce == object_reduce || PyErr_Occurred()) {
                 // Ignore if we're done, i.e. if 'reduce' already has the right name and the original is gone.
                 // Otherwise: error.
                 goto __PYX_BAD;
             }
+            PYOBJECT_GLOBAL_CLOSEREF(load_reduce);
+            PYOBJECT_GLOBAL_CLOSEREF(load_reduce_cython);
 
-            setstate = __Pyx_PyObject_GetAttrStrNoError(type_obj, PYIDENT("__setstate__"));
-            if (!setstate) PyErr_Clear();
-            if (!setstate || __Pyx_setup_reduce_is_named(setstate, PYIDENT("__setstate_cython__"))) {
-                setstate_cython = __Pyx_PyObject_GetAttrStrNoError(type_obj, PYIDENT("__setstate_cython__"));
-                if (likely(setstate_cython)) {
-                    ret = __Pyx_SetItemOnTypeDict((PyTypeObject*)type_obj, PYIDENT("__setstate__"), setstate_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
-                    ret = __Pyx_DelItemOnTypeDict((PyTypeObject*)type_obj, PYIDENT("__setstate_cython__")); if (unlikely(ret < 0)) goto __PYX_BAD;
-                } else if (!setstate || PyErr_Occurred()) {
+            PYOBJECT_TYPE load_setstate = PYOBJECT_GLOBAL_LOAD(PYIDENT("__setstate__"));
+            PYOBJECT_TYPE load_setstate_cython = PYOBJECT_GLOBAL_LOAD(PYIDENT("__setstate_cython__"));
+
+            setstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_setstate);
+            if (API_IS_NULL(setstate)) PyErr_Clear();
+            if (API_IS_NULL(setstate) || __Pyx_setup_reduce_is_named(setstate, load_setstate_cython)) {
+                setstate_cython = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_setstate_cython);
+                if (likely(API_IS_NOT_NULL(setstate_cython))) {
+                    ret = __Pyx_SetItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_setstate, setstate_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
+                    ret = __Pyx_DelItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_setstate_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
+                } else if (API_IS_NULL(setstate) || PyErr_Occurred()) {
                     // Ignore if we're done, i.e. if 'setstate' already has the right name and the original is gone.
                     // Otherwise: error.
                     goto __PYX_BAD;
                 }
             }
-            PyType_Modified((PyTypeObject*)type_obj);
+            PYOBJECT_GLOBAL_CLOSEREF(load_setstate);
+            PYOBJECT_GLOBAL_CLOSEREF(load_setstate_cython);
+            PyType_Modified((PYTYPEOBJECT_TYPE)type_obj);
         }
     }
     goto __PYX_GOOD;
@@ -526,7 +540,7 @@ static int __Pyx_setup_reduce(PyObject* type_obj) {
 __PYX_BAD:
     if (!PyErr_Occurred()) {
         __Pyx_TypeName type_obj_name =
-            __Pyx_PyType_GetName((PyTypeObject*)type_obj);
+            __Pyx_PyType_GetName((PYTYPEOBJECT_TYPE)type_obj);
         PyErr_Format(PyExc_RuntimeError,
             "Unable to initialize pickling for " __Pyx_FMT_TYPENAME, type_obj_name);
         __Pyx_DECREF_TypeName(type_obj_name);
@@ -534,16 +548,16 @@ __PYX_BAD:
     ret = -1;
 __PYX_GOOD:
 #if !CYTHON_USE_PYTYPE_LOOKUP
-    Py_XDECREF(object_reduce);
-    Py_XDECREF(object_reduce_ex);
-    Py_XDECREF(object_getstate);
-    Py_XDECREF(getstate);
+    PYOBJECT_XCLOSEREF(object_reduce);
+    PYOBJECT_XCLOSEREF(object_reduce_ex);
+    PYOBJECT_XCLOSEREF(object_getstate);
+    PYOBJECT_XCLOSEREF(getstate);
 #endif
-    Py_XDECREF(reduce);
-    Py_XDECREF(reduce_ex);
-    Py_XDECREF(reduce_cython);
-    Py_XDECREF(setstate);
-    Py_XDECREF(setstate_cython);
+    PYOBJECT_XCLOSEREF(reduce);
+    PYOBJECT_XCLOSEREF(reduce_ex);
+    PYOBJECT_XCLOSEREF(reduce_cython);
+    PYOBJECT_XCLOSEREF(setstate);
+    PYOBJECT_XCLOSEREF(setstate_cython);
     return ret;
 }
 

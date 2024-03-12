@@ -1301,8 +1301,10 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
                     basestruct_cname,
                     Naming.obj_base_cname))
         else:
+            code.putln("#if !CYTHON_USING_HPY")
             code.putln(
                 "PyObject_HEAD")
+            code.putln("#endif")
         if type.vtabslot_cname and not (type.base_type and type.base_type.vtabslot_cname):
             code.putln(
                 "struct %s *%s;" % (
@@ -1619,7 +1621,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             while vtab_base_type.base_type and vtab_base_type.base_type.vtabstruct_cname:
                 vtab_base_type = vtab_base_type.base_type
             if vtab_base_type is not type:
-                struct_type_cast = "(struct %s*)" % vtab_base_type.vtabstruct_cname
+                struct_type_cast = "CAST_IF_CAPI(struct %s*)" % vtab_base_type.vtabstruct_cname
             else:
                 struct_type_cast = ""
             code.putln("p->%s = %s%s;" % (

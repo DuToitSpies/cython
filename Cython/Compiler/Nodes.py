@@ -4421,11 +4421,11 @@ class DefNodeWrapper(FuncDefNode):
                     
                     tmp_load_pystr = ExprNodes.LoadGlobalNode(self.pos, pystring_cname)
                     tmp_load_pystr.allocate(code)
-                    if self.signature.fastvar in ['VARARGS', 'FASTCALL']:
+                    if self.signature.fastvar in ['VARARGS']:
                         code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(%s, %s, %s)))) {' % (
                             i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
                     else:
-                        code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(cd . %s, %s, %s)))) {' % (
+                        code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
                             i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
                     tmp_load_pystr.release(code)
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))

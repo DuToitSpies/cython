@@ -1648,12 +1648,12 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx__GetModuleGlobalName(HPY_CONTEXT_FIRST_
 
 //////////////////// GetAttr.proto ////////////////////
 
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(PYOBJECT_TYPE, PYOBJECT_TYPE); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE, PYOBJECT_TYPE); /*proto*/
 
 //////////////////// GetAttr ////////////////////
 //@requires: PyObjectGetAttrStr
 
-static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(PYOBJECT_TYPE o, PYOBJECT_TYPE n) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE n) {
 #if CYTHON_USE_TYPE_SLOTS
     if (likely(PyUnicode_Check(n)))
         return __Pyx_PyObject_GetAttrStr(o, n);
@@ -2386,24 +2386,25 @@ CYTHON_UNUSED static int __Pyx_VectorcallBuilder_AddArg_Check(PyObject *key, PyO
 
 /////////////// PyObjectCallMethod0.proto ///////////////
 
-static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name); /*proto*/
+static PYOBJECT_TYPE __Pyx_PyObject_CallMethod0(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE method_name); /*proto*/
 
 /////////////// PyObjectCallMethod0 ///////////////
 //@requires: PyObjectGetMethod
 //@requires: PyObjectCallOneArg
 //@requires: PyObjectCallNoArg
 
-static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name) {
-    PyObject *method = NULL, *result = NULL;
-    int is_method = __Pyx_PyObject_GetMethod(obj, method_name, &method);
+static PYOBJECT_TYPE __Pyx_PyObject_CallMethod0(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE obj, PYOBJECT_TYPE method_name) {
+    PYOBJECT_TYPE method = API_NULL_VALUE;
+    PYOBJECT_TYPE result = API_NULL_VALUE;
+    int is_method = __Pyx_PyObject_GetMethod(HPY_CONTEXT_FIRST_ARG_CALL obj, method_name, &method);
     if (likely(is_method)) {
-        result = __Pyx_PyObject_CallOneArg(method, obj);
-        Py_DECREF(method);
+        result = __Pyx_PyObject_CallOneArg(HPY_CONTEXT_FIRST_ARG_CALL method, obj);
+        PYOBJECT_CLOSEREF(method);
         return result;
     }
-    if (unlikely(!method)) goto bad;
-    result = __Pyx_PyObject_CallNoArg(method);
-    Py_DECREF(method);
+    if (unlikely(API_IS_NULL(method))) goto bad;
+    result = __Pyx_PyObject_CallNoArg(HPY_CONTEXT_FIRST_ARG_CALL method);
+    PYOBJECT_CLOSEREF(method);
 bad:
     return result;
 }

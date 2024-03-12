@@ -71,6 +71,8 @@
   #define API_STRING_TYPE_DEREF API_STRING_TYPE
   #define API_DICT_TYPE HPY_CONTEXT_CNAME->h_DictType
   #define API_DICT_TYPE_DEREF API_DICT_TYPE
+  #define API_BASEOBJECT_TYPE HPY_CONTEXT_CNAME->h_BaseObjectType
+  #define API_BASEOBJECT_TYPE_DEREF API_BASEOBJECT_TYPE
 
   //Type Checks
   #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
@@ -281,6 +283,8 @@
   #define API_STRING_TYPE_DEREF &PyString_Type
   #define API_DICT_TYPE PyDict_Type
   #define API_DICT_TYPE_DEREF &PyDict_Type
+  #define API_BASEOBJECT_TYPE PyBaseObject_Type
+  #define API_BASEOBJECT_TYPE_DEREF &PyBaseObject_Type
 
   //Number Type Checks
   #define LONG_CHECK(l) PyLong_Check(l)

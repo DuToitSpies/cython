@@ -139,7 +139,7 @@ bad:
 
 //////////////////// GetAttr3.proto ////////////////////
 
-static CYTHON_INLINE PyObject *__Pyx_GetAttr3(PyObject *, PyObject *, PyObject *); /*proto*/
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr3(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE, PYOBJECT_TYPE, PYOBJECT_TYPE); /*proto*/
 
 //////////////////// GetAttr3 ////////////////////
 //@requires: ObjectHandling.c::PyObjectGetAttrStr
@@ -148,20 +148,19 @@ static CYTHON_INLINE PyObject *__Pyx_GetAttr3(PyObject *, PyObject *, PyObject *
 //@requires: Exceptions.c::PyErrExceptionMatches
 
 #if __PYX_LIMITED_VERSION_HEX < 0x030d00A1
-static PyObject *__Pyx_GetAttr3Default(PyObject *d) {
+static PYOBJECT_TYPE __Pyx_GetAttr3Default(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE d) {
     __Pyx_PyThreadState_declare
     __Pyx_PyThreadState_assign
     if (unlikely(!__Pyx_PyErr_ExceptionMatches(PyExc_AttributeError)))
-        return NULL;
+        return API_NULL_VALUE;
     __Pyx_PyErr_Clear();
-    Py_INCREF(d);
-    return d;
+    return PYOBJECT_NEWREF(d);
 }
 #endif
 
-static CYTHON_INLINE PyObject *__Pyx_GetAttr3(PyObject *o, PyObject *n, PyObject *d) {
-    PyObject *r;
-#if __PYX_LIMITED_VERSION_HEX >= 0x030d00A1
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr3(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE n, PYOBJECT_TYPE d) {
+    PYOBJECT_TYPE r;
+#if __PYX_LIMITED_VERSION_HEX >= 0x030d00A1 && !CYTHON_USING_HPY
     int res = PyObject_GetOptionalAttr(o, n, &r);
     // On failure (res == -1), r is set to NULL.
     return (res != 0) ? r : __Pyx_NewRef(d);
@@ -175,8 +174,8 @@ static CYTHON_INLINE PyObject *__Pyx_GetAttr3(PyObject *o, PyObject *n, PyObject
         return r;
     }
   #endif
-    r = PyObject_GetAttr(o, n);
-    return (likely(r)) ? r : __Pyx_GetAttr3Default(d);
+    r = PYOBJECT_GET_ATTR(o, n);
+    return (likely(r)) ? r : __Pyx_GetAttr3Default(HPY_CONTEXT_FIRST_ARG_CALL d);
 #endif
 }
 
@@ -185,26 +184,26 @@ static CYTHON_INLINE PyObject *__Pyx_GetAttr3(PyObject *o, PyObject *n, PyObject
 #if __PYX_LIMITED_VERSION_HEX >= 0x030d00A1
 #define __Pyx_HasAttr(o, n)  PyObject_HasAttrWithError(o, n)
 #else
-static CYTHON_INLINE int __Pyx_HasAttr(PyObject *, PyObject *); /*proto*/
+static CYTHON_INLINE int __Pyx_HasAttr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE, PYOBJECT_TYPE); /*proto*/
 #endif
 
 //////////////////// HasAttr ////////////////////
 //@requires: ObjectHandling.c::GetAttr
 
 #if __PYX_LIMITED_VERSION_HEX < 0x030d00A1
-static CYTHON_INLINE int __Pyx_HasAttr(PyObject *o, PyObject *n) {
-    PyObject *r;
+static CYTHON_INLINE int __Pyx_HasAttr(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE o, PYOBJECT_TYPE n) {
+    PYOBJECT_TYPE r;
     if (unlikely(!__Pyx_PyBaseString_Check(n))) {
         PyErr_SetString(PyExc_TypeError,
                         "hasattr(): attribute name must be string");
         return -1;
     }
-    r = __Pyx_GetAttr(o, n);
-    if (!r) {
+    r = __Pyx_GetAttr(HPY_CONTEXT_FIRST_ARG_CALL o, n);
+    if (API_IS_NULL(r)) {
         PyErr_Clear();
         return 0;
     } else {
-        Py_DECREF(r);
+        PYOBJECT_CLOSEREF(r);
         return 1;
     }
 }

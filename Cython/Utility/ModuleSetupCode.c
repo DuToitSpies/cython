@@ -1232,8 +1232,8 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
   #define PyObject_Unicode             PyObject_Str
 #endif
 
-#define __Pyx_PyBaseString_Check(obj) PyUnicode_Check(obj)
-#define __Pyx_PyBaseString_CheckExact(obj) PyUnicode_CheckExact(obj)
+#define __Pyx_PyBaseString_Check(obj) UNICODE_CHECK(obj)
+#define __Pyx_PyBaseString_CheckExact(obj) UNICODE_CHECK_EXACT(obj)
 
 #if CYTHON_USING_HPY
   #define __Pyx_PySequence_ListKeepNew(obj) HPY_LEGACY_OBJECT_FROM(PySequence_List(HPY_LEGACY_OBJECT_AS(obj)))

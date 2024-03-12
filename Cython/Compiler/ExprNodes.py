@@ -6537,7 +6537,7 @@ class SimpleCallNode(CallNode):
 
         if len(arg_list_code) > 0:
             arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
-            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex', '__Pyx_PySequence_ListKeepNew', 'LIST_INSERT']:
+            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex', '__Pyx_PySequence_ListKeepNew', 'LIST_INSERT', 'GET_TYPE']:
                 arg_string = ""
             for arg in arg_list_code:
                 if code:

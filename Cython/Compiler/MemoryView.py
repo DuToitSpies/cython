@@ -245,7 +245,7 @@ class MemoryViewSliceBufferEntry(Buffer.BufferEntry):
             bufp = '( /* dim=%d */ %s )' % (dim, bufp)
 
         if cast_result:
-            return "((%s *) %s)" % (type_decl, bufp)
+            return "(CAST_IF_CAPI(%s *) %s)" % (type_decl, bufp)
 
         return bufp
 
