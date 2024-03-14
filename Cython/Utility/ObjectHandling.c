@@ -1463,8 +1463,8 @@ static CYTHON_INLINE int __Pyx_PySet_ContainsTF(PyObject* key, PyObject* set, in
 
 /////////////// PySequenceContains.proto ///////////////
 
-static CYTHON_INLINE int __Pyx_PySequence_ContainsTF(PyObject* item, PyObject* seq, int eq) {
-    int result = PySequence_Contains(seq, item);
+static CYTHON_INLINE int __Pyx_PySequence_ContainsTF(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE item, PYOBJECT_TYPE seq, int eq) {
+    int result = SEQUENCE_CONTAINS(seq, item);
     return unlikely(result < 0) ? result : (result == (eq == Py_EQ));
 }
 

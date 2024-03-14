@@ -471,7 +471,7 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
 #if CYTHON_USE_PYTYPE_LOOKUP
         object_getstate = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_getstate);
 #else
-        object_getstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL (PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_getstate);
+        object_getstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL CAST_IF_CAPI(PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_getstate);
         if (API_IS_NULL(object_getstate) && PyErr_Occurred()) {
             goto __PYX_BAD;
         }
@@ -485,7 +485,7 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
 #if CYTHON_USE_PYTYPE_LOOKUP
     object_reduce_ex = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_reduce_ex); if (!object_reduce_ex) goto __PYX_BAD;
 #else
-    object_reduce_ex = __Pyx_PyObject_GetAttrStr((PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce_ex); if (API_IS_NULL(object_reduce_ex)) goto __PYX_BAD;
+    object_reduce_ex = __Pyx_PyObject_GetAttrStr(CAST_IF_CAPI(PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce_ex); if (API_IS_NULL(object_reduce_ex)) goto __PYX_BAD;
 #endif
 
     reduce_ex = __Pyx_PyObject_GetAttrStr(type_obj, load_reduce_ex); if (unlikely(API_IS_NULL(reduce_ex))) goto __PYX_BAD;
@@ -496,7 +496,7 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
 #if CYTHON_USE_PYTYPE_LOOKUP
         object_reduce = _PyType_Lookup(API_BASEOBJECT_TYPE_DEREF, load_reduce); if (!object_reduce) goto __PYX_BAD;
 #else
-        object_reduce = __Pyx_PyObject_GetAttrStr((PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce); if (API_IS_NULL(object_reduce)) goto __PYX_BAD;
+        object_reduce = __Pyx_PyObject_GetAttrStr(CAST_IF_CAPI(PYOBJECT_TYPE)API_BASEOBJECT_TYPE_DEREF, load_reduce); if (API_IS_NULL(object_reduce)) goto __PYX_BAD;
 #endif
         reduce = __Pyx_PyObject_GetAttrStr(type_obj, load_reduce); if (unlikely(API_IS_NULL(reduce))) goto __PYX_BAD;
 

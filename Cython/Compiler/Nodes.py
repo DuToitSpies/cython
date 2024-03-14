@@ -5845,11 +5845,15 @@ class CClassDefNode(ClassDefNode):
                 # scope.is_internal is set for types defined by
                 # Cython (such as closures), the 'internal'
                 # directive is set by users
-                code.put_error_if_neg(entry.pos, "PyObject_SetAttr(%s, %s, (PyObject *) %s)" % (
-                    Naming.module_cname,
+                from . import ExprNodes
+                load_cname = ExprNodes.LoadGlobalNode(entry.pos, Naming.module_cname)
+                load_cname.allocate(code)
+                code.put_error_if_neg(entry.pos, "PYOBJECT_SET_ATTR(%s, %s, CAST_IF_CAPI(PyObject *) %s)" % (
+                    load_cname.temp_cname,
                     code.intern_identifier(scope.class_name),
                     typeptr_cname,
                 ))
+                load_cname.release(code)
 
             weakref_entry = scope.lookup_here("__weakref__") if not scope.is_closure_class_scope else None
             if weakref_entry:
@@ -5873,7 +5877,7 @@ class CClassDefNode(ClassDefNode):
                 # do so at runtime.
                 code.globalstate.use_utility_code(
                     UtilityCode.load_cached('SetupReduce', 'ExtensionTypes.c'))
-                code.put_error_if_neg(entry.pos, "__Pyx_setup_reduce((PyObject *) %s)" % typeptr_cname)
+                code.put_error_if_neg(entry.pos, "__Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_CALL (PyObject *) %s)" % typeptr_cname)
 
     def annotate(self, code):
         if self.type_init_args:
@@ -7056,7 +7060,7 @@ class RaiseStatNode(StatNode):
         tmp_load_type = ExprNodes.LoadGlobalNode(self.pos, type_code)
         tmp_load_type.allocate(code)
         code.putln(
-            "__Pyx_Raise(HPY_LEGACY_OBJECT_AS(%s), %s, %s, %s);" % (
+            "__Pyx_Raise(HPY_LEGACY_OBJECT_AS(%s), HPY_LEGACY_OBJECT_AS(%s), %s, %s);" % (
                 tmp_load_type.temp_cname,
                 value_code,
                 tb_code,

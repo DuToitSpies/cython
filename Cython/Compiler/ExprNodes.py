@@ -11676,7 +11676,7 @@ class TypecastNode(ExprNode):
     def generate_result_code(self, code):
         if self.is_temp:
             code.putln(
-                "%s = (PyObject *)%s;" % (
+                "%s = (PYOBJECT_TYPE)%s;" % (
                     self.result(),
                     self.operand.result()))
             code.put_incref(self.result(), self.ctype())

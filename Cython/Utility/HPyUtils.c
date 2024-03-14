@@ -80,6 +80,7 @@
   #define LONG_CHECKExact(l) HPyLong_Check(HPY_CONTEXT_CNAME, l) //TODO(HPy): Remove
   #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
+  #define UNICODE_CHECK_EXACT(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define DICT_CHECK_EXACT(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
   #define TUPLE_CHECK(o) HPyTuple_Check(HPY_CONTEXT_CNAME, o)
@@ -87,6 +88,8 @@
   #define PYOBJECT_TYPE_CHECK(o, t) HPy_TypeCheck(HPY_CONTEXT_CNAME, o, t)
   #define LIST_CHECK(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
   #define LIST_CHECK_EXACT(h) HPyList_Check(HPY_CONTEXT_CNAME, h)
+  #define BYTES_CHECK(h) HPyBytes_Check(HPY_CONTEXT_CNAME, h)
+  #define BYTES_CHECK_EXACT(h) HPyBytes_Check(HPY_CONTEXT_CNAME, h)
 
   //Integer Type - From
   #define PYOBJECT_INT_FROM_LONG(i) HPyLong_FromLong(HPY_CONTEXT_CNAME, i)
@@ -104,6 +107,7 @@
 
   //Long Type - To
   #define PYOBJECT_LONG_AS_SSIZE_T(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_LONG_AS_LONG(l) HPYLong_AsLong(HPY_CONTEXT_CNAME, l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) HPyLong_AsUnsignedLong(HPY_CONTEXT_CNAME, l)
 
   //Float Type - From
@@ -125,6 +129,11 @@
   //Bytes Type - To
 
   //Number Type
+  #define NUMBER_LONG(l) HPy_Long(HPY_CONTEXT_CNAME, l)
+  #define NUMBER_INT(l) HPy_Long(HPY_CONTEXT_CNAME, l)
+  #define NUMBER_AND(l1,l2) HPy_And(HPY_CONTEXT_CNAME, l1, l2)
+  #define NUMBER_RSHIFT(step, shift) HPy_Rshift(HPY_CONTEXT_CNAME, step, shift)
+  #define NUMBER_INVERT(l) HPy_Invert(HPY_CONTEXT_CNAME, l)
   #define NUMBER_INPLACE_MULTIPLY(h1, h2) HPy_InPlaceMultiply(HPY_CONTEXT_CNAME, h1, h2)
 
   //Dict Type
@@ -135,6 +144,7 @@
   #define DICT_GET_SIZE_SAFE(h) HPy_Length(HPY_CONTEXT_CNAME, h)
   #define DICT_GET_ITEM(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) HPy_SetItem(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
+  #define DICT_DEL_ITEM(o, attr_name) HPy_DelItem(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_GET_ITEM_STR(o, attr_name) HPyDict_GetItem_s(HPY_CONTEXT_CNAME, o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) HPy_SetItem_s(HPY_CONTEXT_CNAME, o, attr_name, attr_val)
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) HPyDict_GetItem(HPY_CONTEXT_CNAME, o, attr_name)
@@ -146,6 +156,7 @@
   #define SEQUENCE_GET_SLICE(h, i1, i2) HPy_GetSlice(HPY_CONTEXT_CNAME, h, (i1), (i2))
   #define SEQUENCE_SET_SLICE(h, i1, i2, v) HPy_SetSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2), (v))
   #define SEQUENCE_DEL_SLICE(h, i1, i2) HPy_DelSlice(HPY_CONTEXT_CNAME, (h), (i1), (i2))
+  #define SEQUENCE_CONTAINS(seq, item) HPy_Contains(HPY_CONTEXT_CNAME, seq, item)
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() HPyTuple_FromArray(HPY_CONTEXT_CNAME, NULL, 0)
@@ -292,6 +303,7 @@
   #define LONG_CHECKExact(l) PyLong_CheckExact(l) //TODO(HPy): Remove
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
   #define UNICODE_CHECK(u) PyUnicode_Check(u)
+  #define UNICODE_CHECK_EXACT(u) PyUnicode_CheckExact(u)
   #define DICT_CHECK(o) PyDict_Check(o)
   #define DICT_CHECK_EXACT(o) PyDict_CheckExact(o)
   #define TUPLE_CHECK(o) PyTuple_Check(o)
@@ -299,6 +311,8 @@
   #define PYOBJECT_TYPE_CHECK(o, t) PyObject_TypeCheck(o, t)
   #define LIST_CHECK(h) PyList_Check(h)
   #define LIST_CHECK_EXACT(h) PyList_CheckExact(h)
+  #define BYTES_CHECK(h) PyBytes_Check(h)
+  #define BYTES_CHECK_EXACT(h) PyBytes_CheckExact(h)
 
 
   //Integer Type - From
@@ -317,6 +331,7 @@
 
   //Long Type - To
   #define PYOBJECT_LONG_AS_SSIZE_T(l) PyLong_AsSsize_t(l)
+  #define PYOBJECT_LONG_AS_LONG(l) PyLong_AsLong(l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) PyLong_AsUnsignedLong(l)
 
   //Float Type - From
@@ -338,6 +353,11 @@
   //Bytes Type - To
 
   //Number Type
+  #define NUMBER_LONG(l) PyNumber_Long(l)
+  #define NUMBER_INT(l) PyNumber_Int(l)
+  #define NUMBER_AND(l1,l2) PyNumber_And(l1, l2)
+  #define NUMBER_RSHIFT(step, shift) PyNumber_Rshift(step, shift)
+  #define NUMBER_INVERT(l) PyNumber_Invert(l)
   #define NUMBER_INPLACE_MULTIPLY(h1, h2) PyNumber_InPlaceMultiply(h1, h2)
 
   //Dict Type
@@ -348,6 +368,7 @@
   #define DICT_GET_SIZE_SAFE(h) PyDict_Size(h)
   #define DICT_GET_ITEM(o, attr_name) PyDict_GetItem(o, attr_name)
   #define DICT_SET_ITEM(o, attr_name, attr_val) PyDict_SetItem(o, attr_name, attr_val)
+  #define DICT_DEL_ITEM(o, attr_name) PyDict_DelItem(o, attr_name)
   #define DICT_GET_ITEM_STR(o, attr_name) PyDict_GetItemString(o, attr_name)
   #define DICT_SET_ITEM_STR(o, attr_name, attr_val) PyDict_SetItemString(o, attr_name, attr_val)
   #define DICT_GET_ITEM_WITH_ERROR(o, attr_name) PyDict_GetItemWithError(o, attr_name)
@@ -359,6 +380,7 @@
   #define SEQUENCE_GET_SLICE(h, i1, i2) PySequence_GetSlice(h, (i1), (i2))
   #define SEQUENCE_SET_SLICE(h, i1, i2, v) PySequence_SetSlice((h), (i1), (i2), (v))
   #define SEQUENCE_DEL_SLICE(h, i1, i2) PySequence_DelSlice((h), (i1), (i2))
+  #define SEQUENCE_CONTAINS(seq, item) PySequence_Contains(seq, item)
 
   //Tuple Type
   #define TUPLE_CREATE_EMPTY() PyTuple_New(0)

@@ -1130,7 +1130,10 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
   #define __Pyx_PyObject_GetIterNextFunc(obj)  PyIter_Next
 #endif
 
-#if CYTHON_COMPILING_IN_LIMITED_API
+#if CYTHON_USING_HPY
+  #define __Pyx_SetItemOnTypeDict(tp, k, v) DICT_SET_ITEM(tp, k, v)
+  #define __Pyx_DelItemOnTypeDict(tp, k) DICT_DEL_ITEM(tp, k)
+#elif CYTHON_COMPILING_IN_LIMITED_API && !CYTHON_USING_HPY
   // Using PyObject_GenericSetAttr to bypass types immutability protection feels
   // a little hacky, but it does work in the limited API .
   // (It doesn't work on PyPy but that probably isn't a bug.)

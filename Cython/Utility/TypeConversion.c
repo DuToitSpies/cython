@@ -118,7 +118,7 @@ static CYTHON_INLINE size_t __Pyx_Py_UNICODE_strlen(const Py_UNICODE *u)
 static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyBool_FromLong(HPY_CONTEXT_FIRST_ARG_DEF long b);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrue(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
 static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
-static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x);
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE x);
 
 #define __Pyx_PySequence_Tuple(obj) \
     (likely(PyTuple_CheckExact(obj)) ? __Pyx_NewRef(obj) : PySequence_Tuple(obj))
@@ -322,9 +322,9 @@ static CYTHON_INLINE int __Pyx_PyObject_IsTrueAndDecref(HPY_CONTEXT_FIRST_ARG_DE
     return retval;
 }
 
-static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_DEF PyObject* result, const char* type_name) {
-    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(HPY_LEGACY_OBJECT_FROM(result)));
-    if (PyLong_Check(result)) {
+static PYOBJECT_TYPE __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE result, const char* type_name) {
+    __Pyx_TypeName result_type_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL GET_TYPE(result));
+    if (LONG_CHECK(result)) {
         // CPython issue #17576: warn if 'result' not of exact type int.
         if (PyErr_WarnFormat(PyExc_DeprecationWarning, 1,
                 "__int__ returned non-int (type " __Pyx_FMT_TYPENAME ").  "
@@ -332,8 +332,8 @@ static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_D
                 "and may be removed in a future version of Python.",
                 result_type_name)) {
             __Pyx_DECREF_TypeName(result_type_name);
-            Py_DECREF(result);
-            return NULL;
+            PYOBJECT_CLOSEREF(result);
+            return API_NULL_VALUE;
         }
         __Pyx_DECREF_TypeName(result_type_name);
         return result;
@@ -342,18 +342,18 @@ static PyObject* __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_D
                  "__%.4s__ returned non-%.4s (type " __Pyx_FMT_TYPENAME ")",
                  type_name, type_name, result_type_name);
     __Pyx_DECREF_TypeName(result_type_name);
-    Py_DECREF(result);
-    return NULL;
+    PYOBJECT_CLOSEREF(result);
+    return API_NULL_VALUE;
 }
 
-static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PyObject* x) {
+static CYTHON_INLINE PYOBJECT_TYPE __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE x) {
 #if CYTHON_USE_TYPE_SLOTS
   PyNumberMethods *m;
 #endif
   const char *name = NULL;
-  PyObject *res = NULL;
-  if (likely(PyLong_Check(x)))
-      return __Pyx_NewRef(x);
+  PYOBJECT_TYPE res = API_NULL_VALUE;
+  if (likely(LONG_CHECK(x)))
+      return PYOBJECT_NEWREF(x);
 #if CYTHON_USE_TYPE_SLOTS
   m = Py_TYPE(x)->tp_as_number;
   if (likely(m && m->nb_int)) {
@@ -361,12 +361,12 @@ static CYTHON_INLINE PyObject* __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_DE
       res = m->nb_int(x);
   }
 #else
-  if (!PyBytes_CheckExact(x) && !PyUnicode_CheckExact(x)) {
-      res = PyNumber_Int(x);
+  if (!BYTES_CHECK_EXACT(x) && !UNICODE_CHECK_EXACT(x)) {
+      res = NUMBER_INT(x);
   }
 #endif
-  if (likely(res)) {
-      if (unlikely(!PyLong_CheckExact(res))) {
+  if (likely(API_IS_NOT_NULL(res))) {
+      if (unlikely(!LONG_CHECK_EXACT(res))) {
           return __Pyx_PyNumber_IntOrLongWrongResultType(HPY_CONTEXT_FIRST_ARG_CALL res, name);
       }
   }
@@ -941,7 +941,7 @@ static CYTHON_INLINE PyObject* {{TO_PY_FUNCTION}}({{TYPE}} value, Py_ssize_t wid
 
 /////////////// CIntFromPy.proto ///////////////
 
-static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyObject *);
+static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE);
 
 /////////////// CIntFromPy ///////////////
 //@requires: CIntFromPyVerify
@@ -949,7 +949,7 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
 
 {{py: from Cython.Utility import pylong_join }}
 
-static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyObject *x) {
+static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -959,7 +959,7 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
 #pragma GCC diagnostic pop
 #endif
     const int is_unsigned = neg_one > const_zero;
-    if (likely(PyLong_Check(x))) {
+    if (likely(LONG_CHECK(x))) {
         if (is_unsigned) {
 #if CYTHON_USE_PYLONG_INTERNALS
             if (unlikely(__Pyx_PyLong_IsNeg(x))) {
@@ -986,14 +986,14 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
                 }
             }
 #endif
-#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030C00A7
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030C00A7 && !CYTHON_USING_HPY
             if (unlikely(Py_SIZE(x) < 0)) {
                 goto raise_neg_overflow;
             }
 #else
             {
                 // misuse Py_False as a quick way to compare to a '0' int object in PyPy
-                int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
+                int result = API_RICH_COMPARE_BOOL(x, API_FALSE, Py_LT);
                 if (unlikely(result < 0))
                     return ({{TYPE}}) -1;
                 if (unlikely(result == 1))
@@ -1001,10 +1001,10 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
             }
 #endif
             if ((sizeof({{TYPE}}) <= sizeof(unsigned long))) {
-                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, unsigned long, PyLong_AsUnsignedLong(x))
+                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, unsigned long, PYOBJECT_LONG_AS_UNSIGNED_LONG(x))
 #ifdef HAVE_LONG_LONG
             } else if ((sizeof({{TYPE}}) <= sizeof(unsigned PY_LONG_LONG))) {
-                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong(x))
+                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, unsigned PY_LONG_LONG, PYOBJECT_LONG_AS_UNSIGNED_LONG(x))
 #endif
             }
         } else {
@@ -1033,10 +1033,10 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
             }
 #endif
             if ((sizeof({{TYPE}}) <= sizeof(long))) {
-                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, long, PyLong_AsLong(x))
+                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, long, PYOBJECT_LONG_AS_LONG(x))
 #ifdef HAVE_LONG_LONG
             } else if ((sizeof({{TYPE}}) <= sizeof(PY_LONG_LONG))) {
-                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, PY_LONG_LONG, PyLong_AsLongLong(x))
+                __PYX_VERIFY_RETURN_INT_EXC({{TYPE}}, PY_LONG_LONG, PYOBJECT_LONG_AS_LONG(x))
 #endif
             }
         }
@@ -1049,8 +1049,8 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
         // large integer type and no access to PyLong internals => allow for a more expensive conversion
         {
             {{TYPE}} val;
-            PyObject *v = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
-            if (likely(v)) {
+            PYOBJECT_TYPE v = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
+            if (likely(API_IS_NOT_NULL(v))) {
                 int ret = -1;
 #if PY_VERSION_HEX < 0x030d0000 && !(CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API) || defined(_PyLong_AsByteArray)
                 int one = 1; int is_little = (int)*(unsigned char *)&one;
@@ -1061,28 +1061,28 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
 #else
 // Inefficient copy of bit chunks through the C-API.  Probably still better than a "cannot do this" exception.
 // This is substantially faster in CPython (>30%) than calling "int.to_bytes()"
-                PyObject *stepval = NULL, *mask = NULL, *shift = NULL;
+                PYOBJECT_TYPE stepval = API_NULL_VALUE, CAPI_IS_POINTER mask = API_NULL_VALUE, CAPI_IS_POINTER shift = API_NULL_VALUE;
                 int bits, remaining_bits, is_negative = 0;
                 long idigit;
                 int chunk_size = (sizeof(long) < 8) ? 30 : 62;
 
                 // use exact PyLong to prevent user defined &&/<</etc. implementations
-                if (unlikely(!PyLong_CheckExact(v))) {
-                    PyObject *tmp = v;
-                    v = PyNumber_Long(v);
-                    assert(PyLong_CheckExact(v));
-                    Py_DECREF(tmp);
-                    if (unlikely(!v)) return ({{TYPE}}) -1;
+                if (unlikely(!LONG_CHECK_EXACT(v))) {
+                    PYOBJECT_TYPE tmp = v;
+                    v = NUMBER_LONG(v);
+                    assert(LONG_CHECK_EXACT(v));
+                    PYOBJECT_CLOSEREF(tmp);
+                    if (unlikely(API_IS_NULL(v))) return CAST_IF_CAPI({{TYPE}}) -1; 
                 }
 
-#if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000
+#if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000 && !CYTHON_USING_HPY
                 if (Py_SIZE(x) == 0)
                     return ({{TYPE}}) 0;
                 is_negative = Py_SIZE(x) < 0;
 #else
                 {
                     // misuse Py_False as a quick way to compare to a '0' int object
-                    int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
+                    int result = API_RICH_COMPARE_BOOL(x, API_FALSE, Py_LT);
                     if (unlikely(result < 0))
                         return ({{TYPE}}) -1;
                     is_negative = result == 1;
@@ -1093,40 +1093,40 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
                     goto raise_neg_overflow;
                 } else if (is_negative) {
                     // bit-invert to make sure we can safely convert it
-                    stepval = PyNumber_Invert(v);
-                    if (unlikely(!stepval))
+                    stepval = NUMBER_INVERT(v);
+                    if (unlikely(API_IS_NULL(stepval)))
                         return ({{TYPE}}) -1;
                 } else {
-                    stepval = __Pyx_NewRef(v);
+                    stepval = PYOBJECT_NEWREF(v);
                 }
 
                 // unpack full chunks of bits
                 val = ({{TYPE}}) 0;
-                mask = PyLong_FromLong((1L << chunk_size) - 1); if (unlikely(!mask)) goto done;
-                shift = PyLong_FromLong(chunk_size); if (unlikely(!shift)) goto done;
+                mask = PYOBJECT_LONG_FROM_LONG((1L << chunk_size) - 1); if (unlikely(API_IS_NULL(mask))) goto done;
+                shift = PYOBJECT_LONG_FROM_LONG(chunk_size); if (unlikely(API_IS_NULL(shift))) goto done;
                 for (bits = 0; bits < (int) sizeof({{TYPE}}) * 8 - chunk_size; bits += chunk_size) {
-                    PyObject *tmp, *digit;
+                    PYOBJECT_TYPE tmp, CAPI_IS_POINTER digit;
 
-                    digit = PyNumber_And(stepval, mask);
-                    if (unlikely(!digit)) goto done;
-                    idigit = PyLong_AsLong(digit);
-                    Py_DECREF(digit);
+                    digit = NUMBER_AND(stepval, mask);
+                    if (unlikely(API_IS_NULL(digit))) goto done;
+                    idigit = PYOBJECT_LONG_AS_LONG(digit);
+                    PYOBJECT_CLOSEREF(digit);
                     if (unlikely(idigit < 0)) goto done;
 
-                    tmp = PyNumber_Rshift(stepval, shift);
-                    if (unlikely(!tmp)) goto done;
-                    Py_DECREF(stepval); stepval = tmp;
+                    tmp = NUMBER_RSHIFT(stepval, shift);
+                    if (unlikely(API_IS_NULL(tmp))) goto done;
+                    PYOBJECT_CLOSEREF(stepval); stepval = tmp;
 
                     val |= (({{TYPE}}) idigit) << bits;
 
-                    #if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000
+                    #if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000 && !CYTHON_USING_HPY
                     if (Py_SIZE(stepval) == 0)
                         goto unpacking_done;
                     #endif
                 }
 
                 // detect overflow when adding the last bits
-                idigit = PyLong_AsLong(stepval);
+                idigit = PYOBJECT_LONG_AS_LONG(stepval);
                 if (unlikely(idigit < 0)) goto done;
                 remaining_bits = ((int) sizeof({{TYPE}}) * 8) - bits - (is_unsigned ? 0 : 1);
                 if (unlikely(idigit >= (1L << remaining_bits)))
@@ -1147,11 +1147,11 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
                 }
                 ret = 0;
             done:
-                Py_XDECREF(shift);
-                Py_XDECREF(mask);
-                Py_XDECREF(stepval);
+                PYOBJECT_XCLOSEREF(shift);
+                PYOBJECT_XCLOSEREF(mask);
+                PYOBJECT_XCLOSEREF(stepval);
 #endif
-                Py_DECREF(v);
+                PYOBJECT_CLOSEREF(v);
                 if (likely(!ret))
                     return val;
             }
@@ -1160,10 +1160,10 @@ static CYTHON_INLINE {{TYPE}} {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_DEF PyO
         {{endif}}
     } else {
         {{TYPE}} val;
-        PyObject *tmp = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
-        if (!tmp) return ({{TYPE}}) -1;
+        PYOBJECT_TYPE tmp = __Pyx_PyNumber_IntOrLong(HPY_CONTEXT_FIRST_ARG_CALL x);
+        if (API_IS_NULL(tmp)) return ({{TYPE}}) -1;
         val = {{FROM_PY_FUNCTION}}(HPY_CONTEXT_FIRST_ARG_CALL tmp);
-        Py_DECREF(tmp);
+        PYOBJECT_CLOSEREF(tmp);
         return val;
     }
 
