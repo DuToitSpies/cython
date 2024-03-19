@@ -1337,7 +1337,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             writer.putln("#if CYTHON_USE_MODULE_STATE")
         for entry in env.c_class_entries:
             if definition or entry.defined_in_pxd:
-                module_state.putln("PyTypeObject *%s;" % entry.type.typeptr_cname)
+                module_state.putln("PYTYPEOBJECT_TYPE %s;" % entry.type.typeptr_cname)
                 module_state_defines.putln("#define %s %s->%s" % (
                     entry.type.typeptr_cname,
                     Naming.modulestateglobal_cname,
@@ -2653,7 +2653,7 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         else:
             objstruct = "struct %s" % ext_type.objstruct_cname
         classname = scope.class_name.as_c_string_literal()
-        code.putln("static PyType_Spec %s_spec = {" % ext_type.typeobj_cname)
+        code.putln("static TYPESPEC_TYPE %s_spec = {" % ext_type.typeobj_cname)
         code.putln('"%s.%s",' % (self.full_module_name, classname.replace('"', '')))
         code.putln("sizeof(%s)," % objstruct)
         code.putln("0,")

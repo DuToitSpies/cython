@@ -41,7 +41,7 @@ class BaseType:
         raise NotImplementedError("C types that support string formatting must override this method")
 
     def cast_code(self, expr_code):
-        return "((%s)%s)" % (self.empty_declaration_code(), expr_code)
+        return "(CAST_IF_CAPI(%s)%s)" % (self.empty_declaration_code(), expr_code)
 
     def empty_declaration_code(self, pyrex=False):
         if pyrex:
@@ -1286,7 +1286,7 @@ class PyObjectType(PyrexType):
 
     def as_pyobject(self, cname):
         if (not self.is_complete()) or self.is_extension_type:
-            return "(PYOBJECT_TYPE)" + cname
+            return "CAST_IF_CAPI(PYOBJECT_TYPE)" + cname
         else:
             return cname
 
@@ -1572,9 +1572,9 @@ class BuiltinObjectType(PyObjectType):
             # captialize doesn't catch the 'V'
             type_check = "PyMemoryView_Check"
         else:
-            type_check = 'Py%s_Check' % type_name.capitalize()
+            type_check = '%s_CHECK' % type_name.upper()
         if exact and type_name not in ('bool', 'slice', 'Exception'):
-            type_check += 'Exact'
+            type_check += '_EXACT'
         return type_check
 
     def isinstance_code(self, arg):
@@ -1604,7 +1604,7 @@ class BuiltinObjectType(PyObjectType):
         if self.decl_type == 'PYOBJECT_TYPE_NO_POINTER':
             return cname
         else:
-            return "(PYOBJECT_TYPE)" + cname
+            return "CAST_IF_CAPI(PYOBJECT_TYPE)" + cname
 
     def cast_code(self, expr_code, to_object_struct = False):
         return "((%s CAPI_IS_POINTER)%s)" % (
@@ -1724,6 +1724,10 @@ class PyExtensionType(PyObjectType):
             else:
                 entity_code = "*%s" % entity_code
         return self.base_declaration_code(base_code, entity_code)
+
+    def hpy_declaration_code(self, entity_code,
+            for_display = 0, dll_linkage = None, pyrex = 0, deref = 0): #TODO(HPy): see if there isn't a nicer way to do this than creating another funtion
+        return self.base_declaration_code("PYOBJECT_TYPE", entity_code)
 
     def type_test_code(self, py_arg, notnone=False):
 
@@ -3421,7 +3425,7 @@ class CFuncType(CType):
         if self.is_const_method:
             trailer += " const"
         return self.return_type.declaration_code(
-            "%s%s(%s)%s" % (cc, entity_code, arg_decl_code, trailer),
+            "%s%s(HPY_CONTEXT_FIRST_ARG_DEF %s)%s" % (cc, entity_code, arg_decl_code, trailer),
             for_display, dll_linkage, pyrex)
 
     def function_header_code(self, func_name, arg_code):
@@ -3429,7 +3433,7 @@ class CFuncType(CType):
             trailer = " const"
         else:
             trailer = ""
-        return "%s%s(%s)%s" % (self.calling_convention_prefix(),
+        return "%s%s(HPY_CONTEXT_FIRST_ARG_DEF %s)%s" % (self.calling_convention_prefix(),
             func_name, arg_code, trailer)
 
     def signature_string(self):

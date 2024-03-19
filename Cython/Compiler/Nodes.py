@@ -2841,7 +2841,10 @@ class CFuncDefNode(FuncDefNode):
             entry = scope.lookup(arg.name)
             if not entry.cf_used:
                 arg_decl = 'CYTHON_UNUSED %s' % arg_decl
-            arg_decls.append(arg_decl)
+            if len(arg_decl) == 0:
+                arg_decls.append(arg_decl)
+            else:
+                arg_decls.append(arg_decl)
         if with_dispatch and self.overridable:
             dispatch_arg = PyrexTypes.c_int_type.declaration_code(
                 Naming.skip_dispatch_cname)
@@ -2874,7 +2877,7 @@ class CFuncDefNode(FuncDefNode):
             code.putln(self.template_declaration)
         if needs_proto:
             code.globalstate.parts['module_declarations'].putln(
-                "%s%s%s; /* proto*/" % (storage_class, modifiers, header))
+                "%s%s%s; /* proto*/ //AAAA %s" % (storage_class, modifiers, header, header))
         code.putln("%s%s%s {" % (storage_class, modifiers, header))
 
     def generate_argument_declarations(self, env, code):
@@ -3509,11 +3512,13 @@ class DefNode(FuncDefNode):
                     code, with_pymethdef, True)
             return
         arg_code_list = []
+        hpy_arg_code_list = []
         if self.entry.signature.has_dummy_arg:
             self_arg = 'PYOBJECT_TYPE %s' % Naming.self_cname
             if not self.needs_outer_scope:
                 self_arg = 'CYTHON_UNUSED ' + self_arg
             arg_code_list.append(self_arg)
+            hpy_arg_code_list.append(self_arg)
 
         def arg_decl_code(arg):
             entry = arg.entry
@@ -3526,14 +3531,34 @@ class DefNode(FuncDefNode):
                 decl = 'CYTHON_UNUSED ' + decl
             return decl
 
+        def hpy_arg_decl_code(arg):
+            #This allows us to return PYOBJECT_TYPE for structs in HPy, whereas in the C API their type is "struct X *"
+            #TODO(HPy): See if better solution is possible
+            entry = arg.entry
+            if entry.in_closure:
+                cname = entry.original_cname
+            else:
+                cname = entry.cname
+            if hasattr(entry.type, "hpy_declaration_code"):
+                decl = entry.type.hpy_declaration_code(cname)
+            else:
+                decl = entry.type.declaration_code(cname)
+            if not entry.cf_used:
+                decl = 'CYTHON_UNUSED ' + decl
+            return decl
+
         for arg in self.args:
             arg_code_list.append(arg_decl_code(arg))
+            hpy_arg_code_list.append(hpy_arg_decl_code(arg))
         if self.star_arg:
             arg_code_list.append(arg_decl_code(self.star_arg))
+            hpy_arg_code_list.append(hpy_arg_decl_code(self.star_arg))
         if self.starstar_arg:
             arg_code_list.append(arg_decl_code(self.starstar_arg))
+            hpy_arg_code_list.append(hpy_arg_decl_code(self.starstar_arg))
         if arg_code_list:
             arg_code = ', '.join(arg_code_list)
+            hpy_arg_code = "HPY_CONTEXT_FIRST_ARG_DEF " + ', '.join(hpy_arg_code_list)
         else:
             arg_code = 'void'  # No arguments
         dc = self.return_type.declaration_code(self.entry.pyfunc_cname)
@@ -3542,11 +3567,22 @@ class DefNode(FuncDefNode):
         preprocessor_guard = self.get_preprocessor_guard()
         if preprocessor_guard:
             decls_code.putln(preprocessor_guard)
+        decls_code.putln("#if !CYTHON_USING_HPY")    
         decls_code.putln(
-            "static %s(HPY_CONTEXT_FIRST_ARG_DEF %s); /* proto */" % (dc, arg_code))
+            "static %s(%s); /* proto */" % (dc, arg_code))
+        decls_code.putln("#else")
+        decls_code.putln(
+            "static %s(%s); /* proto */" % (dc, hpy_arg_code))
+        decls_code.putln("#endif")
         if preprocessor_guard:
             decls_code.putln("#endif")
-        code.putln("static %s(HPY_CONTEXT_FIRST_ARG_DEF %s) {" % (dc, arg_code))
+        code.putln("#if !CYTHON_USING_HPY")
+        code.putln("static %s(%s)" % (dc, arg_code))
+        code.putln("#else")
+        code.putln("static %s(%s)" % (dc, hpy_arg_code))
+        code.putln("#endif")
+        code.putln("{")
+
 
     def generate_argument_declarations(self, env, code):
         pass
@@ -4250,7 +4286,6 @@ class DefNodeWrapper(FuncDefNode):
                 if arg.default:
                     # C-typed default arguments must be handled here
                     code.putln('if (%s) {' % item)
-                item = "HPY_LEGACY_OBJECT_AS(%s)" % item
                 code.putln(arg.type.from_py_call_code(
                     item, arg.entry.cname, arg.pos, code))
                 if arg.default:
@@ -5661,6 +5696,10 @@ class CClassDefNode(ClassDefNode):
                 ))
                 code.put_gotref(tuple_temp, py_object_type)
 
+            from . import ExprNodes
+            load_module_cname = ExprNodes.LoadGlobalNode(entry.pos, Naming.module_cname)
+            load_module_cname.allocate(code)
+
             if bases_tuple_cname or tuple_temp:
                 if check_heap_type_bases:
                     code.globalstate.use_utility_code(
@@ -5671,24 +5710,25 @@ class CClassDefNode(ClassDefNode):
                         bases_tuple_cname or tuple_temp,
                     ))
 
-                code.putln("%s = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(%s, &%s, %s);" % (
+                code.putln("%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, &%s, %s);" % (
                     typeptr_cname,
-                    Naming.module_cname,
+                    load_module_cname.temp_cname,
                     typespec_cname,
                     bases_tuple_cname or tuple_temp,
                 ))
                 if tuple_temp:
                     code.put_xdecref_clear(tuple_temp, type=py_object_type)
                     code.funcstate.release_temp(tuple_temp)
-                code.putln(code.error_goto_if_null(typeptr_cname, entry.pos))
+                code.putln(code.error_goto_if_null_object(typeptr_cname, entry.pos))
             else:
                 code.putln(
-                    "%s = (PyTypeObject *) __Pyx_PyType_FromModuleAndSpec(%s, &%s, NULL); %s" % (
+                    "%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, &%s, API_NULL_VALUE); %s" % (
                         typeptr_cname,
-                        Naming.module_cname,
+                        load_module_cname.temp_cname,
                         typespec_cname,
-                        code.error_goto_if_null(typeptr_cname, entry.pos),
+                        code.error_goto_if_null_object(typeptr_cname, entry.pos),
                     ))
+            load_module_cname.release(code)
 
             # The buffer interface is not currently supported by PyType_FromSpec().
             buffer_slot = TypeSlots.get_slot_by_name("tp_as_buffer", code.globalstate.directives)
@@ -5726,7 +5766,7 @@ class CClassDefNode(ClassDefNode):
 
             code.globalstate.use_utility_code(
                 UtilityCode.load_cached("FixUpExtensionType", "ExtensionTypes.c"))
-            code.put_error_if_neg(entry.pos, "__Pyx_fix_up_extension_type_from_spec(&%s, %s)" % (
+            code.put_error_if_neg(entry.pos, "__Pyx_fix_up_extension_type_from_spec(HPY_CONTEXT_FIRST_ARG_CALL &%s, %s)" % (
                 typespec_cname, typeptr_cname))
 
             code.putln("#else")
@@ -5848,12 +5888,15 @@ class CClassDefNode(ClassDefNode):
                 from . import ExprNodes
                 load_cname = ExprNodes.LoadGlobalNode(entry.pos, Naming.module_cname)
                 load_cname.allocate(code)
+                load_intern_classname = ExprNodes.LoadGlobalNode(entry.pos, code.intern_identifier(scope.class_name))
+                load_intern_classname.allocate(code)
                 code.put_error_if_neg(entry.pos, "PYOBJECT_SET_ATTR(%s, %s, CAST_IF_CAPI(PyObject *) %s)" % (
                     load_cname.temp_cname,
-                    code.intern_identifier(scope.class_name),
+                    load_intern_classname.temp_cname,
                     typeptr_cname,
                 ))
                 load_cname.release(code)
+                load_intern_classname.release(code)
 
             weakref_entry = scope.lookup_here("__weakref__") if not scope.is_closure_class_scope else None
             if weakref_entry:
@@ -5877,7 +5920,7 @@ class CClassDefNode(ClassDefNode):
                 # do so at runtime.
                 code.globalstate.use_utility_code(
                     UtilityCode.load_cached('SetupReduce', 'ExtensionTypes.c'))
-                code.put_error_if_neg(entry.pos, "__Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_CALL (PyObject *) %s)" % typeptr_cname)
+                code.put_error_if_neg(entry.pos, "__Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_CALL (PYOBJECT_TYPE) %s)" % typeptr_cname)
 
     def annotate(self, code):
         if self.type_init_args:
