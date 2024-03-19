@@ -456,6 +456,8 @@
   #define CYTHON_COMPILING_IN_LIMITED_API 1
   #undef CYTHON_UNPACK_METHODS
   #define CYTHON_UNPACK_METHODS 0
+  #undef CYTHON_USE_PYTYPE_LOOKUP
+  #define CYTHON_USE_PYTYPE_LOOKUP 0
   /* We don't use refnanny in HPy since it has the debug mode */
   #undef CYTHON_REFNANNY
   #define CYTHON_REFNANNY 0
@@ -1247,8 +1249,8 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
   #define __Pyx_PySequence_ListKeepNew(obj)  PySequence_List(obj)
 #endif
 
-#ifndef PySet_CheckExact
-  #define PySet_CheckExact(obj)        __Pyx_IS_TYPE(obj, &PySet_Type)
+#ifndef SET_CHECK_EXACT
+  #define SET_CHECK_EXACT(obj)        __Pyx_IS_TYPE(obj, &PySet_Type)
 #endif
 
 #if PY_VERSION_HEX >= 0x030900A4

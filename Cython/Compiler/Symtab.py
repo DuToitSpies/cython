@@ -2288,7 +2288,7 @@ class CClassScope(ClassScope):
         # isn't relevant.
         if ((parent_type.is_builtin_type or parent_type.is_extension_type)
                 and parent_type.typeptr_cname):
-            self.namespace_cname = "(PyObject *)%s" % parent_type.typeptr_cname
+            self.namespace_cname = "(PYOBJECT_TYPE)%s" % parent_type.typeptr_cname
 
     def needs_gc(self):
         # If the type or any of its base types have Python-valued

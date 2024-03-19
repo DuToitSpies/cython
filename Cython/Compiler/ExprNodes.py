@@ -2588,8 +2588,10 @@ class NameNode(AtomicExprNode):
             rhs.free_temps(code)
             if entry.is_member:
                 # in Py2.6+, we need to invalidate the method cache
+                code.putln("#if !CYTHON_USING_HPY")
                 code.putln("PyType_Modified(%s);" %
                            entry.scope.parent_type.typeptr_cname)
+                code.putln("#endif")
         else:
             if self.type.is_memoryviewslice:
                 self.generate_acquire_memoryviewslice(rhs, code)
@@ -8626,7 +8628,7 @@ class SequenceNode(ExprNode):
         else:
             sequence_types = ['Tuple', 'List']
             get_size_func = "__Pyx_PySequence_SIZE"
-            tuple_check = 'likely(PyTuple_CheckExact(%s))' % rhs.py_result()
+            tuple_check = 'likely(TUPLE_CHECK_EXACT(%s))' % rhs.py_result()
             list_check  = 'PyList_CheckExact(%s)' % rhs.py_result()
             sequence_type_test = "(%s) || (%s)" % (tuple_check, list_check)
 

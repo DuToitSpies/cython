@@ -1,7 +1,7 @@
 /////////////// FixUpExtensionType.proto ///////////////
 
 #if CYTHON_USE_TYPE_SPECS
-static int __Pyx_fix_up_extension_type_from_spec(PyType_Spec *spec, PyTypeObject *type); /*proto*/
+static int __Pyx_fix_up_extension_type_from_spec(HPY_CONTEXT_FIRST_ARG_DEF TYPESPEC_TYPE *spec, PYTYPEOBJECT_TYPE type); /*proto*/
 #endif
 
 /////////////// FixUpExtensionType ///////////////
@@ -9,7 +9,7 @@ static int __Pyx_fix_up_extension_type_from_spec(PyType_Spec *spec, PyTypeObject
 //@requires:StringTools.c::IncludeStringH
 
 #if CYTHON_USE_TYPE_SPECS
-static int __Pyx_fix_up_extension_type_from_spec(PyType_Spec *spec, PyTypeObject *type) {
+static int __Pyx_fix_up_extension_type_from_spec(HPY_CONTEXT_FIRST_ARG_DEF TYPESPEC_TYPE *spec, PYTYPEOBJECT_TYPE type) {
 #if PY_VERSION_HEX > 0x030900B1 || CYTHON_COMPILING_IN_LIMITED_API
     CYTHON_UNUSED_VAR(spec);
     CYTHON_UNUSED_VAR(type);
@@ -123,7 +123,7 @@ static int __Pyx_validate_bases_tuple(HPY_CONTEXT_FIRST_ARG_DEF const char *type
     {
         PYTYPEOBJECT_TYPE b;
 #if CYTHON_AVOID_BORROWED_REFS
-        PYOBJECT_TYPE b0 = HPY_LEGACY_OBJECT_FROM(PySequence_GetItem(HPY_LEGACY_OBJECT_AS(bases), HPY_LEGACY_OBJECT_AS(i)));
+        PYOBJECT_TYPE b0 = HPY_LEGACY_OBJECT_FROM(PySequence_GetItem(HPY_LEGACY_OBJECT_AS(bases), i));
         if (API_IS_NULL(b0)) return -1;
 #elif CYTHON_ASSUME_SAFE_MACROS
         PyObject *b0 = PyTuple_GET_ITEM(bases, i);
@@ -132,6 +132,7 @@ static int __Pyx_validate_bases_tuple(HPY_CONTEXT_FIRST_ARG_DEF const char *type
         if (!b0) return -1;
 #endif
         b = (PYTYPEOBJECT_TYPE) b0;
+#if !CYTHON_USING_HPY //not sure how this should be done in HPy
         if (!__Pyx_PyType_HasFeature(b, Py_TPFLAGS_HEAPTYPE))
         {
             __Pyx_TypeName b_name = __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL b);
@@ -143,13 +144,14 @@ static int __Pyx_validate_bases_tuple(HPY_CONTEXT_FIRST_ARG_DEF const char *type
 #endif
             return -1;
         }
+#endif
         if (dictoffset == 0)
         {
             API_SSIZE_T b_dictoffset = 0;
 #if CYTHON_USE_TYPE_SLOTS || CYTHON_COMPILING_IN_PYPY
             b_dictoffset = b->tp_dictoffset;
 #else
-            PYOBJECT_TYPE py_b_dictoffset = PYOBJECT_GET_ATTR_STR((PyObject*)b, "__dictoffset__");
+            PYOBJECT_TYPE py_b_dictoffset = PYOBJECT_GET_ATTR_STR((PYOBJECT_TYPE)b, "__dictoffset__");
             if (API_IS_NULL(py_b_dictoffset)) goto dictoffset_return;
             b_dictoffset = PYOBJECT_LONG_AS_SSIZE_T(py_b_dictoffset);
             PYOBJECT_CLOSEREF(py_b_dictoffset);
@@ -501,12 +503,12 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
         reduce = __Pyx_PyObject_GetAttrStr(type_obj, load_reduce); if (unlikely(API_IS_NULL(reduce))) goto __PYX_BAD;
 
         PYOBJECT_TYPE load_reduce_cython = PYOBJECT_GLOBAL_LOAD(PYIDENT("__reduce_cython__"));
-        if (API_IS_EQUAL(reduce, object_reduce) || __Pyx_setup_reduce_is_named(reduce, load_reduce_cython)) {
+        if (API_IS_EQUAL(reduce, object_reduce) || __Pyx_setup_reduce_is_named(HPY_CONTEXT_FIRST_ARG_CALL reduce, load_reduce_cython)) {
             reduce_cython = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_reduce_cython);
             if (likely(API_IS_NOT_NULL(reduce_cython))) {
                 ret = __Pyx_SetItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_reduce, reduce_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
                 ret = __Pyx_DelItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_reduce_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
-            } else if (reduce == object_reduce || PyErr_Occurred()) {
+            } else if (API_IS_EQUAL(reduce, object_reduce) || PyErr_Occurred()) {
                 // Ignore if we're done, i.e. if 'reduce' already has the right name and the original is gone.
                 // Otherwise: error.
                 goto __PYX_BAD;
@@ -519,7 +521,7 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
 
             setstate = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_setstate);
             if (API_IS_NULL(setstate)) PyErr_Clear();
-            if (API_IS_NULL(setstate) || __Pyx_setup_reduce_is_named(setstate, load_setstate_cython)) {
+            if (API_IS_NULL(setstate) || __Pyx_setup_reduce_is_named(HPY_CONTEXT_FIRST_ARG_CALL setstate, load_setstate_cython)) {
                 setstate_cython = __Pyx_PyObject_GetAttrStrNoError(HPY_CONTEXT_FIRST_ARG_CALL type_obj, load_setstate_cython);
                 if (likely(API_IS_NOT_NULL(setstate_cython))) {
                     ret = __Pyx_SetItemOnTypeDict((PYTYPEOBJECT_TYPE)type_obj, load_setstate, setstate_cython); if (unlikely(ret < 0)) goto __PYX_BAD;
@@ -532,7 +534,9 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
             }
             PYOBJECT_GLOBAL_CLOSEREF(load_setstate);
             PYOBJECT_GLOBAL_CLOSEREF(load_setstate_cython);
+#if !CYTHON_USING_HPY
             PyType_Modified((PYTYPEOBJECT_TYPE)type_obj);
+#endif
         }
     }
     goto __PYX_GOOD;
@@ -540,7 +544,7 @@ static int __Pyx_setup_reduce(HPY_CONTEXT_FIRST_ARG_DEF PYOBJECT_TYPE type_obj) 
 __PYX_BAD:
     if (!PyErr_Occurred()) {
         __Pyx_TypeName type_obj_name =
-            __Pyx_PyType_GetName((PYTYPEOBJECT_TYPE)type_obj);
+            __Pyx_PyType_GetName(HPY_CONTEXT_FIRST_ARG_CALL (PYTYPEOBJECT_TYPE)type_obj);
         PyErr_Format(PyExc_RuntimeError,
             "Unable to initialize pickling for " __Pyx_FMT_TYPENAME, type_obj_name);
         __Pyx_DECREF_TypeName(type_obj_name);

@@ -78,7 +78,10 @@
   #define LONG_CHECK(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
   #define LONG_CHECK_EXACT(l) HPyLong_Check(HPY_CONTEXT_CNAME, l)
   #define LONG_CHECKExact(l) HPyLong_Check(HPY_CONTEXT_CNAME, l) //TODO(HPy): Remove
+  #define FLOAT_CHECK(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
   #define FLOAT_CHECK_EXACT(f) HPyFloat_Check(HPY_CONTEXT_CNAME, f)
+  #define COMPLEX_CHECK(c) HPyNumber_Check(c)
+  #define COMPLEX_CHECK_EXACT(c) HPyNumber_Check(c)
   #define UNICODE_CHECK(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define UNICODE_CHECK_EXACT(u) HPyUnicode_Check(HPY_CONTEXT_CNAME, u)
   #define DICT_CHECK(o) HPyDict_Check(HPY_CONTEXT_CNAME, o)
@@ -198,6 +201,7 @@
 
   //Type Type
   #define TYPESPEC_TYPE HPyType_Spec
+    #define TYPESLOT_TYPE HPyType_Slot
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) HPyType_FromModuleAndSpec(HPY_CONTEXT_CNAME, m, &s, b)
   #define TYPESPEC_GET(s, field) s.field
   #define TYPE_CHECK(o) HPy_TypeCheck(HPY_CONTEXT_CNAME, (o), HPY_CONTEXT_CNAME->h_TypeType)
@@ -301,7 +305,10 @@
   #define LONG_CHECK(l) PyLong_Check(l)
   #define LONG_CHECK_EXACT(l) PyLong_CheckExact(l)
   #define LONG_CHECKExact(l) PyLong_CheckExact(l) //TODO(HPy): Remove
+  #define FLOAT_CHECK(f) PyFloat_Check(f)
   #define FLOAT_CHECK_EXACT(f) PyFloat_CheckExact(f)
+  #define COMPLEX_CHECK(c) PyComplex_Check(c)
+  #define COMPLEX_CHECK_EXACT(c) PyComplex_CheckExact(c)
   #define UNICODE_CHECK(u) PyUnicode_Check(u)
   #define UNICODE_CHECK_EXACT(u) PyUnicode_CheckExact(u)
   #define DICT_CHECK(o) PyDict_Check(o)
@@ -422,6 +429,7 @@
 
   //Type Type
   #define TYPESPEC_TYPE PyType_Spec
+  #define TYPESLOT_TYPE PyType_Slot
   #define TYPE_FROM_MOD_AND_SPEC(m, s, b) PyType_FromModuleAndSpec(m, s, b)
   #define TYPESPEC_GET(s, field) s->field
   #define TYPE_CHECK(o) PyType_Check(o)

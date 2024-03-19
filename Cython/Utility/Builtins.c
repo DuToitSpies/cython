@@ -175,7 +175,7 @@ static CYTHON_INLINE PYOBJECT_TYPE __Pyx_GetAttr3(HPY_CONTEXT_FIRST_ARG_DEF PYOB
     }
   #endif
     r = PYOBJECT_GET_ATTR(o, n);
-    return (likely(r)) ? r : __Pyx_GetAttr3Default(HPY_CONTEXT_FIRST_ARG_CALL d);
+    return (likely(API_IS_NOT_NULL(r))) ? r : __Pyx_GetAttr3Default(HPY_CONTEXT_FIRST_ARG_CALL d);
 #endif
 }
 

@@ -185,7 +185,7 @@ static int __Pyx_CheckKeywordStrings(
             key = PyTuple_GET_ITEM(kw, 0);
 #else
             key = TUPLE_GET_ITEM(kw, pos);
-            if (!key) return 0;
+            if (API_IS_NULL(key)) return 0;
 #endif
             goto invalid_keyword;
         }
@@ -197,7 +197,7 @@ static int __Pyx_CheckKeywordStrings(
             key = PyTuple_GET_ITEM(kw, pos);
 #else
             key = TUPLE_GET_ITEM(kw, pos);
-            if (!key) return 0;
+            if (API_IS_NULL(key)) return 0;
 #endif
             if (unlikely(!UNICODE_CHECK(key)))
                 goto invalid_keyword_type;
@@ -208,7 +208,7 @@ static int __Pyx_CheckKeywordStrings(
 
     PyObject *legacy_key = NULL;
 
-    while (PyDict_Next(HPY_LEGACY_OBJECT_AS(kw), &HPY_LEGACY_OBJECT_AS(pos), &legacy_key, 0)) {
+    while (PyDict_Next(HPY_LEGACY_OBJECT_AS(kw), &pos, &legacy_key, 0)) {
         if (unlikely(!UNICODE_CHECK(key)))
             goto invalid_keyword_type;
     }

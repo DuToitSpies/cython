@@ -1154,7 +1154,7 @@ class GlobalState:
         'end'
     ]
 
-    globals_counter = 5
+    globals_counter = 6
 
     # h files can only have a much smaller list of sections
     h_code_layout = [
@@ -1187,7 +1187,7 @@ class GlobalState:
         self.cached_cmethods = {}
         self.initialised_constants = set()
 
-        self.const_cname_array = ['__pyx_d', '__pyx_cython_runtime', '__pyx_empty_tuple', '__pyx_empty_bytes', '__pyx_empty_unicode']
+        self.const_cname_array = ['__pyx_d', '__pyx_cython_runtime', '__pyx_empty_tuple', '__pyx_empty_bytes', '__pyx_empty_unicode', '__pyx_m']
 
         writer.set_global_state(self)
         self.rootwriter = writer
@@ -1232,6 +1232,7 @@ class GlobalState:
         w.putln("globals_array[2] = &__pyx_empty_tuple;")
         w.putln("globals_array[3] = &__pyx_empty_bytes;")
         w.putln("globals_array[4] = &__pyx_empty_unicode;")
+        w.putln("globals_array[5] = &__pyx_m;")
 
         if not Options.generate_cleanup_code:
             del self.parts['cleanup_globals']
@@ -1317,7 +1318,7 @@ class GlobalState:
                 w.putln("return -1;")
             w.putln("}")
             if (part == 'init_constants'):
-                w.putln("PYOBJECT_GLOBAL_TYPE *globals_array[%s];" % self.globals_counter)
+                w.putln("PYOBJECT_GLOBAL_TYPE *globals_array[%s+1];" % self.globals_counter)
             w.exit_cfunc_scope()
 
         if Options.generate_cleanup_code:
