@@ -1325,6 +1325,11 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
         if type.objtypedef_cname is not None:
             # Only for exposing public typedef name.
             code.putln("typedef struct %s %s;" % (type.objstruct_cname, type.objtypedef_cname))
+        else:
+            code.putln("typedef struct %s %s;" % (type.objstruct_cname, type.objstruct_cname))
+        code.putln("#if CYTHON_USING_HPY")
+        code.putln("HPyType_HELPERS(%s)" % type.objstruct_cname)
+        code.putln("#endif")
 
     def generate_c_class_declarations(self, env, code, definition, globalstate):
         module_state = globalstate['module_state']
@@ -4095,11 +4100,24 @@ def generate_cfunction_declaration(entry, env, code, definition):
 
         header = type.declaration_code(
             entry.cname, dll_linkage=dll_linkage)
+        if hasattr(type, "hpy_declaration_code"):
+            hpy_header = type.hpy_declaration_code(
+                entry.cname, dll_linkage=dll_linkage)
+        else:
+            hpy_header = type.declaration_code(
+                entry.cname, dll_linkage=dll_linkage)
         modifiers = code.build_function_modifiers(entry.func_modifiers)
+        code.putln("#if !CYTHON_USING_HPY")
         code.putln("%s %s%s; /*proto*/" % (
             storage_class,
             modifiers,
             header))
+        code.putln("#else")
+        code.putln("%s %s%s; /*proto*/" % (
+            storage_class,
+            modifiers,
+            hpy_header))
+        code.putln("#endif")
 
 #------------------------------------------------------------------------------------
 #

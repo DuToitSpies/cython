@@ -2835,32 +2835,45 @@ class CFuncDefNode(FuncDefNode):
     def generate_function_header(self, code, with_pymethdef, with_opt_args=1, with_dispatch=1, cname=None):
         scope = self.local_scope
         arg_decls = []
+        hpy_arg_decls = []
         type = self.type
         for arg in type.args[:len(type.args)-type.optional_arg_count]:
             arg_decl = arg.declaration_code()
+            if hasattr(arg, "hpy_declaration_code"):
+                hpy_arg_decl = arg.hpy_declaration_code()
+            else:
+                hpy_arg_decl = arg.declaration_code()
             entry = scope.lookup(arg.name)
             if not entry.cf_used:
                 arg_decl = 'CYTHON_UNUSED %s' % arg_decl
+                hpy_arg_decl = 'CYTHON_UNUSED %s' % hpy_arg_decl
             if len(arg_decl) == 0:
                 arg_decls.append(arg_decl)
+                hpy_arg_decls.append(hpy_arg_decl)
             else:
                 arg_decls.append(arg_decl)
+                hpy_arg_decls.append(hpy_arg_decl)
         if with_dispatch and self.overridable:
             dispatch_arg = PyrexTypes.c_int_type.declaration_code(
                 Naming.skip_dispatch_cname)
             if self.override:
                 arg_decls.append(dispatch_arg)
+                hpy_arg_decls.append(dispatch_arg)
             else:
                 arg_decls.append('CYTHON_UNUSED %s' % dispatch_arg)
+                hpy_arg_decls.append('CYTHON_UNUSED %s' % dispatch_arg)
         if type.optional_arg_count and with_opt_args:
             arg_decls.append(type.op_arg_struct.declaration_code(Naming.optional_args_cname))
+            hpy_arg_decls.append(type.op_arg_struct.declaration_code(Naming.optional_args_cname))
         if type.has_varargs:
             arg_decls.append("...")
+            hpy_arg_decls.append("...")
         if not arg_decls:
             arg_decls = ["void"]
         if cname is None:
             cname = self.entry.func_cname
         entity = type.function_header_code(cname, ', '.join(arg_decls))
+        hpy_entity = type.function_header_code(cname, ', '.join(hpy_arg_decls))
         if self.entry.visibility == 'private' and '::' not in cname:
             storage_class = "static "
         else:
@@ -2869,6 +2882,7 @@ class CFuncDefNode(FuncDefNode):
         modifiers = code.build_function_modifiers(self.entry.func_modifiers)
 
         header = self.return_type.declaration_code(entity, dll_linkage=dll_linkage)
+        hpy_header = self.return_type.declaration_code(hpy_entity, dll_linkage=dll_linkage)
         #print (storage_class, modifiers, header)
         needs_proto = self.is_c_class_method or self.entry.is_cproperty
         if self.template_declaration:
@@ -2876,9 +2890,19 @@ class CFuncDefNode(FuncDefNode):
                 code.globalstate.parts['module_declarations'].putln(self.template_declaration)
             code.putln(self.template_declaration)
         if needs_proto:
+            code.globalstate.parts['module_declarations'].putln("#if !CYTHON_USING_HPY")
             code.globalstate.parts['module_declarations'].putln(
-                "%s%s%s; /* proto*/ //AAAA %s" % (storage_class, modifiers, header, header))
-        code.putln("%s%s%s {" % (storage_class, modifiers, header))
+                "%s%s%s; /* proto*/ " % (storage_class, modifiers, header))
+            code.globalstate.parts['module_declarations'].putln("#else")
+            code.globalstate.parts['module_declarations'].putln(
+                "%s%s%s; /* proto*/" % (storage_class, modifiers, hpy_header))
+            code.globalstate.parts['module_declarations'].putln("#endif")
+        code.putln("#if !CYTHON_USING_HPY")
+        code.putln("%s%s%s" % (storage_class, modifiers, header))
+        code.putln("#else")
+        code.putln("%s%s%s" % (storage_class, modifiers, hpy_header))
+        code.putln("#endif")
+        code.putln("{")
 
     def generate_argument_declarations(self, env, code):
         scope = self.local_scope

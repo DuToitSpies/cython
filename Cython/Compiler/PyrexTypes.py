@@ -3428,6 +3428,61 @@ class CFuncType(CType):
             "%s%s(HPY_CONTEXT_FIRST_ARG_DEF %s)%s" % (cc, entity_code, arg_decl_code, trailer),
             for_display, dll_linkage, pyrex)
 
+    def hpy_declaration_code(self, entity_code,
+                         for_display = 0, dll_linkage = None, pyrex = 0,
+                         with_calling_convention = 1):
+        hpy_arg_decl_list = []
+        for arg in self.args[:len(self.args)-self.optional_arg_count]:
+            if hasattr(arg.type, "hpy_declaration_code"):
+                hpy_arg_decl_list.append(
+                    arg.type.hpy_declaration_code("", for_display, pyrex = pyrex))
+            else:
+                hpy_arg_decl_list.append(
+                    arg.type.declaration_code("", for_display, pyrex = pyrex))
+        if self.is_overridable:
+            hpy_arg_decl_list.append("int %s" % Naming.skip_dispatch_cname)
+        if self.optional_arg_count:
+            if self.op_arg_struct:
+                hpy_arg_decl_list.append(self.op_arg_struct.declaration_code(Naming.optional_args_cname))
+            else:
+                # op_arg_struct may not be initialized at this point if this class is being used
+                # to prepare a Python error message or similar.  In this case, just omit the args.
+                assert for_display
+        if self.has_varargs:
+            hpy_arg_decl_list.append("...")
+        hpy_arg_decl_code = ", ".join(hpy_arg_decl_list)
+        if not hpy_arg_decl_code and not pyrex:
+            hpy_arg_decl_code = "HPY_CONTEXT_ONLY_ARG_DEF"
+        else:
+            hpy_arg_decl_code = "HPY_CONTEXT_FIRST_ARG_DEF " + hpy_arg_decl_code
+        trailer = ""
+        if (pyrex or for_display) and not self.return_type.is_pyobject:
+            if self.exception_value and self.exception_check:
+                trailer = " except? %s" % self.exception_value
+            elif self.exception_value and not self.exception_check:
+                trailer = " except %s" % self.exception_value
+            elif not self.exception_value and not self.exception_check:
+                trailer = " noexcept"
+            elif self.exception_check == '+':
+                trailer = " except +"
+            elif self.exception_check and for_display:
+                # not spelled out by default, unless for human eyes
+                trailer = " except *"
+            if self.nogil:
+                trailer += " nogil"
+        if not with_calling_convention:
+            cc = ''
+        else:
+            cc = self.calling_convention_prefix()
+            if (not entity_code and cc) or entity_code.startswith("*"):
+                entity_code = "(%s%s)" % (cc, entity_code)
+                cc = ""
+        if self.is_const_method:
+            trailer += " const"
+        return self.return_type.declaration_code(
+            "%s%s(%s)%s" % (cc, entity_code, hpy_arg_decl_code, trailer),
+            for_display, dll_linkage, pyrex)
+
     def function_header_code(self, func_name, arg_code):
         if self.is_const_method:
             trailer = " const"
@@ -3768,6 +3823,12 @@ class CFuncTypeArg(BaseType):
 
     def declaration_code(self, for_display = 0):
         return self.type.declaration_code(self.cname, for_display)
+
+    def hpy_declaration_code(self, for_display = 0):
+        if hasattr(self.type, "hpy_declaration_code"):
+            return self.type.hpy_declaration_code(self.cname, for_display)
+        else:
+            return self.type.declaration_code(self.cname, for_display)
 
     def specialize(self, values):
         return CFuncTypeArg(self.name, self.type.specialize(values), self.pos, self.cname)

@@ -14722,12 +14722,28 @@ class CoerceToPyTypeNode(CoercionNode):
         return self
 
     def generate_result_code(self, code):
-        code.putln('%s; %s' % (
-            self.arg.type.to_py_call_code(
-                self.arg.result(),
-                self.result(),
-                self.target_type),
-            code.error_goto_if_null_object(self.result(), self.pos)))
+        if isinstance(self.arg, AttributeNode):
+            code.putln("{")
+            code.putln("#if CYTHON_USING_HPY")
+            code.putln("%s *struct_self = %s_AsStruct(HPY_CONTEXT_CNAME, %s);" % (self.arg.obj.type.objstruct_cname, self.arg.obj.type.objstruct_cname, self.arg.obj.entry.cname))
+            code.putln("#else")
+            code.putln("%s *struct_self = %s;" % (self.arg.obj.type.objstruct_cname, self.arg.obj.entry.cname))
+            code.putln("#endif")
+            code.putln('%s; %s' % (
+                self.arg.type.to_py_call_code(
+                    "struct_self->%s" % self.arg.attribute,
+                    self.result(),
+                    self.target_type),
+                code.error_goto_if_null_object(self.result(), self.pos)))
+            code.putln("}")
+        
+        else:
+            code.putln('%s; %s' % (
+                self.arg.type.to_py_call_code(
+                    self.arg.result(),
+                    self.result(),
+                    self.target_type),
+                code.error_goto_if_null_object(self.result(), self.pos)))
 
         self.generate_gotref(code)
 
