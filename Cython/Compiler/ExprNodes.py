@@ -510,6 +510,19 @@ class ExprNode(Node):
         else:
             return self.calculate_result_code()
 
+    def hpy_result(self):
+        if self.is_temp:
+            #if not self.temp_code:
+            #    pos = (os.path.basename(self.pos[0].get_description()),) + self.pos[1:] if self.pos else '(?)'
+            #    raise RuntimeError("temp result name not set in %s at %r" % (
+            #        self.__class__.__name__, pos))
+            return self.temp_code
+        else:
+            if hasattr(self, "calculate_hpy_result_code"):
+                return self.calculate_hpy_result_code()
+            else:
+                return self.calculate_result_code()
+
     def _make_move_result_rhs(self, result, optional=False):
         if optional and not (self.is_temp and self.type.is_cpp_class and not self.type.is_reference):
             return result
@@ -6539,7 +6552,7 @@ class SimpleCallNode(CallNode):
 
         if len(arg_list_code) > 0:
             arg_string = "HPY_CONTEXT_FIRST_ARG_CALL "
-            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex', '__Pyx_PySequence_ListKeepNew', 'LIST_INSERT', 'GET_TYPE']:
+            if self.function.result() in ['DICT_COPY', '__Pyx_PyList_PopIndex', '__Pyx_PyObject_PopIndex', '__Pyx_PySequence_ListKeepNew', 'LIST_INSERT', 'GET_TYPE', '__Pyx_PyTuple_GET_SIZE']:
                 arg_string = ""
             for arg in arg_list_code:
                 if code:
@@ -8056,6 +8069,9 @@ class AttributeNode(ExprNode):
             result = "(*%s)" % result
         return result
 
+    def calculate_hpy_result_code(self):
+        return self.calculate_hpy_access_code()
+
     def calculate_access_code(self):
         # Does the job of calculate_result_code but doesn't dereference cpp_optionals
         # Therefore allowing access to the holder variable
@@ -8091,6 +8107,10 @@ class AttributeNode(ExprNode):
                 # accessing a field of a builtin type, need to cast better than result_as() does
                 obj_code = obj.type.cast_code(obj.result(), to_object_struct = True)
             return "%s%s%s" % (obj_code, self.op, self.member)
+    
+    def calculate_hpy_access_code(self):
+        return "struct_obj->%s" % (self.member)
+            
 
     def generate_result_code(self, code):
         if self.is_py_attr:
@@ -8209,7 +8229,13 @@ class AttributeNode(ExprNode):
             rhs.generate_disposal_code(code)
             rhs.free_temps(code)
         else:
+            if isinstance(self.obj, NameNode) and hasattr(self.obj.type, "objstruct_cname"):
+                code.putln("{")
+                code.putln("#if CYTHON_USING_HPY")
+                code.putln("%s *struct_obj = %s_AsStruct(HPY_CONTEXT_CNAME, %s);" % (self.obj.type.objstruct_cname, self.obj.type.objstruct_cname, self.obj.entry.cname))
+                code.putln("#endif")
             select_code = self.result()
+            hpy_select_code = self.hpy_result()
             if self.type.is_pyobject and self.use_managed_ref:
                 rhs.make_owned_reference(code)
                 rhs.generate_giveref(code)
@@ -8221,11 +8247,27 @@ class AttributeNode(ExprNode):
                         select_code, rhs, rhs.result(), self.type, code)
 
             if not self.type.is_memoryviewslice:
-                code.putln(
-                    "%s = %s;" % (
-                        select_code,
-                        rhs.move_result_rhs_as(self.ctype())))
-                        #rhs.result()))
+                if isinstance(self.obj, NameNode) and hasattr(self.obj.type, "objstruct_cname"):
+                    code.putln("#if !CYTHON_USING_HPY")
+                    code.putln(
+                        "%s = %s;" % (
+                            select_code,
+                            rhs.move_result_rhs_as(self.ctype())))
+                            #rhs.result()))
+                    code.putln("#else")
+                    code.putln(
+                        "%s = %s;" % (
+                            hpy_select_code,
+                            rhs.move_result_rhs_as(self.ctype())))
+                            #rhs.result()))
+                    code.putln("#endif")
+                    code.putln("}")
+                else:
+                    code.putln(
+                        "%s = %s;" % (
+                            select_code,
+                            rhs.move_result_rhs_as(self.ctype())))
+                            #rhs.result()))
             rhs.generate_post_assignment_code(code)
             rhs.free_temps(code)
         self.obj.generate_disposal_code(code)
@@ -13958,8 +14000,13 @@ class CmpNode:
             code1 = operand1.result_as(common_type)
             code2 = operand2.result_as(common_type)
             op_value = self.c_operator(op)
-            if op_value == "==" and operand1.type == py_object_type and operand2.type == py_object_type:
+            if op_value in "==" and operand1.type == py_object_type and operand2.type == py_object_type:
                 statement = "%s = API_IS_EQUAL(%s, %s);" % (
+                    result_code,
+                    code1,
+                    code2)
+            elif op_value in "!=" and operand1.type == py_object_type and operand2.type == py_object_type:
+                statement = "%s = API_IS_NOT_EQUAL(%s, %s);" % (
                     result_code,
                     code1,
                     code2)

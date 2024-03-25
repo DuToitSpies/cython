@@ -2659,11 +2659,15 @@ class ModuleNode(Nodes.Node, Nodes.BlockNode):
             objstruct = "struct %s" % ext_type.objstruct_cname
         classname = scope.class_name.as_c_string_literal()
         code.putln("static TYPESPEC_TYPE %s_spec = {" % ext_type.typeobj_cname)
-        code.putln('"%s.%s",' % (self.full_module_name, classname.replace('"', '')))
-        code.putln("sizeof(%s)," % objstruct)
-        code.putln("0,")
-        code.putln("%s," % TypeSlots.get_slot_by_name("tp_flags", scope.directives).slot_code(scope))
-        code.putln("%s_slots," % ext_type.typeobj_cname)
+        code.putln('.name = "%s.%s",' % (self.full_module_name, classname.replace('"', '')))
+        code.putln(".basicsize = sizeof(%s)," % objstruct)
+        code.putln(".itemsize = 0,")
+        code.putln(".flags = %s," % TypeSlots.get_slot_by_name("tp_flags", scope.directives).slot_code(scope))
+        code.putln("#if !CYTHON_USING_HPY")
+        code.putln(".slots = %s_slots," % ext_type.typeobj_cname)
+        code.putln("#else")
+        code.putln(".legacy_slots = %s_slots," % ext_type.typeobj_cname)
+        code.putln("#endif")
         code.putln("};")
 
     def generate_typeobj_definition(self, modname, entry, code):

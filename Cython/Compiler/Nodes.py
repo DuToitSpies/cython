@@ -5734,7 +5734,7 @@ class CClassDefNode(ClassDefNode):
                         bases_tuple_cname or tuple_temp,
                     ))
 
-                code.putln("%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, &%s, %s);" % (
+                code.putln("%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, CAPI_NEEDS_DEREFERENCE %s, %s);" % (
                     typeptr_cname,
                     load_module_cname.temp_cname,
                     typespec_cname,
@@ -5746,7 +5746,7 @@ class CClassDefNode(ClassDefNode):
                 code.putln(code.error_goto_if_null_object(typeptr_cname, entry.pos))
             else:
                 code.putln(
-                    "%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, &%s, API_NULL_VALUE); %s" % (
+                    "%s = (PYTYPEOBJECT_TYPE) __Pyx_PyType_FromModuleAndSpec(%s, CAPI_NEEDS_DEREFERENCE %s, API_NULL_VALUE); %s" % (
                         typeptr_cname,
                         load_module_cname.temp_cname,
                         typespec_cname,
