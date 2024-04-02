@@ -4487,7 +4487,9 @@ class DefNodeWrapper(FuncDefNode):
                         code.putln('if (likely(API_IS_NOT_NULL(values[%d] = __Pyx_GetKwValue_%s(HPY_CONTEXT_FIRST_ARG_CALL %s, %s, %s)))) {' % (
                             i, self.signature.fastvar, Naming.kwds_cname, Naming.kwvalues_cname, tmp_load_pystr.temp_cname))
                     tmp_load_pystr.release(code)
+                    code.putln('#if !CYTHON_USING_HPY')
                     code.putln('(void)__Pyx_Arg_NewRef_%s(values[%d]);' % (self.signature.fastvar, i))
+                    code.putln('#endif')
                     code.putln('kw_args--;')
                     code.putln('}')
                     code.putln('else if (unlikely(PyErr_Occurred())) %s' % code.error_goto(self.pos))

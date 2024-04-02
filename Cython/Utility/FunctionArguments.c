@@ -475,7 +475,7 @@ bad:
 #endif
 #if CYTHON_AVOID_BORROWED_REFS
     #define __Pyx_Arg_NewRef_VARARGS(arg) __Pyx_NewRef(arg)
-    #define __Pyx_Arg_XDECREF_VARARGS(arg) Py_XDECREF(arg)
+    #define __Pyx_Arg_XDECREF_VARARGS(arg) PYOBJECT_XCLOSEREF(arg)
 #else
     #define __Pyx_Arg_NewRef_VARARGS(arg) arg  /* no-op */
     #define __Pyx_Arg_XDECREF_VARARGS(arg)     /* no-op - arg is borrowed */

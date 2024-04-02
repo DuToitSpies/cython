@@ -110,7 +110,7 @@
 
   //Long Type - To
   #define PYOBJECT_LONG_AS_SSIZE_T(l) HPyLong_AsSsize_t(HPY_CONTEXT_CNAME, l)
-  #define PYOBJECT_LONG_AS_LONG(l) HPYLong_AsLong(HPY_CONTEXT_CNAME, l)
+  #define PYOBJECT_LONG_AS_LONG(l) HPyLong_AsLong(HPY_CONTEXT_CNAME, l)
   #define PYOBJECT_LONG_AS_UNSIGNED_LONG(l) HPyLong_AsUnsignedLong(HPY_CONTEXT_CNAME, l)
 
   //Float Type - From

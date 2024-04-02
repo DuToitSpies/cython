@@ -12575,6 +12575,28 @@ class NumBinopNode(BinopNode):
                 self.operand1.result(),
                 self.operand2.result())
 
+    def calculate_hpy_result_code(self):
+        if self.overflow_bit_node is not None:
+            return "%s(%s, %s, &%s)" % (
+                self.func,
+                self.operand1.hpy_result(),
+                self.operand2.hpy_result(),
+                self.overflow_bit_node.overflow_bit)
+        elif self.type.is_cpp_class or self.infix:
+            if is_pythran_expr(self.type):
+                result1, result2 = self.operand1.pythran_result(), self.operand2.pythran_result()
+            else:
+                result1, result2 = self.operand1.hpy_result(), self.operand2.hpy_result()
+            return "(%s %s %s)" % (result1, self.operator, result2)
+        else:
+            func = self.type.binary_op(self.operator)
+            if func is None:
+                error(self.pos, "binary operator %s not supported for %s" % (self.operator, self.type))
+            return "%s(%s, %s)" % (
+                func,
+                self.operand1.hpy_result(),
+                self.operand2.hpy_result())
+
     def is_py_operation_types(self, type1, type2):
         return (type1.is_unicode_char or
                 type2.is_unicode_char or
